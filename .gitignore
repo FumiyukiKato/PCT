@@ -1,0 +1,35 @@
+#binary
+*/app
+
+#object file
+*.o
+
+#library
+*.a
+
+#share object
+*.so
+*.so.*
+
+#generated proxy
+./**/*_u.c
+./**/*_u.h
+./**/*_t.c
+./**/*_t.h
+
+**/target
+
+
+#secret
+setting
+.env
+server.crt
+server.key
+Intel_SGX_Attestaion_RootCA.pem
+
+
+.vscode
+generated-*
+
+# これはビルドできないので載せておく
+!libsample_libcrypto.so

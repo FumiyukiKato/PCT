@@ -1,0 +1,5 @@
+#!/bin/bash
+
+USER_NAME=$(whoami)
+
+cd docker && docker-compose -p $USER_NAME up

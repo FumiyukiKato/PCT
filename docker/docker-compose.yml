@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    devices:
+      - /dev/isgx
+    volumes:
+      - ${RUST_SDK_ROOT}:/root/sgx
+      - ${PCM_DIR}:/root/sgx/samplecode/PCM
+      - ${PCM_DIR}/docker/script/init.sh:/root/sgx/init.sh
+    tty: true
+    env_file: ${PCM_DIR}/.env
+    command: /root/sgx/init.sh
+    working_dir: /root/sgx/samplecode/PCM
+    ports:
+      - "50002:8080"

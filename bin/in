@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo '+ cd docker'
+cd docker
+echo '+ docker-compose exec app /bin/bash'
+
+USER_NAME=$(whoami)
+docker-compose -p $USER_NAME exec app /bin/bash

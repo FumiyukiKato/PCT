@@ -1,0 +1,6 @@
+#!/bin/bash
+
+PROJECT_NAME=prod
+
+# deploy用のイニシャルスクリプトみたいなのを作る
+cd docker && docker-compose -p $PROJECT_NAME up
