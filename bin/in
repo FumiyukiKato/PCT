@@ -2,7 +2,7 @@
 
 echo '+ cd docker'
 cd docker
-echo '+ docker-compose exec app /bin/bash'
+echo '+ docker-compose exec pct /bin/bash'
 
-USER_NAME=$(whoami)
-docker-compose -p $USER_NAME exec app /bin/bash
+PROJECT_NAME=PCT
+docker-compose -p $PROJECT_NAME exec pct /bin/bash
