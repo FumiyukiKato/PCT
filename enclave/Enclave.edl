@@ -23,6 +23,12 @@ enclave {
     trusted {
         /* define ECALLs here. */
 
-        public sgx_status_t say_something([in, size=len] const uint8_t* some_string, size_t len);
+        public sgx_status_t upload_query_data(
+            [in, size=toal_size] uint8_t* total_query_data,
+            size_t toal_size,
+            [in, count=client_size] size_t* size_list,
+            size_t client_size,
+            [in, count=client_size] uint64_t* query_id_list
+        );
     };
 };

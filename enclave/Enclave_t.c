@@ -27,11 +27,14 @@
 )
 
 
-typedef struct ms_say_something_t {
+typedef struct ms_upload_query_data_t {
 	sgx_status_t ms_retval;
-	const uint8_t* ms_some_string;
-	size_t ms_len;
-} ms_say_something_t;
+	uint8_t* ms_total_query_data;
+	size_t ms_toal_size;
+	size_t* ms_size_list;
+	size_t ms_client_size;
+	uint64_t* ms_query_id_list;
+} ms_upload_query_data_t;
 
 typedef struct ms_t_global_init_ecall_t {
 	uint64_t ms_id;
@@ -465,50 +468,107 @@ typedef struct ms_sgx_thread_set_multiple_untrusted_events_ocall_t {
 	size_t ms_total;
 } ms_sgx_thread_set_multiple_untrusted_events_ocall_t;
 
-static sgx_status_t SGX_CDECL sgx_say_something(void* pms)
+static sgx_status_t SGX_CDECL sgx_upload_query_data(void* pms)
 {
-	CHECK_REF_POINTER(pms, sizeof(ms_say_something_t));
+	CHECK_REF_POINTER(pms, sizeof(ms_upload_query_data_t));
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
-	ms_say_something_t* ms = SGX_CAST(ms_say_something_t*, pms);
+	ms_upload_query_data_t* ms = SGX_CAST(ms_upload_query_data_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
-	const uint8_t* _tmp_some_string = ms->ms_some_string;
-	size_t _tmp_len = ms->ms_len;
-	size_t _len_some_string = _tmp_len;
-	uint8_t* _in_some_string = NULL;
+	uint8_t* _tmp_total_query_data = ms->ms_total_query_data;
+	size_t _tmp_toal_size = ms->ms_toal_size;
+	size_t _len_total_query_data = _tmp_toal_size;
+	uint8_t* _in_total_query_data = NULL;
+	size_t* _tmp_size_list = ms->ms_size_list;
+	size_t _tmp_client_size = ms->ms_client_size;
+	size_t _len_size_list = _tmp_client_size * sizeof(size_t);
+	size_t* _in_size_list = NULL;
+	uint64_t* _tmp_query_id_list = ms->ms_query_id_list;
+	size_t _len_query_id_list = _tmp_client_size * sizeof(uint64_t);
+	uint64_t* _in_query_id_list = NULL;
 
-	CHECK_UNIQUE_POINTER(_tmp_some_string, _len_some_string);
+	if (sizeof(*_tmp_size_list) != 0 &&
+		(size_t)_tmp_client_size > (SIZE_MAX / sizeof(*_tmp_size_list))) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	if (sizeof(*_tmp_query_id_list) != 0 &&
+		(size_t)_tmp_client_size > (SIZE_MAX / sizeof(*_tmp_query_id_list))) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	CHECK_UNIQUE_POINTER(_tmp_total_query_data, _len_total_query_data);
+	CHECK_UNIQUE_POINTER(_tmp_size_list, _len_size_list);
+	CHECK_UNIQUE_POINTER(_tmp_query_id_list, _len_query_id_list);
 
 	//
 	// fence after pointer checks
 	//
 	sgx_lfence();
 
-	if (_tmp_some_string != NULL && _len_some_string != 0) {
-		if ( _len_some_string % sizeof(*_tmp_some_string) != 0)
+	if (_tmp_total_query_data != NULL && _len_total_query_data != 0) {
+		if ( _len_total_query_data % sizeof(*_tmp_total_query_data) != 0)
 		{
 			status = SGX_ERROR_INVALID_PARAMETER;
 			goto err;
 		}
-		_in_some_string = (uint8_t*)malloc(_len_some_string);
-		if (_in_some_string == NULL) {
+		_in_total_query_data = (uint8_t*)malloc(_len_total_query_data);
+		if (_in_total_query_data == NULL) {
 			status = SGX_ERROR_OUT_OF_MEMORY;
 			goto err;
 		}
 
-		if (memcpy_s(_in_some_string, _len_some_string, _tmp_some_string, _len_some_string)) {
+		if (memcpy_s(_in_total_query_data, _len_total_query_data, _tmp_total_query_data, _len_total_query_data)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_size_list != NULL && _len_size_list != 0) {
+		if ( _len_size_list % sizeof(*_tmp_size_list) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_size_list = (size_t*)malloc(_len_size_list);
+		if (_in_size_list == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_size_list, _len_size_list, _tmp_size_list, _len_size_list)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_query_id_list != NULL && _len_query_id_list != 0) {
+		if ( _len_query_id_list % sizeof(*_tmp_query_id_list) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_query_id_list = (uint64_t*)malloc(_len_query_id_list);
+		if (_in_query_id_list == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_query_id_list, _len_query_id_list, _tmp_query_id_list, _len_query_id_list)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
 
 	}
 
-	ms->ms_retval = say_something((const uint8_t*)_in_some_string, _tmp_len);
+	ms->ms_retval = upload_query_data(_in_total_query_data, _tmp_toal_size, _in_size_list, _tmp_client_size, _in_query_id_list);
 
 err:
-	if (_in_some_string) free(_in_some_string);
+	if (_in_total_query_data) free(_in_total_query_data);
+	if (_in_size_list) free(_in_size_list);
+	if (_in_query_id_list) free(_in_query_id_list);
 	return status;
 }
 
@@ -573,7 +633,7 @@ SGX_EXTERNC const struct {
 } g_ecall_table = {
 	3,
 	{
-		{(void*)(uintptr_t)sgx_say_something, 0, 0},
+		{(void*)(uintptr_t)sgx_upload_query_data, 0, 0},
 		{(void*)(uintptr_t)sgx_t_global_init_ecall, 0, 0},
 		{(void*)(uintptr_t)sgx_t_global_exit_ecall, 0, 0},
 	}

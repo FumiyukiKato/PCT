@@ -1,11 +1,14 @@
 #include "Enclave_u.h"
 #include <errno.h>
 
-typedef struct ms_say_something_t {
+typedef struct ms_upload_query_data_t {
 	sgx_status_t ms_retval;
-	const uint8_t* ms_some_string;
-	size_t ms_len;
-} ms_say_something_t;
+	uint8_t* ms_total_query_data;
+	size_t ms_toal_size;
+	size_t* ms_size_list;
+	size_t ms_client_size;
+	uint64_t* ms_query_id_list;
+} ms_upload_query_data_t;
 
 typedef struct ms_t_global_init_ecall_t {
 	uint64_t ms_id;
@@ -987,12 +990,15 @@ static const struct {
 		(void*)Enclave_sgx_thread_set_multiple_untrusted_events_ocall,
 	}
 };
-sgx_status_t say_something(sgx_enclave_id_t eid, sgx_status_t* retval, const uint8_t* some_string, size_t len)
+sgx_status_t upload_query_data(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* total_query_data, size_t toal_size, size_t* size_list, size_t client_size, uint64_t* query_id_list)
 {
 	sgx_status_t status;
-	ms_say_something_t ms;
-	ms.ms_some_string = some_string;
-	ms.ms_len = len;
+	ms_upload_query_data_t ms;
+	ms.ms_total_query_data = total_query_data;
+	ms.ms_toal_size = toal_size;
+	ms.ms_size_list = size_list;
+	ms.ms_client_size = client_size;
+	ms.ms_query_id_list = query_id_list;
 	status = sgx_ecall(eid, 0, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;

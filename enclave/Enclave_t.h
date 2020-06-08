@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-sgx_status_t say_something(const uint8_t* some_string, size_t len);
+sgx_status_t upload_query_data(uint8_t* total_query_data, size_t toal_size, size_t* size_list, size_t client_size, uint64_t* query_id_list);
 void t_global_init_ecall(uint64_t id, const uint8_t* path, size_t len);
 void t_global_exit_ecall(void);
 

@@ -28,103 +28,106 @@ extern crate sgx_trts;
 extern crate sgx_tstd as std;
 
 use sgx_types::*;
-use sgx_types::metadata::*;
-use sgx_trts::enclave;
 //use sgx_trts::{is_x86_feature_detected, is_cpu_feature_supported};
-use std::string::String;
 use std::vec::Vec;
-use std::io::{self, Write};
+use std::cell::RefCell;
 use std::slice;
-use std::backtrace::{self, PrintFormat};
+use std::sync::atomic::{Ordering};
+use std::boxed::Box;
+
+mod buffers;
+use buffers::*;
 
 #[no_mangle]
-pub extern "C" fn say_something(some_string: *const u8, some_len: usize) -> sgx_status_t {
+pub extern "C" fn upload_query_data(
+    total_query_data: * const u8,
+    toal_size       : usize,
+    size_list       : * const usize,
+    client_size     : usize,
+    query_id_list   : * const u64,
+) -> sgx_status_t {
+    println!("[SGX] upload_query_data");
+    
+    init_buffers();
 
-    let str_slice = unsafe { slice::from_raw_parts(some_string, some_len) };
-    let _ = io::stdout().write(str_slice);
-
-    // A sample &'static string
-    let rust_raw_string = "This is a in-Enclave ";
-    // An array
-    let word:[u8;4] = [82, 117, 115, 116];
-    // An vector
-    let word_vec:Vec<u8> = vec![32, 115, 116, 114, 105, 110, 103, 33];
-
-    // Construct a string from &'static string
-    let mut hello_string = String::from(rust_raw_string);
-
-    // Iterate on word array
-    for c in word.iter() {
-        hello_string.push(*c as char);
+    let total_query_data_vec: Vec<u8> = unsafe {
+        slice::from_raw_parts(total_query_data, toal_size)
+    }.to_vec();
+    if total_query_data_vec.len() != toal_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
+    }
+    
+    let size_list_vec: Vec<usize> = unsafe {
+        slice::from_raw_parts(size_list, client_size)
+    }.to_vec();
+    if size_list_vec.len() != client_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
 
-    // Rust style convertion
-    hello_string += String::from_utf8(word_vec).expect("Invalid UTF-8")
-                                               .as_str();
-
-    // Ocall to normal world for output
-    println!("{}", &hello_string);
-
-    let _ = backtrace::enable_backtrace("enclave.signed.so", PrintFormat::Full);
-
-    let gd = enclave::SgxGlobalData::new();
-    println!("gd: {} {} {} {} ", gd.get_static_tcs_num(), gd.get_eremove_tcs_num(), gd.get_dyn_tcs_num(), gd.get_tcs_max_num());
-    let (static_num, eremove_num, dyn_num) = get_thread_num();
-    println!("static: {} eremove: {} dyn: {}", static_num, eremove_num, dyn_num);
-
-    unsafe {
-        println!("EDMM: {}, feature: {}", EDMM_supported, g_cpu_feature_indicator);
-    }
-    if is_x86_feature_detected!("sgx") {
-        println!("supported sgx");
+    let query_id_list_vec: Vec<u64> = unsafe {
+        slice::from_raw_parts(query_id_list, client_size)
+    }.to_vec();
+    if query_id_list_vec.len() != client_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
 
+    let mut query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
+    build_query(&mut query_buffer, total_query_data_vec, size_list_vec, query_id_list_vec);
+    
+    println!("[SGX] upload_query_data succes!");
     sgx_status_t::SGX_SUCCESS
 }
 
-#[link(name = "sgx_trts")]
-extern {
-    static g_cpu_feature_indicator: uint64_t;
-    static EDMM_supported: c_int;
+fn init_buffers() {
+
+    // initialize mapped query buffer
+    let mut dictionary_buffer = DictionaryBuffer::new();
+    let dictionary_buffer_box = Box::new(RefCell::<DictionaryBuffer>::new(dictionary_buffer));
+    let dictionary_buffer_ptr = Box::into_raw(dictionary_buffer_box);
+    DICTIONARY_BUFFER.store(dictionary_buffer_ptr as *mut (), Ordering::SeqCst);
+
+    // initialize query buffer
+    let mut query_buffer = QueryBuffer::new();
+    let query_buffer_box = Box::new(RefCell::<QueryBuffer>::new(query_buffer));
+    let query_buffer_ptr = Box::into_raw(query_buffer_box);
+    QUERY_BUFFER.store(query_buffer_ptr as *mut (), Ordering::SeqCst);
+
+    // initialize mapped query buffer
+    let mut mapped_query_buffer = MappedQuery::new();
+    let mapped_query_buffer_box = Box::new(RefCell::<MappedQuery>::new(mapped_query_buffer));
+    let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
+    MAPPED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
+
+    // initialize mapped query buffer
+    let mut result_buffer = DictionaryBuffer::new();
+    let result_buffer_box = Box::new(RefCell::<DictionaryBuffer>::new(result_buffer));
+    let result_buffer_ptr = Box::into_raw(result_buffer_box);
+    RESULT_BUFFER.store(result_buffer_ptr as *mut (), Ordering::SeqCst);
 }
 
-
-fn get_thread_num() -> (u32, u32, u32) {
-    let gd = unsafe {
-        let p = enclave::rsgx_get_global_data();
-        &*p
-    };
-
-    let mut static_thread_num: u32 = 0;
-    let mut eremove_thread_num: u32 = 0;
-    let mut dyn_thread_num: u32 = 0;
-    let layout_table = &gd.layout_table[0..gd.layout_entry_num as usize];
-    unsafe { traversal_layout(&mut static_thread_num, &mut dyn_thread_num, &mut eremove_thread_num, layout_table); }
-
-    unsafe fn traversal_layout(static_num: &mut u32, dyn_num: &mut u32, eremove_num: &mut u32, layout_table: &[layout_t])
-    {
-        for (i, layout) in layout_table.iter().enumerate() {
-            if !is_group_id!(layout.group.id as u32) {
-                if (layout.entry.attributes & PAGE_ATTR_EADD) != 0 {
-                    if (layout.entry.content_offset != 0) && (layout.entry.si_flags == SI_FLAGS_TCS) {
-                        if (layout.entry.attributes & PAGE_ATTR_EREMOVE) == 0 {
-                            *static_num += 1;
-                        } else {
-                            *eremove_num += 1;
-                        }
-                    }
-                }
-                if (layout.entry.attributes & PAGE_ATTR_POST_ADD) != 0 {
-                    if layout.entry.id == LAYOUT_ID_TCS_DYN as u16 {
-                        *dyn_num += 1;
-                    }
-                }
-            } else {
-                for _ in 0..layout.group.load_times {
-                    traversal_layout(static_num, dyn_num, eremove_num, &layout_table[i - layout.group.entry_count as usize..i])
-                }
-            }
+// !!このメソッドでは全くerror処理していない
+fn build_query(
+    buffer              : &mut QueryBuffer,
+    total_query_data_vec: Vec<u8>,
+    size_list_vec       : Vec<usize>,
+    query_id_list_vec   : Vec<u64>,
+) -> i8 {
+    let mut cursor = 0;
+    for i in 0_usize..(size_list_vec.len()) {
+        let size: usize = size_list_vec[i]*QUERY_U8_SIZE;
+        let this_query = &total_query_data_vec[cursor..cursor+size];
+        cursor = cursor+size; // 忘れないようにここで更新
+        
+        let mut query = QueryRep::new();
+        query.id = query_id_list_vec[i];
+        for i in 0_usize..(size/QUERY_U8_SIZE) {
+            let mut timestamp = [0_u8; UNIXEPOCH_U8_SIZE];
+            let mut geoHash = [0_u8; GEOHASH_U8_SIZE];
+            timestamp.copy_from_slice(&this_query[i*QUERY_U8_SIZE..i*QUERY_U8_SIZE+UNIXEPOCH_U8_SIZE]);
+            geoHash.copy_from_slice(&this_query[i*QUERY_U8_SIZE+UNIXEPOCH_U8_SIZE..(i + 1)*QUERY_U8_SIZE]);
+            query.parameters.push((geoHash, timestamp));
         }
+        buffer.queries.insert(query.id, query);
     }
-    (static_thread_num, eremove_thread_num, dyn_thread_num)
+    return 0;
 }
