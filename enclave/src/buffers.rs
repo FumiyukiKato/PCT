@@ -8,14 +8,37 @@ pub const UNIXEPOCH_U8_SIZE: usize = 10;
 pub const GEOHASH_U8_SIZE: usize = 10;
 pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
 
-/* Type key for data structures (= GeoHash) */
-// とりあえず無難にStringにしておく，あとで普通に[u8; 8]とかに変える[u64;2]とかでも良さそう？
-pub type GeoHashKey = String;
+/* ################################ */
 
-/* Type DictionaryBuffer */
+/* 
+PCTに最適化したデータ構造 
+ジェネリクスじゃなくてここで直接データ構造を変える 
+*/
+type PCTDataStructure = HashMap<GeoHashKey, Period>;
+
+// type PCTDataStructure = BloomFilter<GeoHashKey, Period>;みたいな
+
+
+
+
+
+
+/* ################################ */
+
+
+/* 
+Type key for data structures (= GeoHash) 
+とりあえず無難にStringにしておく，あとで普通に[u8; 8]とかに変える[u64;2]とかでも良さそう？
+*/
+pub type GeoHashKey = [u8; GEOHASH_U8_SIZE];
+
+/* 
+Type DictionaryBuffer 
+シーケンシャルな読み込みのためのバッファ，サイズを固定しても良い 
+*/
 #[derive(Clone, Default, Debug)]
 pub struct DictionaryBuffer {
-    pub data: HashMap<GeoHashKey, Period>
+    pub data: PCTDataStructure
 }
 
 impl DictionaryBuffer {
@@ -38,6 +61,12 @@ impl ResultBuffer {
 
 /* Type Period */
 pub type UnixEpoch = u64;
+pub fn unixepoch_from_u8(u_timestamp: [u8; UNIXEPOCH_U8_SIZE]) -> UnixEpoch {
+    let s_timestamp = String::from_utf8(u_timestamp.to_vec()).unwrap();
+    let num: UnixEpoch = (&s_timestamp).parse().unwrap();
+    num
+}
+
 #[derive(Clone, Default, Debug)]
 pub struct Period {
     pub array: Vec<(UnixEpoch, UnixEpoch)>
@@ -63,10 +92,14 @@ impl QueryRep {
     }
 }
 
-/* Type MappedQuery */
+/* 
+Type MappedQuery 
+こっちのクエリ側のデータ構造も変わる可能性がある
+いい感じに抽象化するのがめんどくさいのでこのデータ構造自体を変える
+*/
 #[derive(Clone, Default, Debug)]
 pub struct MappedQuery {
-    pub array: Vec<(GeoHashKey, Period)>,
+    pub map: HashMap<GeoHashKey, Vec<UnixEpoch>>,
 }
 
 impl MappedQuery {

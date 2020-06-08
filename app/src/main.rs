@@ -21,27 +21,22 @@ extern crate serde;
 extern crate serde_json;
 
 use sgx_types::*;
-use sgx_urts::SgxEnclave;
-use std::fs::File;
-use std::io::BufReader;
 
-mod querydata;
-use querydata::*;
+mod query_data;
+use query_data::*;
 
 mod ecalls;
 use ecalls::{upload_query_data, init_enclave};
 
-static ENCLAVE_FILE: &'static str = "bin/enclave.signed.so";
+mod central_data;
+use central_data::*;
 
 fn main() {
-    let filename = "data/query.json";
-    let file = File::open(filename).unwrap();
-    let reader = BufReader::new(file);
-    let query_data: QueryData = serde_json::from_reader(reader).unwrap();
-    if query_data.client_size != query_data.data.len() {
-        println!("[Error] Invalid data format from {}!", filename);
-        return;
-    }
+    let q_filename = "data/query.json";
+    let query_data = QueryData::read_raw_from_file(q_filename);
+    let c_filename = "data/central.json";
+    let external_data = ExternalData::<PCTHash>::read_raw_from_file(c_filename);
+    
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
     let enclave = match init_enclave() {

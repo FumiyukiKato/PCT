@@ -28,7 +28,6 @@ extern crate sgx_trts;
 extern crate sgx_tstd as std;
 
 use sgx_types::*;
-//use sgx_trts::{is_x86_feature_detected, is_cpu_feature_supported};
 use std::vec::Vec;
 use std::cell::RefCell;
 use std::slice;
@@ -48,7 +47,7 @@ pub extern "C" fn upload_query_data(
 ) -> sgx_status_t {
     println!("[SGX] upload_query_data");
     
-    init_buffers();
+    _init_buffers();
 
     let total_query_data_vec: Vec<u8> = unsafe {
         slice::from_raw_parts(total_query_data, toal_size)
@@ -72,13 +71,18 @@ pub extern "C" fn upload_query_data(
     }
 
     let mut query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
-    build_query(&mut query_buffer, total_query_data_vec, size_list_vec, query_id_list_vec);
+    _build_query_buffer(&mut query_buffer, total_query_data_vec, size_list_vec, query_id_list_vec);
+
+    let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
+    _map_into_PCT(&mut mapped_query_buffer, &query_buffer);
+
+    
     
     println!("[SGX] upload_query_data succes!");
     sgx_status_t::SGX_SUCCESS
 }
 
-fn init_buffers() {
+fn _init_buffers() {
 
     // initialize mapped query buffer
     let mut dictionary_buffer = DictionaryBuffer::new();
@@ -106,7 +110,7 @@ fn init_buffers() {
 }
 
 // !!このメソッドでは全くerror処理していない
-fn build_query(
+fn _build_query_buffer(
     buffer              : &mut QueryBuffer,
     total_query_data_vec: Vec<u8>,
     size_list_vec       : Vec<usize>,
@@ -128,6 +132,19 @@ fn build_query(
             query.parameters.push((geoHash, timestamp));
         }
         buffer.queries.insert(query.id, query);
+    }
+    return 0;
+}
+
+// !!このメソッドでは全くerror処理していない
+fn _map_into_PCT(mapped_query_buffer: &mut MappedQuery, query_buffer: &QueryBuffer) -> i8 {
+    for query_rep in query_buffer.queries.values() {
+        for parameter in query_rep.parameters.iter() {
+            match mapped_query_buffer.map.get_mut(&parameter.0) {
+                Some(vec) => { vec.push(unixepoch_from_u8(parameter.1)) },
+                None => { mapped_query_buffer.map.insert(parameter.0, vec![unixepoch_from_u8(parameter.1)]); },
+            };
+        }
     }
     return 0;
 }

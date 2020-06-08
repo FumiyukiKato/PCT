@@ -1,4 +1,6 @@
 use serde::*;
+use std::fs::File;
+use std::io::BufReader;
 
 const UNIXEPOCH_U8_SIZE: usize = 10;
 const GEOHASH_U8_SIZE: usize = 10;
@@ -14,6 +16,17 @@ pub struct QueryData {
 }
 
 impl QueryData { 
+    pub fn read_raw_from_file(filename: &str) -> Self {
+        let file = File::open(filename).unwrap();
+        let reader = BufReader::new(file);
+        let query_data: QueryData = serde_json::from_reader(reader).unwrap();
+        if query_data.client_size != query_data.data.len() {
+            println!("[Error] Invalid data format from {}!", filename);
+            panic!()
+        }
+        query_data
+    }
+
     pub fn total_size(&self) -> usize {
         let mut sum = 0;
         for data in self.data.iter() {
@@ -24,7 +37,7 @@ impl QueryData {
 
     pub fn total_data_to_u8(&self) -> Vec<u8> {
         let str_list: Vec<String> = self.data.iter().map(|detail| detail.geodata.clone()).collect();
-        hex_string_to_u8(str_list.join(""))
+        hex_string_to_u8(&str_list.join(""))
     }
 
     pub fn size_list(&self) -> Vec<usize> {
@@ -43,7 +56,7 @@ pub struct QueryDataDetail {
     query_size: usize,
 }
 
-fn hex_string_to_u8(hex_string: String) -> Vec<u8> {
+fn hex_string_to_u8(hex_string: &String) -> Vec<u8> {
     let decoded = hex::decode(hex_string).expect("Decoding failed: Expect hex string!");
     decoded
 }

@@ -49,8 +49,8 @@ def main():
     json_data["data"] = total_data_list
     json_data["client_size"] = client_size
 
-    filename = './data/client-query-qs-%d-cs-%s.json' % (query_size, client_size)
+    filename = './data/generated-client-query-qs-%d-cs-%s.json' % (query_size, client_size)
     with open(filename, 'w') as f:
-        json.dump(json_data, f, indent=4)
+        json.dump(json_data, f, indent=None)
 
 main()

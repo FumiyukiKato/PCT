@@ -1,12 +1,5 @@
-extern crate sgx_types;
-extern crate sgx_urts;
-extern crate serde;
-extern crate serde_json;
-
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
-use std::fs::File;
-use std::io::BufReader;
 
 static ENCLAVE_FILE: &'static str = "bin/enclave.signed.so";
 
