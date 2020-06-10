@@ -2,47 +2,77 @@ use serde::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::collections::HashMap;
-
-/* 
-ダックタイピングっぽくやりたいけどやり方が分からないので適当にやる 
-*/
-trait PCTDataStructure {
-    fn from_ExternalDataJson(data: &ExternalDataJson) -> Self;
-}
+use std::vec::Vec;
 
 /* 
 実装っぽい部分
 */
-pub type PCTHash = HashMap<[u8; 10], Vec<u64>>;
 
-impl PCTDataStructure for PCTHash {
-    fn from_ExternalDataJson(data: &ExternalDataJson) -> Self {
+/*
+単純なハッシュマップ
+    キーがgeohash, バリューがUnix epochのベクタ
+*/
+#[derive(Clone, Default, Debug)]
+pub struct PCTHash {
+    structure: HashMap<[u8; 10], Vec<u64>>
+}
+
+impl PCTHash {
+    pub fn new() -> Self {
+        PCTHash::default()
+    }
+
+    pub fn size(&self) -> usize {
+        self.structure.len()
+    }
+
+    pub fn read_raw_from_file(filename: &str) -> Self {
+        let file = File::open(filename).unwrap();
+        let reader = BufReader::new(file);
+        let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
+        
         let mut hash = PCTHash::new();
         for v in data.vec.iter() {
             let mut geohash_u8 = [0_u8; 10];
             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
-            match hash.get_mut(&geohash_u8) {
+            match hash.structure.get_mut(&geohash_u8) {
                 Some(vec) => { vec.push(v.unixepoch) },
-                None => { hash.insert(geohash_u8, vec![v.unixepoch]); },
+                None => { hash.structure.insert(geohash_u8, vec![v.unixepoch]); },
             };
         }
         hash
     }
-}
+    
+    // Unixepoch側の合計データ数がthreashould以下になるようにチャンクに分ける
+    // オペレーション的には，バッチ的にチャンク化しておくのが良さそう
+    pub fn disribute(&self, buf: &mut Vec<PCTHash>, threashould: usize) {
+        let mut chunk_index = 0;
+        let mut val_num = 0;
+        for (key, val) in self.structure.iter() {
+            val_num += val.len();
+            if val_num > threashould {
+                chunk_index += 1;
+                val_num = val.len();
+            }
+            buf[chunk_index].structure.insert(*key, val.to_vec());
+        }
+    }
 
-#[derive(Clone, Default, Debug)]
-pub struct ExternalData<T> {
-    data: T
-}
-
-impl<T> ExternalData<T> 
-    where 
-        T: PCTDataStructure {
-    pub fn read_raw_from_file(filename: &str) -> ExternalData<T> {
-        let file = File::open(filename).unwrap();
-        let reader = BufReader::new(file);
-        let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
-        ExternalData { data: T::from_ExternalDataJson(&data) }
+    // データは geohash, [u8], geohash, [u8],... と [u8]のサイズの配列というフォーマットでシリアライスする
+    // 時間がかかっていそうならシリアライズは先にまとめて計算しておく
+    // extend_from_sliceを使ったやり方(pushとかじゃなくてコピーするようにすれば少しだけ早くなる余地がある？)
+    pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, unixepoch_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
+        let mut i = 0;
+        let mut total_size: usize = 0;
+        for (key, value) in self.structure.iter() {
+            let length = value.len();
+            size_list[i] = length;
+            geohash_u8.extend_from_slice(key);
+            unixepoch_u64.extend_from_slice(value);
+            i += 1;
+            total_size += length;
+        }
+        total_size
     }
 }
 

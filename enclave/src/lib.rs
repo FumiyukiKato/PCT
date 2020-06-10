@@ -45,7 +45,7 @@ pub extern "C" fn upload_query_data(
     client_size     : usize,
     query_id_list   : * const u64,
 ) -> sgx_status_t {
-    println!("[SGX] upload_query_data");
+    println!("[SGX] upload_query_data start");
     
     _init_buffers();
 
@@ -147,4 +147,36 @@ fn _map_into_PCT(mapped_query_buffer: &mut MappedQuery, query_buffer: &QueryBuff
         }
     }
     return 0;
+}
+
+// chunk分割は呼び出し側に任せる
+#[no_mangle]
+pub extern "C" fn private_contact_trace(
+    geohash_u8: * const u8,
+    geohash_u8_size: usize,
+    unixepoch_u64: * const u64,
+    unixepoch_u64_size: usize,
+    size_list: * const usize,
+    epoch_data_size: usize,
+) -> sgx_status_t {
+    println!("[SGX] private_contact_trace start");
+    let mut rt : sgx_status_t = sgx_status_t::SGX_ERROR_UNEXPECTED;
+    let mut dictionary_buffer = get_ref_dictionary_buffer().unwrap().borrow_mut();
+    
+    
+    println!("[SGX] private_contact_trace succes!");
+    sgx_status_t::SGX_SUCCESS
+}
+
+// chunk分割は呼び出し側に任せる
+#[no_mangle]
+pub extern "C" fn get_result(
+    total_query_data: * const u8,
+    toal_size       : usize,
+) -> sgx_status_t {
+    println!("[SGX] get_result start");
+    let mut rt : sgx_status_t = sgx_status_t::SGX_ERROR_UNEXPECTED;
+    
+    println!("[SGX] get_result succes!");
+    sgx_status_t::SGX_SUCCESS
 }

@@ -26,19 +26,24 @@ mod query_data;
 use query_data::*;
 
 mod ecalls;
-use ecalls::{upload_query_data, init_enclave};
+use ecalls::{upload_query_data, init_enclave, private_contact_trace};
 
 mod central_data;
 use central_data::*;
 
 fn main() {
+    /* parameters */
+    let threashould: usize = 1000;
+
     let q_filename = "data/query.json";
     let query_data = QueryData::read_raw_from_file(q_filename);
     let c_filename = "data/central.json";
-    let external_data = ExternalData::<PCTHash>::read_raw_from_file(c_filename);
+    let external_data = PCTHash::read_raw_from_file(c_filename);
     
-    let mut retval = sgx_status_t::SGX_SUCCESS;
-    
+    let mut chunked_buf: Vec<PCTHash> = Vec::with_capacity(10000);
+    external_data.disribute(&mut chunked_buf, threashould);
+
+    /* initialize enclave */
     let enclave = match init_enclave() {
         Ok(r) => {
             println!("[+] Init Enclave Successful {}!", r.geteid());
@@ -50,6 +55,8 @@ fn main() {
         },
     };
 
+    /* upload query mock data */
+    let mut retval = sgx_status_t::SGX_SUCCESS;
     let result = unsafe {
         upload_query_data(
             enclave.geteid(),
@@ -61,17 +68,54 @@ fn main() {
             query_data.query_id_list().as_ptr() as * const u64
         )
     };
-    
     match result {
         sgx_status_t::SGX_SUCCESS => {
-            println!("[+] uploading data is succes!");
+            println!("[+] upload_query_data Succes!");
         },
         _ => {
-            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            println!("[-] upload_query_data Failed {}!", result.as_str());
             return;
         }
     }
 
+    /* main logic contact tracing */
+    let mut chunk_index: usize = 0;
+    let last = chunked_buf.len() - 1;
+    while last <= chunk_index {
+
+        let chunk = &chunked_buf[chunk_index];
+        let mut geohash_u8: Vec<u8> = Vec::with_capacity(100000);
+        let mut unixepoch_u64: Vec<u64> = Vec::with_capacity(100000);
+        let mut size_list: Vec<usize> = Vec::with_capacity(chunk.size());
+        let epoch_data_size = chunk.prepare_sgx_data(&mut geohash_u8, &mut unixepoch_u64, &mut size_list);
+
+        let result = unsafe {
+            private_contact_trace(
+                enclave.geteid(),
+                &mut retval,
+                geohash_u8.as_ptr() as * const u8,
+                geohash_u8.len(),
+                unixepoch_u64.as_ptr() as * const u64,
+                unixepoch_u64.len(),
+                size_list.as_ptr() as * const usize,
+                epoch_data_size
+            )
+        };
+        
+        match result {
+            sgx_status_t::SGX_SUCCESS => {
+                println!("[+] private_contact_trace Succes! {} th iteration", chunk_index);
+            },
+            _ => {
+                println!("[-] private_contact_trace Failed {}!", result.as_str());
+                return;
+            }
+        }
+
+        chunk_index += 1;
+    }
+
+    /* finish */
     enclave.destroy();
     println!("All process is successful!!");
 }

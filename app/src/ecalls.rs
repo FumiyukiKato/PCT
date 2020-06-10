@@ -4,9 +4,29 @@ use sgx_urts::SgxEnclave;
 static ENCLAVE_FILE: &'static str = "bin/enclave.signed.so";
 
 extern {
-    pub fn upload_query_data(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
-                    total_query_data: * const u8, total_size: usize,
-                    size_list: * const usize, client_size: usize, query_id_list: * const u64) -> sgx_status_t;
+    pub fn upload_query_data(
+        eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
+        total_query_data: * const u8, total_size: usize,
+        size_list: * const usize, client_size: usize, query_id_list: * const u64
+    ) -> sgx_status_t;
+    
+    pub fn private_contact_trace(
+        eid: sgx_enclave_id_t,
+        retval: *mut sgx_status_t,
+        geohash_u8: * const u8,
+        geohash_u8_size: usize,
+        unixepoch_u64: * const u64,
+        unixepoch_u64_size: usize,
+        size_list: * const usize,
+        epoch_data_size: usize,
+    ) -> sgx_status_t;
+    
+    pub fn get_result(
+        eid: sgx_enclave_id_t,
+        retval: *mut sgx_status_t,
+        total_result_data: * const u8,
+        result_size: usize,
+    ) -> sgx_status_t;
 }
 
 pub fn init_enclave() -> SgxResult<SgxEnclave> {
