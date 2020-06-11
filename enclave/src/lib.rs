@@ -71,7 +71,7 @@ pub extern "C" fn upload_query_data(
     }
 
     let mut query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
-    _build_query_buffer(&mut query_buffer, total_query_data_vec, size_list_vec, query_id_list_vec);
+    _build_query_buffer(&mut query_buffer, &total_query_data_vec, &size_list_vec, &query_id_list_vec);
 
     let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
     _map_into_PCT(&mut mapped_query_buffer, &query_buffer);
@@ -112,9 +112,9 @@ fn _init_buffers() {
 // !!このメソッドでは全くerror処理していない
 fn _build_query_buffer(
     buffer              : &mut QueryBuffer,
-    total_query_data_vec: Vec<u8>,
-    size_list_vec       : Vec<usize>,
-    query_id_list_vec   : Vec<u64>,
+    total_query_data_vec: &Vec<u8>,
+    size_list_vec       : &Vec<usize>,
+    query_id_list_vec   : &Vec<u64>,
 ) -> i8 {
     let mut cursor = 0;
     for i in 0_usize..(size_list_vec.len()) {
@@ -163,9 +163,41 @@ pub extern "C" fn private_contact_trace(
     let mut rt : sgx_status_t = sgx_status_t::SGX_ERROR_UNEXPECTED;
     let mut dictionary_buffer = get_ref_dictionary_buffer().unwrap().borrow_mut();
     
+    let geohash_data_vec: Vec<u8> = unsafe {
+        slice::from_raw_parts(geohash_u8, geohash_u8_size)
+    }.to_vec();
+    if geohash_data_vec.len() != geohash_u8_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
+    }
+
+    let unix_epoch_data_vec: Vec<u64> = unsafe {
+        slice::from_raw_parts(unixepoch_u64, unixepoch_u64_size)
+    }.to_vec();
+    if unix_epoch_data_vec.len() != unixepoch_u64_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
+    }
+    
+    let size_list_vec: Vec<usize> = unsafe {
+        slice::from_raw_parts(size_list, epoch_data_size)
+    }.to_vec();
+    if size_list_vec.len() != epoch_data_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
+    }
+
+    _build_dictionary_buffer(&mut dictionary_buffer, &geohash_data_vec, &unix_epoch_data_vec, &size_list_vec);
     
     println!("[SGX] private_contact_trace succes!");
     sgx_status_t::SGX_SUCCESS
+}
+
+fn _build_dictionary_buffer(
+    dictionary_buffer: &mut DictionaryBuffer,
+    geohash_data_vec: &Vec<u8>,
+    unix_epoch_data_vec: &Vec<u64>,
+    size_list_vec: &Vec<usize>,
+) -> i8 {
+
+    return 0;
 }
 
 // chunk分割は呼び出し側に任せる

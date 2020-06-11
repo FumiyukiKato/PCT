@@ -14,7 +14,7 @@ pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
 PCTに最適化したデータ構造 
 ジェネリクスじゃなくてここで直接データ構造を変える 
 */
-type PCTDataStructure = HashMap<GeoHashKey, Period>;
+type PCTDataStructure = HashMap<GeoHashKey, Vec<UnixEpoch>>;
 
 // type PCTDataStructure = BloomFilter<GeoHashKey, Period>;みたいな
 
