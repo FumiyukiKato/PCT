@@ -74,7 +74,7 @@ pub extern "C" fn upload_query_data(
     _build_query_buffer(&mut query_buffer, &total_query_data_vec, &size_list_vec, &query_id_list_vec);
 
     let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
-    _map_into_PCT(&mut mapped_query_buffer, &query_buffer);
+    _map_into_pct(&mut mapped_query_buffer, &query_buffer);
 
     println!("[SGX] upload_query_data succes!");
     sgx_status_t::SGX_SUCCESS
@@ -95,8 +95,8 @@ fn _init_buffers() {
     QUERY_BUFFER.store(query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize mapped query buffer
-    let mapped_query_buffer = MappedQuery::new();
-    let mapped_query_buffer_box = Box::new(RefCell::<MappedQuery>::new(mapped_query_buffer));
+    let mapped_query_buffer = MappedQueryBuffer::new();
+    let mapped_query_buffer_box = Box::new(RefCell::<MappedQueryBuffer>::new(mapped_query_buffer));
     let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
     MAPPED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
@@ -128,20 +128,23 @@ fn _build_query_buffer(
             let mut geoHash = [0_u8; GEOHASH_U8_SIZE];
             timestamp.copy_from_slice(&this_query[i*QUERY_U8_SIZE..i*QUERY_U8_SIZE+UNIXEPOCH_U8_SIZE]);
             geoHash.copy_from_slice(&this_query[i*QUERY_U8_SIZE+UNIXEPOCH_U8_SIZE..(i + 1)*QUERY_U8_SIZE]);
-            query.parameters.push((geoHash, timestamp));
+            match query.parameters.get_mut(&geoHash) {
+                Some(sorted_list) => { _sorted_push(sorted_list, unixepoch_from_u8(timestamp)) },
+                None => { query.parameters.insert(geoHash as GeoHashKey, vec![unixepoch_from_u8(timestamp)]); },
+            };
         }
-        buffer.queries.insert(query.id, query);
+        buffer.queries.push(query);
     }
     return 0;
 }
 
 // !!このメソッドでは全くerror処理していない
-fn _map_into_PCT(mapped_query_buffer: &mut MappedQuery, query_buffer: &QueryBuffer) -> i8 {
-    for query_rep in query_buffer.queries.values() {
-        for parameter in query_rep.parameters.iter() {
-            match mapped_query_buffer.map.get_mut(&parameter.0) {
-                Some(sorted_list) => { _sorted_push(sorted_list, unixepoch_from_u8(parameter.1)) },
-                None => { mapped_query_buffer.map.insert(parameter.0, vec![unixepoch_from_u8(parameter.1)]); },
+fn _map_into_pct(mapped_query_buffer: &mut MappedQueryBuffer, query_buffer: &QueryBuffer) -> i8 {
+    for query_rep in query_buffer.queries.iter() {
+        for (geohash, unixepoch_vec) in query_rep.parameters.iter() {
+            match mapped_query_buffer.map.get(geohash) {
+                Some(sorted_list) => { mapped_query_buffer.map.insert(*geohash, _sorted_merge(&sorted_list, unixepoch_vec)); },
+                None => { mapped_query_buffer.map.insert(*geohash, unixepoch_vec.to_vec()); },
             };
         }
     }
@@ -165,6 +168,56 @@ fn _sorted_push(sorted_list: &mut Vec<UnixEpoch>, unixepoch: UnixEpoch) {
     }
     sorted_list.push(unixepoch);
 }
+
+// なんかめっちゃ長くなってしまったけど
+fn _sorted_merge(sorted_list_1: &Vec<UnixEpoch>, sorted_list_2: &Vec<UnixEpoch>) -> Vec<UnixEpoch> {
+    let len1 = sorted_list_1.len();
+    let len2 = sorted_list_2.len();
+    let size = len1 + len2;
+    let mut cursor1 = 0;
+    let mut cursor2 = 0;
+    let mut tmp_max = 0;
+
+    let mut merged_vec = Vec::with_capacity(size);
+    for _ in 0..size {
+        let mut candidate = if sorted_list_1[cursor1] < sorted_list_2[cursor2] {
+            cursor1 += 1;
+            sorted_list_1[cursor1 - 1]
+        } else if sorted_list_1[cursor1] == sorted_list_2[cursor2] {
+            cursor1 += 1;
+            cursor2 += 1;
+            sorted_list_1[cursor1 - 1]
+        } else {
+            cursor2 += 1;
+            sorted_list_2[cursor2 - 1]
+        };
+        
+        if tmp_max != candidate { 
+            tmp_max = candidate; 
+            merged_vec.push(tmp_max);
+        }
+        
+        if len1 == cursor1 && cursor2 < len2 {
+            for j in cursor2..len2 {
+                candidate = sorted_list_2[j];
+                if tmp_max != candidate { tmp_max = candidate; } else { continue; };
+                merged_vec.push(candidate);
+            }
+            break;
+        }
+        if len2 == cursor2 && cursor1 < len1 {
+            for j in cursor1..len1 {
+                candidate = sorted_list_1[j];
+                if tmp_max != candidate { tmp_max = candidate; } else { continue; };
+                merged_vec.push(candidate);
+            }
+            break;
+        }
+        if len1 == cursor1 && len2 == cursor2 { break; }
+    }
+    merged_vec
+}
+
 
 /*
 ロジック部分
@@ -240,15 +293,17 @@ pub extern "C" fn get_result(
     println!("[SGX] get_result start");
 
     let mut result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
-    _build_query_results(&mut result_buffer, response);
+    let mut query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
+    _build_query_results(&result_buffer, &query_buffer, response);
 
     println!("[SGX] get_result succes!");
     sgx_status_t::SGX_SUCCESS
 }
 
 fn _build_query_results(
-    result_buffer: &mut ResultBuffer,
+    result_buffer: &ResultBuffer,
+    query_buffer: &QueryBuffer,
     response: *mut u8,
 ) {
-
+    
 }

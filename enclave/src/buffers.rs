@@ -7,6 +7,7 @@ use std::collections::HashMap;
 pub const UNIXEPOCH_U8_SIZE: usize = 10;
 pub const GEOHASH_U8_SIZE: usize = 10;
 pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
+pub const RESPONSE_DATA_SIZE_U8: usize = 1;
 
 /* ################################ */
 
@@ -42,7 +43,7 @@ impl DictionaryBuffer {
         DictionaryBuffer::default()
     }
 
-    pub fn intersect(&self, mapped_query_buffer: &MappedQuery, result: &mut ResultBuffer) {
+    pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
         for (query_geohash, query_unixepoch_vec) in mapped_query_buffer.map.iter() {
             match self.data.get(query_geohash) {
                 Some(dic_unixepoch_list) => {
@@ -93,7 +94,7 @@ impl Period {
 #[derive(Clone, Default, Debug)]
 pub struct QueryRep {
     pub id: QueryId,
-    pub parameters: Vec<([u8; GEOHASH_U8_SIZE], [u8; UNIXEPOCH_U8_SIZE])>,
+    pub parameters: HashMap<GeoHashKey, Vec<UnixEpoch>>
 }
 
 // idの正しさは呼び出し側が責任を持つ
@@ -104,19 +105,19 @@ impl QueryRep {
 }
 
 /* 
-Type MappedQuery 
+Type MappedQueryBuffer 
     こっちのクエリ側のデータ構造も変わる可能性がある
     いい感じに抽象化するのがめんどくさいのでこのデータ構造自体を変える
     map.vec<Unixepoch>がソート済みでユニークセットになっていることは呼び出し側が保証している
 */
 #[derive(Clone, Default, Debug)]
-pub struct MappedQuery {
+pub struct MappedQueryBuffer {
     pub map: HashMap<GeoHashKey, Vec<UnixEpoch>>,
 }
 
-impl MappedQuery {
+impl MappedQueryBuffer {
     pub fn new() -> Self {
-        MappedQuery::default()
+        MappedQueryBuffer::default()
     }
 }
 
@@ -126,24 +127,12 @@ pub type QueryId = u64;
 /* Type QueryBuffer */
 #[derive(Clone, Default, Debug)]
 pub struct QueryBuffer {
-    pub queries: HashMap<QueryId, QueryRep>,
+    pub queries: Vec<QueryRep>,
 }
 
 impl QueryBuffer {
     pub fn new() -> Self {
         QueryBuffer::default()
-    }
-}
-
-/* Type QueryResultBuffer */
-#[derive(Clone, Default, Debug)]
-pub struct QueryResultBuffer {
-    pub queries: HashMap<QueryId, QueryResult>,
-}
-
-impl QueryResultBuffer {
-    pub fn new() -> Self {
-        QueryResultBuffer::default()
     }
 }
 
@@ -186,8 +175,8 @@ pub fn get_ref_query_buffer() -> Option<&'static RefCell<QueryBuffer>> {
 }
 
 pub static MAPPED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
-pub fn get_ref_mapped_query_buffer() -> Option<&'static RefCell<MappedQuery>> {
-    let ptr = MAPPED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<MappedQuery>;
+pub fn get_ref_mapped_query_buffer() -> Option<&'static RefCell<MappedQueryBuffer>> {
+    let ptr = MAPPED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<MappedQueryBuffer>;
     if ptr.is_null() {
         None
     } else {
