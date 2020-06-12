@@ -32,21 +32,33 @@ use ecalls::{upload_query_data, init_enclave, private_contact_trace, get_result}
 mod central_data;
 use central_data::*;
 
+mod util;
+use util::*;
+
 const RESPONSE_DATA_SIZE_U8: usize = 9;
 
 fn main() {
     /* parameters */
     let threashould: usize = 1000;
+    let mut clocker = Clocker::new();
 
     let q_filename = "data/query.json";
+    clocker.set_and_start("Read Query Data");
     let query_data = QueryData::read_raw_from_file(q_filename);
+    clocker.stop("Read Query Data");
+
     let c_filename = "data/central.json";
+    clocker.set_and_start("Read Central Data");
     let external_data = PCTHash::read_raw_from_file(c_filename);
-    
+    clocker.stop("Read Central Data");
+
+    clocker.set_and_start("Distribute central data");
     let mut chunked_buf: Vec<PCTHash> = Vec::with_capacity(10000);
     external_data.disribute(&mut chunked_buf, threashould);
+    clocker.stop("Distribute central data");
 
     /* initialize enclave */
+    clocker.set_and_start("ECALL init_enclave");
     let enclave = match init_enclave() {
         Ok(r) => {
             println!("[UNTRUSTED] Init Enclave Successful {}!", r.geteid());
@@ -57,8 +69,10 @@ fn main() {
             return;
         },
     };
+    clocker.stop("ECALL init_enclave");
 
     /* upload query mock data */
+    clocker.set_and_start("ECALL upload_query_data");
     let mut retval = sgx_status_t::SGX_SUCCESS;
     let result = unsafe {
         upload_query_data(
@@ -80,8 +94,10 @@ fn main() {
             return;
         }
     }
+    clocker.stop("ECALL upload_query_data");
 
     /* main logic contact tracing */
+    clocker.set_and_start("ECALL private_contact_trace");
     let mut chunk_index: usize = 0;
     let last = chunked_buf.len() - 1;
     while last >= chunk_index {
@@ -116,7 +132,10 @@ fn main() {
 
         chunk_index += 1;
     }
+    clocker.stop("ECALL private_contact_trace");
 
+    /* response reconstruction */
+    clocker.set_and_start("ECALL get_result");
     let response_size = query_data.client_size * RESPONSE_DATA_SIZE_U8;
     let mut response: Vec<u8> = vec![0; response_size];
     let result = unsafe {
@@ -136,9 +155,11 @@ fn main() {
             return;
         }
     }
+    clocker.stop("ECALL get_result");
     println!("[UNTRUSTED] result {:?}", response);
 
     /* finish */
     enclave.destroy();
     println!("All process is successful!!");
+    clocker.show_all();
 }
