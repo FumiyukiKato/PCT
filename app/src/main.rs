@@ -25,11 +25,14 @@ use sgx_types::*;
 mod query_data;
 use query_data::*;
 
+// ecallsはnamedで呼び出す
 mod ecalls;
-use ecalls::{upload_query_data, init_enclave, private_contact_trace};
+use ecalls::{upload_query_data, init_enclave, private_contact_trace, get_result};
 
 mod central_data;
 use central_data::*;
+
+const RESPONSE_DATA_SIZE_U8: usize = 1;
 
 fn main() {
     /* parameters */
@@ -101,7 +104,6 @@ fn main() {
                 epoch_data_size
             )
         };
-        
         match result {
             sgx_status_t::SGX_SUCCESS => {
                 println!("[+] private_contact_trace Succes! {} th iteration", chunk_index);
@@ -113,6 +115,26 @@ fn main() {
         }
 
         chunk_index += 1;
+    }
+
+    let response_size = query_data.client_size * RESPONSE_DATA_SIZE_U8;
+    let mut response: Vec<u8> = Vec::with_capacity(response_size);
+    let result = unsafe {
+        get_result(
+            enclave.geteid(),
+            &mut retval,
+            response.as_ptr() as * mut u8,
+            response_size
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            println!("[+] get_result Succes!");
+        },
+        _ => {
+            println!("[-] get_result Failed {}!", result.as_str());
+            return;
+        }
     }
 
     /* finish */

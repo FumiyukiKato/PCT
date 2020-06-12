@@ -39,11 +39,11 @@ use buffers::*;
 
 #[no_mangle]
 pub extern "C" fn upload_query_data(
-    total_query_data: * const u8,
+    total_query_data: *const u8,
     toal_size       : usize,
-    size_list       : * const usize,
+    size_list       : *const usize,
     client_size     : usize,
-    query_id_list   : * const u64,
+    query_id_list   : *const u64,
 ) -> sgx_status_t {
     println!("[SGX] upload_query_data start");
     
@@ -76,8 +76,6 @@ pub extern "C" fn upload_query_data(
     let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
     _map_into_PCT(&mut mapped_query_buffer, &query_buffer);
 
-    
-    
     println!("[SGX] upload_query_data succes!");
     sgx_status_t::SGX_SUCCESS
 }
@@ -85,31 +83,32 @@ pub extern "C" fn upload_query_data(
 fn _init_buffers() {
 
     // initialize mapped query buffer
-    let mut dictionary_buffer = DictionaryBuffer::new();
+    let dictionary_buffer = DictionaryBuffer::new();
     let dictionary_buffer_box = Box::new(RefCell::<DictionaryBuffer>::new(dictionary_buffer));
     let dictionary_buffer_ptr = Box::into_raw(dictionary_buffer_box);
     DICTIONARY_BUFFER.store(dictionary_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize query buffer
-    let mut query_buffer = QueryBuffer::new();
+    let query_buffer = QueryBuffer::new();
     let query_buffer_box = Box::new(RefCell::<QueryBuffer>::new(query_buffer));
     let query_buffer_ptr = Box::into_raw(query_buffer_box);
     QUERY_BUFFER.store(query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize mapped query buffer
-    let mut mapped_query_buffer = MappedQuery::new();
+    let mapped_query_buffer = MappedQuery::new();
     let mapped_query_buffer_box = Box::new(RefCell::<MappedQuery>::new(mapped_query_buffer));
     let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
     MAPPED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize mapped query buffer
-    let mut result_buffer = DictionaryBuffer::new();
-    let result_buffer_box = Box::new(RefCell::<DictionaryBuffer>::new(result_buffer));
+    let result_buffer = ResultBuffer::new();
+    let result_buffer_box = Box::new(RefCell::<ResultBuffer>::new(result_buffer));
     let result_buffer_ptr = Box::into_raw(result_buffer_box);
     RESULT_BUFFER.store(result_buffer_ptr as *mut (), Ordering::SeqCst);
 }
 
 // !!このメソッドでは全くerror処理していない
+// queryを個々に組み立ててbufferに保持する
 fn _build_query_buffer(
     buffer              : &mut QueryBuffer,
     total_query_data_vec: &Vec<u8>,
@@ -141,7 +140,7 @@ fn _map_into_PCT(mapped_query_buffer: &mut MappedQuery, query_buffer: &QueryBuff
     for query_rep in query_buffer.queries.values() {
         for parameter in query_rep.parameters.iter() {
             match mapped_query_buffer.map.get_mut(&parameter.0) {
-                Some(vec) => { vec.push(unixepoch_from_u8(parameter.1)) },
+                Some(sorted_list) => { _sorted_push(sorted_list, unixepoch_from_u8(parameter.1)) },
                 None => { mapped_query_buffer.map.insert(parameter.0, vec![unixepoch_from_u8(parameter.1)]); },
             };
         }
@@ -149,18 +148,39 @@ fn _map_into_PCT(mapped_query_buffer: &mut MappedQuery, query_buffer: &QueryBuff
     return 0;
 }
 
-// chunk分割は呼び出し側に任せる
+// 昇順ソート+ユニーク性
+// あえてジェネリクスにする必要はない，むしろ型で守っていく
+// Vecだと遅いけどLinkedListよりはキャッシュに乗るので早い気がするのでVecでいく
+fn _sorted_push(sorted_list: &mut Vec<UnixEpoch>, unixepoch: UnixEpoch) {
+    let mut index = 0;
+    for elm in sorted_list.iter() {
+        if *elm > unixepoch {
+            sorted_list.insert(index, unixepoch);
+            return;
+        } else if *elm == unixepoch {
+            return;
+        } else {
+            index += 1;
+        }
+    }
+    sorted_list.push(unixepoch);
+}
+
+/*
+ロジック部分
+    chunk分割は呼び出し側に任せる
+    ResultBufferを作るところまでが責務
+*/
 #[no_mangle]
 pub extern "C" fn private_contact_trace(
-    geohash_u8: * const u8,
+    geohash_u8: *const u8,
     geohash_u8_size: usize,
-    unixepoch_u64: * const u64,
+    unixepoch_u64: *const u64,
     unixepoch_u64_size: usize,
-    size_list: * const usize,
+    size_list: *const usize,
     epoch_data_size: usize,
 ) -> sgx_status_t {
     println!("[SGX] private_contact_trace start");
-    let mut rt : sgx_status_t = sgx_status_t::SGX_ERROR_UNEXPECTED;
     let mut dictionary_buffer = get_ref_dictionary_buffer().unwrap().borrow_mut();
     
     let geohash_data_vec: Vec<u8> = unsafe {
@@ -185,6 +205,9 @@ pub extern "C" fn private_contact_trace(
     }
 
     _build_dictionary_buffer(&mut dictionary_buffer, &geohash_data_vec, &unixepoch_data_vec, &size_list_vec);
+    let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
+    let mut result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
+    dictionary_buffer.intersect(&mapped_query_buffer, &mut result_buffer);
     
     println!("[SGX] private_contact_trace succes!");
     sgx_status_t::SGX_SUCCESS
@@ -200,6 +223,7 @@ fn _build_dictionary_buffer(
     for i in 0usize..(size_list_vec.len()) {
         let mut geohash = GeoHashKey::default(); 
         geohash.copy_from_slice(&geohash_data_vec[GEOHASH_U8_SIZE*i..GEOHASH_U8_SIZE*(i+1)]);
+        // centralデータはすでにsorted unique listになっている
         let unixepoch: Vec<UnixEpoch> = unixepoch_data_vec[cursor..cursor+size_list_vec[i]].to_vec();
         dictionary_buffer.data.insert(geohash, unixepoch);
         cursor += size_list_vec[i];
@@ -207,15 +231,24 @@ fn _build_dictionary_buffer(
     return 0;
 }
 
-// chunk分割は呼び出し側に任せる
+// ResultBufferからQueryResultを組み立てて返す
 #[no_mangle]
 pub extern "C" fn get_result(
-    total_query_data: * const u8,
-    toal_size       : usize,
+    response: *mut u8,
+    response_size: usize,
 ) -> sgx_status_t {
     println!("[SGX] get_result start");
-    let mut rt : sgx_status_t = sgx_status_t::SGX_ERROR_UNEXPECTED;
-    
+
+    let mut result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
+    _build_query_results(&mut result_buffer, response);
+
     println!("[SGX] get_result succes!");
     sgx_status_t::SGX_SUCCESS
+}
+
+fn _build_query_results(
+    result_buffer: &mut ResultBuffer,
+    response: *mut u8,
+) {
+
 }

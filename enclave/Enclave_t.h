@@ -22,7 +22,7 @@ extern "C" {
 
 sgx_status_t upload_query_data(uint8_t* total_query_data, size_t toal_size, size_t* size_list, size_t client_size, uint64_t* query_id_list);
 sgx_status_t private_contact_trace(uint8_t* geohash_u8, size_t geohash_u8_size, uint64_t* unixepoch_u64, size_t unixepoch_u64_size, size_t* size_list, size_t epoch_data_size);
-sgx_status_t get_result(uint8_t* total_result_data, size_t toal_size);
+sgx_status_t get_result(uint8_t* total_result_data, size_t total_size);
 void t_global_init_ecall(uint64_t id, const uint8_t* path, size_t len);
 void t_global_exit_ecall(void);
 

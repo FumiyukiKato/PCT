@@ -12,29 +12,25 @@ pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
 
 /* 
 PCTに最適化したデータ構造 
-ジェネリクスじゃなくてここで直接データ構造を変える 
+    ジェネリクスじゃなくてここで直接データ構造を変える 
 */
 type PCTDataStructure = HashMap<GeoHashKey, Vec<UnixEpoch>>;
 
 // type PCTDataStructure = BloomFilter<GeoHashKey, Period>;みたいな
-
-
-
-
-
 
 /* ################################ */
 
 
 /* 
 Type key for data structures (= GeoHash) 
-とりあえず無難にStringにしておく，あとで普通に[u8; 8]とかに変える[u64;2]とかでも良さそう？
+    とりあえず無難にStringにしておく，あとで普通に[u8; 8]とかに変える[u64;2]とかでも良さそう？
 */
 pub type GeoHashKey = [u8; GEOHASH_U8_SIZE];
 
 /* 
 Type DictionaryBuffer 
-シーケンシャルな読み込みのためのバッファ，サイズを固定しても良い 
+    シーケンシャルな読み込みのためのバッファ，サイズを固定しても良い
+    data.vec<Unixepoch>がソート済みでユニークセットになっていることは呼び出し側が保証している
 */
 #[derive(Clone, Default, Debug)]
 pub struct DictionaryBuffer {
@@ -44,6 +40,21 @@ pub struct DictionaryBuffer {
 impl DictionaryBuffer {
     pub fn new() -> Self {
         DictionaryBuffer::default()
+    }
+
+    pub fn intersect(&self, mapped_query_buffer: &MappedQuery, result: &mut ResultBuffer) {
+        for (query_geohash, query_unixepoch_vec) in mapped_query_buffer.map.iter() {
+            match self.data.get(query_geohash) {
+                Some(dic_unixepoch_list) => {
+                    for query_unixepoch in query_unixepoch_vec.iter() {
+                        if dic_unixepoch_list.contains(query_unixepoch) {
+                            result.data.push((*query_geohash, *query_unixepoch));
+                        }
+                    }
+                },
+                None => {}
+            }
+        }
     }
 }
 
@@ -94,8 +105,9 @@ impl QueryRep {
 
 /* 
 Type MappedQuery 
-こっちのクエリ側のデータ構造も変わる可能性がある
-いい感じに抽象化するのがめんどくさいのでこのデータ構造自体を変える
+    こっちのクエリ側のデータ構造も変わる可能性がある
+    いい感じに抽象化するのがめんどくさいのでこのデータ構造自体を変える
+    map.vec<Unixepoch>がソート済みでユニークセットになっていることは呼び出し側が保証している
 */
 #[derive(Clone, Default, Debug)]
 pub struct MappedQuery {
@@ -123,6 +135,36 @@ impl QueryBuffer {
     }
 }
 
+/* Type QueryResultBuffer */
+#[derive(Clone, Default, Debug)]
+pub struct QueryResultBuffer {
+    pub queries: HashMap<QueryId, QueryResult>,
+}
+
+impl QueryResultBuffer {
+    pub fn new() -> Self {
+        QueryResultBuffer::default()
+    }
+}
+
+/* Type QueryResult */
+#[derive(Clone, Default, Debug)]
+pub struct QueryResult {
+    pub risk_level: i8,
+    pub result_vec: Vec<(GeoHashKey, UnixEpoch)>,
+}
+
+impl QueryResult {
+    pub fn new() -> Self {
+        QueryResult::default()
+    }
+}
+
+
+/* 
+SGXのステート
+    ステートは全部グローバル変数に持ってヒープにメモリを確保する
+*/
 pub static DICTIONARY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
 pub fn get_ref_dictionary_buffer() -> Option<&'static RefCell<DictionaryBuffer>> {
     let ptr = DICTIONARY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<DictionaryBuffer>;

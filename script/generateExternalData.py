@@ -24,7 +24,7 @@ def gen_rand_timestamp():
     return int(dt.timestamp())
 
 def main():
-    data_size = 5
+    data_size = 10000
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(data_size):

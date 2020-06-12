@@ -49,7 +49,7 @@ typedef struct ms_private_contact_trace_t {
 typedef struct ms_get_result_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_total_result_data;
-	size_t ms_toal_size;
+	size_t ms_total_size;
 } ms_get_result_t;
 
 typedef struct ms_t_global_init_ecall_t {
@@ -713,12 +713,12 @@ static sgx_status_t SGX_CDECL sgx_get_result(void* pms)
 	ms_get_result_t* ms = SGX_CAST(ms_get_result_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	uint8_t* _tmp_total_result_data = ms->ms_total_result_data;
-	size_t _tmp_toal_size = ms->ms_toal_size;
-	size_t _len_total_result_data = _tmp_toal_size * sizeof(uint8_t);
+	size_t _tmp_total_size = ms->ms_total_size;
+	size_t _len_total_result_data = _tmp_total_size * sizeof(uint8_t);
 	uint8_t* _in_total_result_data = NULL;
 
 	if (sizeof(*_tmp_total_result_data) != 0 &&
-		(size_t)_tmp_toal_size > (SIZE_MAX / sizeof(*_tmp_total_result_data))) {
+		(size_t)_tmp_total_size > (SIZE_MAX / sizeof(*_tmp_total_result_data))) {
 		return SGX_ERROR_INVALID_PARAMETER;
 	}
 
@@ -735,20 +735,21 @@ static sgx_status_t SGX_CDECL sgx_get_result(void* pms)
 			status = SGX_ERROR_INVALID_PARAMETER;
 			goto err;
 		}
-		_in_total_result_data = (uint8_t*)malloc(_len_total_result_data);
-		if (_in_total_result_data == NULL) {
+		if ((_in_total_result_data = (uint8_t*)malloc(_len_total_result_data)) == NULL) {
 			status = SGX_ERROR_OUT_OF_MEMORY;
 			goto err;
 		}
 
-		if (memcpy_s(_in_total_result_data, _len_total_result_data, _tmp_total_result_data, _len_total_result_data)) {
+		memset((void*)_in_total_result_data, 0, _len_total_result_data);
+	}
+
+	ms->ms_retval = get_result(_in_total_result_data, _tmp_total_size);
+	if (_in_total_result_data) {
+		if (memcpy_s(_tmp_total_result_data, _len_total_result_data, _in_total_result_data, _len_total_result_data)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
-
 	}
-
-	ms->ms_retval = get_result(_in_total_result_data, _tmp_toal_size);
 
 err:
 	if (_in_total_result_data) free(_in_total_result_data);

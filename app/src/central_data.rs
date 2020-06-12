@@ -36,7 +36,8 @@ impl PCTHash {
             let mut geohash_u8 = [0_u8; 10];
             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
             match hash.structure.get_mut(&geohash_u8) {
-                Some(vec) => { vec.push(v.unixepoch) },
+                // centralデータに関しては，こいつがunique soted listである責務を持つ
+                Some(sorted_list) => { _sorted_push(sorted_list, v.unixepoch) },
                 None => { hash.structure.insert(geohash_u8, vec![v.unixepoch]); },
             };
         }
@@ -57,7 +58,7 @@ impl PCTHash {
             }
             data.structure.insert(*key, val.to_vec());
         }
-        if (data.size() > 0) {
+        if data.size() > 0 {
             buf.push(data);
         }
     }
@@ -92,4 +93,21 @@ pub struct ExternalDataDetail {
 fn hex_string_to_u8(hex_string: &String) -> Vec<u8> {
     let decoded = hex::decode(hex_string).expect("Decoding failed: Expect hex string!");
     decoded
+}
+
+// 昇順ソート+ユニーク性，O(n^2)だけどサイズは小さいので気にしない
+// あえてジェネリクスにする必要はない，むしろ型で守っていく
+fn _sorted_push(sorted_list: &mut Vec<u64>, unixepoch: u64) {
+    let mut index = 0;
+    for elm in sorted_list.iter() {
+        if *elm > unixepoch {
+            sorted_list.insert(index, unixepoch);
+            return;
+        } else if *elm == unixepoch {
+            return;
+        } else {
+            index += 1;
+        }
+    }
+    sorted_list.push(unixepoch);
 }
