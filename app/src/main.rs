@@ -40,14 +40,15 @@ const RESPONSE_DATA_SIZE_U8: usize = 9;
 fn main() {
     /* parameters */
     let threashould: usize = 1000;
+    let q_filename = "data/query/query.json";
+    let c_filename = "data/central/central.json";
+    
     let mut clocker = Clocker::new();
 
-    let q_filename = "data/query.json";
     clocker.set_and_start("Read Query Data");
     let query_data = QueryData::read_raw_from_file(q_filename);
     clocker.stop("Read Query Data");
 
-    let c_filename = "data/central.json";
     clocker.set_and_start("Read Central Data");
     let external_data = PCTHash::read_raw_from_file(c_filename);
     clocker.stop("Read Central Data");
@@ -162,4 +163,15 @@ fn main() {
     enclave.destroy();
     println!("All process is successful!!");
     clocker.show_all();
+
+    let now: String = get_timestamp();
+    write_to_file(
+        format!("data/result/ex-result-{}.txt", now),
+        "simple hash and list".to_string(),
+        c_filename.to_string(),
+        q_filename.to_string(),
+        threashould,
+        "only risk_level".to_string(),
+        clocker
+    );
 }

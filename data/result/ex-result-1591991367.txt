@@ -1,0 +1,21 @@
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Basic data
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+data structure type       : simple hash and list
+central data file         : data/central/central.json
+query data file           : data/query/query.json
+threashould               : 1000
+response data type        : only risk_level
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Clocker data
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Read Query Data               :  0.0000000000000000 seconds
+ECALL get_result              :  0.0000000000000000 seconds
+ECALL init_enclave            :  0.0000000000000759 seconds
+Distribute central data       :  0.0000000000000001 seconds
+ECALL upload_query_data       :  0.0000000000000000 seconds
+ECALL private_contact_trace   :  0.0000000000000002 seconds
+Read Central Data             :  0.0000000000000014 seconds
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
