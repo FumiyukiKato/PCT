@@ -81,7 +81,7 @@ fn main() {
     /* main logic contact tracing */
     let mut chunk_index: usize = 0;
     let last = chunked_buf.len() - 1;
-    while last <= chunk_index {
+    while last >= chunk_index {
 
         let chunk = &chunked_buf[chunk_index];
         let mut geohash_u8: Vec<u8> = Vec::with_capacity(100000);

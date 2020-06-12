@@ -46,15 +46,19 @@ impl PCTHash {
     // Unixepoch側の合計データ数がthreashould以下になるようにチャンクに分ける
     // オペレーション的には，バッチ的にチャンク化しておくのが良さそう
     pub fn disribute(&self, buf: &mut Vec<PCTHash>, threashould: usize) {
-        let mut chunk_index = 0;
         let mut val_num = 0;
+        let mut data = PCTHash::new();
         for (key, val) in self.structure.iter() {
             val_num += val.len();
             if val_num > threashould {
-                chunk_index += 1;
                 val_num = val.len();
+                buf.push(data);
+                data = PCTHash::new();
             }
-            buf[chunk_index].structure.insert(*key, val.to_vec());
+            data.structure.insert(*key, val.to_vec());
+        }
+        if (data.size() > 0) {
+            buf.push(data);
         }
     }
 
@@ -63,16 +67,14 @@ impl PCTHash {
     // extend_from_sliceを使ったやり方(pushとかじゃなくてコピーするようにすれば少しだけ早くなる余地がある？)
     pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, unixepoch_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
         let mut i = 0;
-        let mut total_size: usize = 0;
         for (key, value) in self.structure.iter() {
             let length = value.len();
-            size_list[i] = length;
+            size_list.push(length);
             geohash_u8.extend_from_slice(key);
             unixepoch_u64.extend_from_slice(value);
             i += 1;
-            total_size += length;
         }
-        total_size
+        i
     }
 }
 

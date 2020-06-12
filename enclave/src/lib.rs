@@ -170,10 +170,10 @@ pub extern "C" fn private_contact_trace(
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
 
-    let unix_epoch_data_vec: Vec<u64> = unsafe {
+    let unixepoch_data_vec: Vec<u64> = unsafe {
         slice::from_raw_parts(unixepoch_u64, unixepoch_u64_size)
     }.to_vec();
-    if unix_epoch_data_vec.len() != unixepoch_u64_size {
+    if unixepoch_data_vec.len() != unixepoch_u64_size {
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
     
@@ -184,7 +184,7 @@ pub extern "C" fn private_contact_trace(
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
 
-    _build_dictionary_buffer(&mut dictionary_buffer, &geohash_data_vec, &unix_epoch_data_vec, &size_list_vec);
+    _build_dictionary_buffer(&mut dictionary_buffer, &geohash_data_vec, &unixepoch_data_vec, &size_list_vec);
     
     println!("[SGX] private_contact_trace succes!");
     sgx_status_t::SGX_SUCCESS
@@ -193,10 +193,17 @@ pub extern "C" fn private_contact_trace(
 fn _build_dictionary_buffer(
     dictionary_buffer: &mut DictionaryBuffer,
     geohash_data_vec: &Vec<u8>,
-    unix_epoch_data_vec: &Vec<u64>,
+    unixepoch_data_vec: &Vec<u64>,
     size_list_vec: &Vec<usize>,
 ) -> i8 {
-
+    let mut cursor: usize = 0;
+    for i in 0usize..(size_list_vec.len()) {
+        let mut geohash = GeoHashKey::default(); 
+        geohash.copy_from_slice(&geohash_data_vec[GEOHASH_U8_SIZE*i..GEOHASH_U8_SIZE*(i+1)]);
+        let unixepoch: Vec<UnixEpoch> = unixepoch_data_vec[cursor..cursor+size_list_vec[i]].to_vec();
+        dictionary_buffer.data.insert(geohash, unixepoch);
+        cursor += size_list_vec[i];
+    }
     return 0;
 }
 
