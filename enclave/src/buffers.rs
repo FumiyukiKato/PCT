@@ -7,7 +7,10 @@ use std::collections::HashMap;
 pub const UNIXEPOCH_U8_SIZE: usize = 10;
 pub const GEOHASH_U8_SIZE: usize = 10;
 pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
-pub const RESPONSE_DATA_SIZE_U8: usize = 1;
+// risk_level 1バイト + qeuryId
+pub const QUERY_ID_SIZE_U8: usize = 8;
+pub const QUERY_RESULT_U8: usize = 1;
+pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 
 /* ################################ */
 
@@ -136,19 +139,33 @@ impl QueryBuffer {
     }
 }
 
-/* Type QueryResult */
+/* 
+Type QueryResult 
+    バイトへのシリアライズを担当するよ
+*/
 #[derive(Clone, Default, Debug)]
 pub struct QueryResult {
-    pub risk_level: i8,
+    pub query_id: QueryId,
+    pub risk_level: u8,
     pub result_vec: Vec<(GeoHashKey, UnixEpoch)>,
 }
 
 impl QueryResult {
     pub fn new() -> Self {
-        QueryResult::default()
+        return QueryResult {
+            query_id: 1,
+            risk_level: 0,
+            result_vec: vec![],
+        }
+    }
+
+    pub fn to_be_bytes(&self) -> [u8; RESPONSE_DATA_SIZE_U8] {
+        let mut res = [0; RESPONSE_DATA_SIZE_U8];
+        res[..QUERY_ID_SIZE_U8].clone_from_slice(&self.query_id.to_be_bytes());
+        res[RESPONSE_DATA_SIZE_U8-QUERY_RESULT_U8] = self.risk_level;
+        res
     }
 }
-
 
 /* 
 SGXのステート

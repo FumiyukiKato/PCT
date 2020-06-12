@@ -125,12 +125,12 @@ fn _build_query_buffer(
         query.id = query_id_list_vec[i];
         for i in 0_usize..(size/QUERY_U8_SIZE) {
             let mut timestamp = [0_u8; UNIXEPOCH_U8_SIZE];
-            let mut geoHash = [0_u8; GEOHASH_U8_SIZE];
+            let mut geo_hash = [0_u8; GEOHASH_U8_SIZE];
             timestamp.copy_from_slice(&this_query[i*QUERY_U8_SIZE..i*QUERY_U8_SIZE+UNIXEPOCH_U8_SIZE]);
-            geoHash.copy_from_slice(&this_query[i*QUERY_U8_SIZE+UNIXEPOCH_U8_SIZE..(i + 1)*QUERY_U8_SIZE]);
-            match query.parameters.get_mut(&geoHash) {
+            geo_hash.copy_from_slice(&this_query[i*QUERY_U8_SIZE+UNIXEPOCH_U8_SIZE..(i + 1)*QUERY_U8_SIZE]);
+            match query.parameters.get_mut(&geo_hash) {
                 Some(sorted_list) => { _sorted_push(sorted_list, unixepoch_from_u8(timestamp)) },
-                None => { query.parameters.insert(geoHash as GeoHashKey, vec![unixepoch_from_u8(timestamp)]); },
+                None => { query.parameters.insert(geo_hash as GeoHashKey, vec![unixepoch_from_u8(timestamp)]); },
             };
         }
         buffer.queries.push(query);
@@ -258,7 +258,7 @@ pub extern "C" fn private_contact_trace(
     }
 
     _build_dictionary_buffer(&mut dictionary_buffer, &geohash_data_vec, &unixepoch_data_vec, &size_list_vec);
-    let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
+    let mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
     let mut result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
     dictionary_buffer.intersect(&mapped_query_buffer, &mut result_buffer);
     
@@ -292,18 +292,52 @@ pub extern "C" fn get_result(
 ) -> sgx_status_t {
     println!("[SGX] get_result start");
 
-    let mut result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
-    let mut query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
-    _build_query_results(&result_buffer, &query_buffer, response);
+    let result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
+    let query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
+    let mut response_vec: Vec<u8> = Vec::with_capacity(response_size);
 
+    _build_query_response(&result_buffer, &query_buffer, &mut response_vec);
+    let slice = response_vec.as_mut_slice();
+    unsafe {
+        for i in 0..response_size {
+            *response.offset(i as isize) = slice[i];
+        }
+    }
+    
     println!("[SGX] get_result succes!");
     sgx_status_t::SGX_SUCCESS
 }
 
-fn _build_query_results(
+// matchがネストして読みにくくなってしまっている
+// メソッドチェーンでもっと関数型っぽく書けば読みやすくなりそうではある
+fn _build_query_response(
     result_buffer: &ResultBuffer,
     query_buffer: &QueryBuffer,
-    response: *mut u8,
+    response_vec: &mut Vec<u8>,
 ) {
-    
+    for query in query_buffer.queries.iter() {
+        let mut result = QueryResult::new();
+        result.query_id = query.id;
+        for (geohash, unixepoch) in result_buffer.data.iter() {
+            let is_exist = match query.parameters.get(geohash) {
+                Some(sorted_list) => { 
+                    match sorted_list.binary_search(unixepoch) {
+                        Ok(_) => true,
+                        Err(_) => false,
+                    }
+                },
+                None => { false },
+            };
+            if is_exist {
+                result.result_vec.push((*geohash, *unixepoch));
+            }
+        }
+        result.risk_level = match result.result_vec.len() {
+            x if x > 20 => 3,
+            x if x > 10 => 2,
+            x if x > 1  => 1,
+            _ => 0,
+        };
+        response_vec.extend_from_slice(&result.to_be_bytes());
+    }
 }

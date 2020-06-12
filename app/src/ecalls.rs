@@ -24,7 +24,7 @@ extern {
     pub fn get_result(
         eid: sgx_enclave_id_t,
         retval: *mut sgx_status_t,
-        response: * mut u8,
+        response: *mut u8,
         response_size: usize,
     ) -> sgx_status_t;
 }

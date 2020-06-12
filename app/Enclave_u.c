@@ -22,8 +22,8 @@ typedef struct ms_private_contact_trace_t {
 
 typedef struct ms_get_result_t {
 	sgx_status_t ms_retval;
-	uint8_t* ms_total_result_data;
-	size_t ms_total_size;
+	uint8_t* ms_response;
+	size_t ms_response_size;
 } ms_get_result_t;
 
 typedef struct ms_t_global_init_ecall_t {
@@ -1035,12 +1035,12 @@ sgx_status_t private_contact_trace(sgx_enclave_id_t eid, sgx_status_t* retval, u
 	return status;
 }
 
-sgx_status_t get_result(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* total_result_data, size_t total_size)
+sgx_status_t get_result(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* response, size_t response_size)
 {
 	sgx_status_t status;
 	ms_get_result_t ms;
-	ms.ms_total_result_data = total_result_data;
-	ms.ms_total_size = total_size;
+	ms.ms_response = response;
+	ms.ms_response_size = response_size;
 	status = sgx_ecall(eid, 2, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;

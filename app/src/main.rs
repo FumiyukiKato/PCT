@@ -32,7 +32,7 @@ use ecalls::{upload_query_data, init_enclave, private_contact_trace, get_result}
 mod central_data;
 use central_data::*;
 
-const RESPONSE_DATA_SIZE_U8: usize = 1;
+const RESPONSE_DATA_SIZE_U8: usize = 9;
 
 fn main() {
     /* parameters */
@@ -49,11 +49,11 @@ fn main() {
     /* initialize enclave */
     let enclave = match init_enclave() {
         Ok(r) => {
-            println!("[+] Init Enclave Successful {}!", r.geteid());
+            println!("[UNTRUSTED] Init Enclave Successful {}!", r.geteid());
             r
         },
         Err(x) => {
-            println!("[-] Init Enclave Failed {}!", x.as_str());
+            println!("[UNTRUSTED] Init Enclave Failed {}!", x.as_str());
             return;
         },
     };
@@ -73,10 +73,10 @@ fn main() {
     };
     match result {
         sgx_status_t::SGX_SUCCESS => {
-            println!("[+] upload_query_data Succes!");
+            println!("[UNTRUSTED] upload_query_data Succes!");
         },
         _ => {
-            println!("[-] upload_query_data Failed {}!", result.as_str());
+            println!("[UNTRUSTED] upload_query_data Failed {}!", result.as_str());
             return;
         }
     }
@@ -106,10 +106,10 @@ fn main() {
         };
         match result {
             sgx_status_t::SGX_SUCCESS => {
-                println!("[+] private_contact_trace Succes! {} th iteration", chunk_index);
+                println!("[UNTRUSTED] private_contact_trace Succes! {} th iteration", chunk_index);
             },
             _ => {
-                println!("[-] private_contact_trace Failed {}!", result.as_str());
+                println!("[UNTRUSTED] private_contact_trace Failed {}!", result.as_str());
                 return;
             }
         }
@@ -118,24 +118,25 @@ fn main() {
     }
 
     let response_size = query_data.client_size * RESPONSE_DATA_SIZE_U8;
-    let mut response: Vec<u8> = Vec::with_capacity(response_size);
+    let mut response: Vec<u8> = vec![0; response_size];
     let result = unsafe {
         get_result(
             enclave.geteid(),
             &mut retval,
-            response.as_ptr() as * mut u8,
+            response.as_mut_ptr(),
             response_size
         )
     };
     match result {
         sgx_status_t::SGX_SUCCESS => {
-            println!("[+] get_result Succes!");
+            println!("[UNTRUSTED] get_result Succes!");
         },
         _ => {
-            println!("[-] get_result Failed {}!", result.as_str());
+            println!("[UNTRUSTED] get_result Failed {}!", result.as_str());
             return;
         }
     }
+    println!("[UNTRUSTED] result {:?}", response);
 
     /* finish */
     enclave.destroy();

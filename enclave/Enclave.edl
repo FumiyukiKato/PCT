@@ -41,8 +41,8 @@ enclave {
         );
         
         public sgx_status_t get_result(
-            [out, count=total_size] uint8_t* total_result_data,
-            size_t total_size
+            [out, count=response_size] uint8_t* response,
+            size_t response_size
         );
     };
     
