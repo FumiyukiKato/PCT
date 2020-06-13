@@ -40,8 +40,8 @@ const RESPONSE_DATA_SIZE_U8: usize = 9;
 fn main() {
     /* parameters */
     let threashould: usize = 100000;
-    let q_filename = "data/query/generated-client-query-qs-2-cs-2.json";
-    let c_filename = "data/central/generated-external-data-100.json";
+    let q_filename = "data/query/sample_query.json";
+    let c_filename = "data/central/sample_central.json";
     
     let mut clocker = Clocker::new();
 
