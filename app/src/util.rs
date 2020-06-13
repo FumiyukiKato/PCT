@@ -88,3 +88,9 @@ pub fn get_timestamp() -> String {
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
     }
 }
+
+pub fn query_id_from_u8(query_id: &[u8]) -> u64 {
+    let mut array: [u8; 8] = [0; 8];
+    array.copy_from_slice(query_id);
+    u64::from_be_bytes(array)
+}

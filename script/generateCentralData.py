@@ -24,10 +24,12 @@ def gen_rand_timestamp():
     return int(dt.timestamp())
 
 def main():
-    data_size = 10000
+    data_size = 100
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(data_size):
+        if (i+1) % 10 == 0:
+            print("\r" + "generate process (%d/%d)" % (i+1, data_size), end="")
         timestamp = gen_rand_timestamp()
         geohash = gen_rand_geohash(10).encode().hex()
         
@@ -35,8 +37,9 @@ def main():
         total_data_list.append(value)
 
     json_data["vec"] = total_data_list
-
-    filename = './data/generated-external-data-%d.json' % data_size
+    print("\n" + "done!")
+    now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    filename = './data/central/generated-central-data-%d-%s.json' % (data_size, now_timestamp)
     with open(filename, 'w') as f:
         json.dump(json_data, f, indent=None)
 

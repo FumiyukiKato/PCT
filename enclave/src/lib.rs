@@ -334,8 +334,8 @@ fn _build_query_response(
         }
         result.risk_level = match result.result_vec.len() {
             x if x > 20 => 3,
-            x if x > 10 => 2,
-            x if x > 1  => 1,
+            x if x > 5 => 2,
+            x if x > 0  => 1,
             _ => 0,
         };
         response_vec.extend_from_slice(&result.to_be_bytes());

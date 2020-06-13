@@ -29,11 +29,12 @@ def generateMergeByteData(timestamp, geohash):
 
 def main():
     current_id = 0
-    query_size = 5
-    client_size = 3
+    query_size = 4000
+    client_size = 100
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(client_size):
+        print("\r" + "generate process (%d/%d)" % (i+1, client_size), end="")
         data_list = []
         for j in range(query_size):
             timestamp = gen_rand_timestamp()
@@ -48,8 +49,10 @@ def main():
 
     json_data["data"] = total_data_list
     json_data["client_size"] = client_size
-
-    filename = './data/generated-client-query-qs-%d-cs-%s.json' % (query_size, client_size)
+    
+    print("\n" + "done!")
+    now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    filename = './data/query/generated-client-query-qs-%d-cs-%s-%s.json' % (query_size, client_size, now_timestamp)
     with open(filename, 'w') as f:
         json.dump(json_data, f, indent=None)
 

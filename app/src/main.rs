@@ -39,9 +39,9 @@ const RESPONSE_DATA_SIZE_U8: usize = 9;
 
 fn main() {
     /* parameters */
-    let threashould: usize = 1000;
-    let q_filename = "data/query/query.json";
-    let c_filename = "data/central/central.json";
+    let threashould: usize = 100000;
+    let q_filename = "data/query/generated-client-query-qs-2-cs-2.json";
+    let c_filename = "data/central/generated-external-data-100.json";
     
     let mut clocker = Clocker::new();
 
@@ -157,7 +157,10 @@ fn main() {
         }
     }
     clocker.stop("ECALL get_result");
-    println!("[UNTRUSTED] result {:?}", response);
+    
+    for i in 0..query_data.client_size {
+        println!("[UNTRUSTED] result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+    }
 
     /* finish */
     enclave.destroy();
