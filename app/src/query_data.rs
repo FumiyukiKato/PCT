@@ -2,9 +2,9 @@ use serde::*;
 use std::fs::File;
 use std::io::BufReader;
 
-const UNIXEPOCH_U8_SIZE: usize = 10;
-const GEOHASH_U8_SIZE: usize = 10;
-const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
+pub const UNIXEPOCH_U8_SIZE: usize = 10;
+pub const GEOHASH_U8_SIZE: usize = 10;
+pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
 
 // バファリングするクエリはせいぜい10000なので64bitで余裕
 pub type QueryId = u64;

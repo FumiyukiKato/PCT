@@ -82,12 +82,6 @@ pub extern "C" fn upload_query_data(
 
 fn _init_buffers() {
 
-    // initialize mapped query buffer
-    let dictionary_buffer = DictionaryBuffer::new();
-    let dictionary_buffer_box = Box::new(RefCell::<DictionaryBuffer>::new(dictionary_buffer));
-    let dictionary_buffer_ptr = Box::into_raw(dictionary_buffer_box);
-    DICTIONARY_BUFFER.store(dictionary_buffer_ptr as *mut (), Ordering::SeqCst);
-
     // initialize query buffer
     let query_buffer = QueryBuffer::new();
     let query_buffer_box = Box::new(RefCell::<QueryBuffer>::new(query_buffer));
@@ -100,7 +94,7 @@ fn _init_buffers() {
     let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
     MAPPED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
-    // initialize mapped query buffer
+    // initialize result buffer
     let result_buffer = ResultBuffer::new();
     let result_buffer_box = Box::new(RefCell::<ResultBuffer>::new(result_buffer));
     let result_buffer_ptr = Box::into_raw(result_buffer_box);
@@ -234,8 +228,8 @@ pub extern "C" fn private_contact_trace(
     epoch_data_size: usize,
 ) -> sgx_status_t {
     println!("[SGX] private_contact_trace start");
-    let mut dictionary_buffer = get_ref_dictionary_buffer().unwrap().borrow_mut();
-    
+    let mut dictionary_buffer = DictionaryBuffer::new();
+
     let geohash_data_vec: Vec<u8> = unsafe {
         slice::from_raw_parts(geohash_u8, geohash_u8_size)
     }.to_vec();

@@ -12,6 +12,8 @@ pub const QUERY_ID_SIZE_U8: usize = 8;
 pub const QUERY_RESULT_U8: usize = 1;
 pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 
+pub const THREASHOULD: usize = 100000;
+
 /* ################################ */
 
 /* 
@@ -43,7 +45,9 @@ pub struct DictionaryBuffer {
 
 impl DictionaryBuffer {
     pub fn new() -> Self {
-        DictionaryBuffer::default()
+        DictionaryBuffer {
+            data: HashMap::with_capacity(THREASHOULD)
+        }
     }
 
     pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
@@ -171,16 +175,6 @@ impl QueryResult {
 SGXのステート
     ステートは全部グローバル変数に持ってヒープにメモリを確保する
 */
-pub static DICTIONARY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
-pub fn get_ref_dictionary_buffer() -> Option<&'static RefCell<DictionaryBuffer>> {
-    let ptr = DICTIONARY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<DictionaryBuffer>;
-    if ptr.is_null() {
-        None
-    } else {
-        Some(unsafe { &* ptr })
-    }
-}
-
 pub static QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
 pub fn get_ref_query_buffer() -> Option<&'static RefCell<QueryBuffer>> {
     let ptr = QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<QueryBuffer>;

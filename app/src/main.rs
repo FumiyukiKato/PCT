@@ -37,11 +37,20 @@ use util::*;
 
 const RESPONSE_DATA_SIZE_U8: usize = 9;
 
+
 fn main() {
     /* parameters */
-    let threashould: usize = 100000;
-    let q_filename = "data/query/sample_query.json";
-    let c_filename = "data/central/sample_central.json";
+    let threashould: usize = 180000;
+    
+    let q_filename = "data/query/generated-client-query-qs-450-cs-2000-20200614184628.json";
+    // let q_filename = "data/query/generated-client-query-qs-4500-cs-1000-20200614022547.json";
+    // let q_filename = "data/query/generated-client-query-qs-4500-cs-2000-20200614170915.json";
+    // let q_filename = "data/query/generated-client-query-qs-45000-cs-1000-20200614023852.json"; デカすぎ感
+    
+    // let c_filename = "data/central/generated-central-data-100000-20200614022035.json";
+    // let c_filename = "data/central/generated-central-data-1000000-20200614022055.json";
+    // let c_filename = "data/central/generated-central-data-10000000-20200614022325.json";
+    let c_filename = "data/central/generated-central-data-100000000-20200614030320.json";
     
     let mut clocker = Clocker::new();
 
@@ -54,7 +63,7 @@ fn main() {
     clocker.stop("Read Central Data");
 
     clocker.set_and_start("Distribute central data");
-    let mut chunked_buf: Vec<PCTHash> = Vec::with_capacity(10000);
+    let mut chunked_buf: Vec<PCTHash> = Vec::with_capacity(threashould);
     external_data.disribute(&mut chunked_buf, threashould);
     clocker.stop("Distribute central data");
 
@@ -104,8 +113,8 @@ fn main() {
     while last >= chunk_index {
 
         let chunk = &chunked_buf[chunk_index];
-        let mut geohash_u8: Vec<u8> = Vec::with_capacity(100000);
-        let mut unixepoch_u64: Vec<u64> = Vec::with_capacity(100000);
+        let mut geohash_u8: Vec<u8> = Vec::with_capacity(threashould*GEOHASH_U8_SIZE);
+        let mut unixepoch_u64: Vec<u64> = Vec::with_capacity(threashould);
         let mut size_list: Vec<usize> = Vec::with_capacity(chunk.size());
         let epoch_data_size = chunk.prepare_sgx_data(&mut geohash_u8, &mut unixepoch_u64, &mut size_list);
 
@@ -159,12 +168,14 @@ fn main() {
     clocker.stop("ECALL get_result");
     
     for i in 0..query_data.client_size {
-        println!("[UNTRUSTED] result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+        if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
+            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+        }
     }
 
     /* finish */
     enclave.destroy();
-    println!("All process is successful!!");
+    println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
 
     let now: String = get_timestamp();
