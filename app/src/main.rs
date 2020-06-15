@@ -43,7 +43,7 @@ const RESPONSE_DATA_SIZE_U8: usize = 9;
     args[0] = threashold
     args[1] = query data file path
     args[2] = central data file path
-    args[3] = file-output=false
+    args[3] = result file output (false or true)
 */
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -84,6 +84,19 @@ fn main() {
     clocker.set_and_start("Distribute central data");
     let mut chunked_buf: Vec<PCTHash> = Vec::with_capacity(threashould);
     external_data.disribute(&mut chunked_buf, threashould);
+    
+    let mut sgx_data: Vec<(Vec<u8>, Vec<u64>, Vec<usize>, usize)> = Vec::with_capacity(100);
+    let mut chunk_curret_index: usize = 0;
+    let chunk_last_index = chunked_buf.len() - 1;
+    while chunk_last_index >= chunk_curret_index {
+        let chunk = &chunked_buf[chunk_curret_index];
+        let mut geohash_u8: Vec<u8> = Vec::with_capacity(threashould*GEOHASH_U8_SIZE);
+        let mut unixepoch_u64: Vec<u64> = Vec::with_capacity(threashould);
+        let mut size_list: Vec<usize> = Vec::with_capacity(chunk.size());
+        let epoch_data_size = chunk.prepare_sgx_data(&mut geohash_u8, &mut unixepoch_u64, &mut size_list);
+        sgx_data.push((geohash_u8, unixepoch_u64, size_list, epoch_data_size));
+        chunk_curret_index += 1;
+    }
     clocker.stop("Distribute central data");
 
     /* initialize enclave */
@@ -126,27 +139,22 @@ fn main() {
     clocker.stop("ECALL upload_query_data");
 
     /* main logic contact tracing */
-    clocker.set_and_start("ECALL private_contact_trace");
     let mut chunk_index: usize = 0;
     let last = chunked_buf.len() - 1;
+    clocker.set_and_start("ECALL private_contact_trace");
     while last >= chunk_index {
 
-        let chunk = &chunked_buf[chunk_index];
-        let mut geohash_u8: Vec<u8> = Vec::with_capacity(threashould*GEOHASH_U8_SIZE);
-        let mut unixepoch_u64: Vec<u64> = Vec::with_capacity(threashould);
-        let mut size_list: Vec<usize> = Vec::with_capacity(chunk.size());
-        let epoch_data_size = chunk.prepare_sgx_data(&mut geohash_u8, &mut unixepoch_u64, &mut size_list);
-
+        let chunk = &sgx_data[chunk_index];
         let result = unsafe {
             private_contact_trace(
                 enclave.geteid(),
                 &mut retval,
-                geohash_u8.as_ptr() as * const u8,
-                geohash_u8.len(),
-                unixepoch_u64.as_ptr() as * const u64,
-                unixepoch_u64.len(),
-                size_list.as_ptr() as * const usize,
-                epoch_data_size
+                chunk.0.as_ptr() as * const u8,
+                chunk.0.len(),
+                chunk.1.as_ptr() as * const u64,
+                chunk.1.len(),
+                chunk.2.as_ptr() as * const usize,
+                chunk.3
             )
         };
         match result {
@@ -158,7 +166,6 @@ fn main() {
                 return;
             }
         }
-
         chunk_index += 1;
     }
     clocker.stop("ECALL private_contact_trace");
@@ -196,7 +203,7 @@ fn main() {
     enclave.destroy();
     println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
-    if args[3] == "file-output=true".to_string() {
+    if args[3] == "true".to_string() {
         let now: String = get_timestamp();
         write_to_file(
             format!("data/result/ex-result-{}.txt", now),

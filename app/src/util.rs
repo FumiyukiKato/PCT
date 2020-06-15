@@ -54,7 +54,7 @@ pub fn write_to_file(
     clocker: Clocker,
 ) {
     let mut file = File::create(file_name).unwrap();
-    let mut clocker_result: String = format!(
+    let clocker_result: String = format!(
 r#"
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Basic data

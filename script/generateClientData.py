@@ -29,7 +29,7 @@ def generateMergeByteData(timestamp, geohash):
 
 def main():
     current_id = 0
-    query_size = 450
+    query_size = 1000
     client_size = 2000
     json_data = cl.OrderedDict()
     total_data_list = []

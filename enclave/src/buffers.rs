@@ -50,19 +50,38 @@ impl DictionaryBuffer {
         }
     }
 
+    // dictinary側の方がサイズが大きい場合と小さい場合がある
+    // 一般的なケースだとdictinary側の方が大きい？
+    // 計算量はMかNのどっちかになるのでどちらも実装しておく
     pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
-        for (query_geohash, query_unixepoch_vec) in mapped_query_buffer.map.iter() {
-            match self.data.get(query_geohash) {
-                Some(dic_unixepoch_list) => {
-                    for query_unixepoch in query_unixepoch_vec.iter() {
-                        if dic_unixepoch_list.contains(query_unixepoch) {
-                            result.data.push((*query_geohash, *query_unixepoch));
+        
+        /* dictinaryの合計サイズの方が大きい場合はこちら採用した方が早い */
+        for (dict_geohash, dict_unixepoch_vec) in self.data.iter() {
+            match mapped_query_buffer.map.get(dict_geohash) {
+                Some(query_unixepoch_list) => {
+                    for dict_unixepoch in dict_unixepoch_vec.iter() { // ここの実装はsorted listであることを使っていなくてかなりサボっている
+                        if query_unixepoch_list.contains(dict_unixepoch) {
+                            result.data.push((*dict_geohash, *dict_unixepoch));
                         }
                     }
                 },
                 None => {}
             }
         }
+
+        // /* queryの合計サイズの方が大きい場合はこちら採用した方が早い */
+        // for (query_geohash, query_unixepoch_vec) in mapped_query_buffer.map.iter() {
+        //     match self.data.get(query_geohash) {
+        //         Some(dic_unixepoch_list) => {
+        //             for query_unixepoch in query_unixepoch_vec.iter() { // ここの実装はsorted listであることを使っていなくてかなりサボっている
+        //                 if dic_unixepoch_list.contains(query_unixepoch) {
+        //                     result.data.push((*query_geohash, *query_unixepoch));
+        //                 }
+        //             }
+        //         },
+        //         None => {}
+        //     }
+        // }
     }
 }
 
