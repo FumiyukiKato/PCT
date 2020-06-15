@@ -118,6 +118,9 @@ args = {
 def main():
     summary_type = SummaryType.NORMAL
     args = {
+        "client_size": 2000,
+        "query_size": 4500,
+        "threashould": 1000000
     }
     results =parse_from_result_files("data/result")
     build_results_summary(summary_type, results, args)

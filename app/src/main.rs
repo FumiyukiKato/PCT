@@ -19,6 +19,7 @@ extern crate sgx_types;
 extern crate sgx_urts;
 extern crate serde;
 extern crate serde_json;
+use std::env;
 
 use sgx_types::*;
 
@@ -38,18 +39,36 @@ use util::*;
 const RESPONSE_DATA_SIZE_U8: usize = 9;
 
 
+/*
+    args[0] = threashold
+    args[1] = query data file path
+    args[2] = central data file path
+    args[3] = file-output=false
+*/
+fn _get_options() -> Vec<String> {
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.len() != 4 {
+        std::process::exit(-1);
+    }
+    args
+}
+
+
 fn main() {
+    let args = _get_options();
     /* parameters */
-    let threashould: usize = 180000;
+    let threashould: usize = args[0].parse().unwrap();
     
-    let q_filename = "data/query/generated-client-query-qs-450-cs-2000-20200614184628.json";
+    let q_filename = &args[1];
+    // let q_filename = "data/query/generated-client-query-qs-450-cs-2000-20200614184628.json";
     // let q_filename = "data/query/generated-client-query-qs-4500-cs-1000-20200614022547.json";
     // let q_filename = "data/query/generated-client-query-qs-4500-cs-2000-20200614170915.json";
     // let q_filename = "data/query/generated-client-query-qs-45000-cs-1000-20200614023852.json"; デカすぎ感
     
+    let c_filename = &args[2];
     // let c_filename = "data/central/generated-central-data-100000-20200614022035.json";
     // let c_filename = "data/central/generated-central-data-1000000-20200614022055.json";
-    let c_filename = "data/central/generated-central-data-10000000-20200614022325.json";
+    // let c_filename = "data/central/generated-central-data-10000000-20200614022325.json";
     // let c_filename = "data/central/generated-central-data-100000000-20200614030320.json";
     
     let mut clocker = Clocker::new();
@@ -177,15 +196,16 @@ fn main() {
     enclave.destroy();
     println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
-
-    let now: String = get_timestamp();
-    write_to_file(
-        format!("data/result/ex-result-{}.txt", now),
-        "simple hash and list".to_string(),
-        c_filename.to_string(),
-        q_filename.to_string(),
-        threashould,
-        "only risk_level".to_string(),
-        clocker
-    );
+    if args[3] == "file-output=true".to_string() {
+        let now: String = get_timestamp();
+        write_to_file(
+            format!("data/result/ex-result-{}.txt", now),
+            "simple hash and list".to_string(),
+            c_filename.to_string(),
+            q_filename.to_string(),
+            threashould,
+            "only risk_level".to_string(),
+            clocker
+        );
+    }
 }
