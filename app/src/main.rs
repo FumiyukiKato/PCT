@@ -49,8 +49,8 @@ fn main() {
     
     // let c_filename = "data/central/generated-central-data-100000-20200614022035.json";
     // let c_filename = "data/central/generated-central-data-1000000-20200614022055.json";
-    // let c_filename = "data/central/generated-central-data-10000000-20200614022325.json";
-    let c_filename = "data/central/generated-central-data-100000000-20200614030320.json";
+    let c_filename = "data/central/generated-central-data-10000000-20200614022325.json";
+    // let c_filename = "data/central/generated-central-data-100000000-20200614030320.json";
     
     let mut clocker = Clocker::new();
 
