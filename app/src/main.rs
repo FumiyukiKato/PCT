@@ -48,6 +48,11 @@ const RESPONSE_DATA_SIZE_U8: usize = 9;
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 4 {
+        println!("[UNTRUSTED] ERROR bin/app needs 4 arguments!");
+        println!("    args[0] = threashold");
+        println!("    args[1] = query data file path");
+        println!("    args[2] = central data file path");
+        println!("    args[3] = result file output (false or true)");
         std::process::exit(-1);
     }
     args

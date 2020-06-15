@@ -1,8 +1,7 @@
 use std::fs::File;
-use std::io::{self, BufRead, Write, BufReader};
+use std::io::{Write};
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Default, Debug)]
 pub struct Clocker<'a> {

@@ -12,7 +12,9 @@ pub const QUERY_ID_SIZE_U8: usize = 8;
 pub const QUERY_RESULT_U8: usize = 1;
 pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 
-pub const THREASHOULD: usize = 100000;
+pub const THREASHOLD: usize = 100000;
+
+pub const CONTACT_TIME_THREASHOLD: u64 = 600;
 
 /* ################################ */
 
@@ -46,42 +48,45 @@ pub struct DictionaryBuffer {
 impl DictionaryBuffer {
     pub fn new() -> Self {
         DictionaryBuffer {
-            data: HashMap::with_capacity(THREASHOULD)
+            data: HashMap::with_capacity(THREASHOLD)
         }
     }
 
     // dictinary側の方がサイズが大きい場合と小さい場合がある
     // 一般的なケースだとdictinary側の方が大きい？
     // 計算量はMかNのどっちかになるのでどちらも実装しておく
+    /* dictinaryの合計サイズの方が大きい場合はこれを採用した方が早いけど逆なら改善可能 */
     pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
-        
-        /* dictinaryの合計サイズの方が大きい場合はこちら採用した方が早い */
         for (dict_geohash, dict_unixepoch_vec) in self.data.iter() {
             match mapped_query_buffer.map.get(dict_geohash) {
-                Some(query_unixepoch_list) => {
-                    for dict_unixepoch in dict_unixepoch_vec.iter() { // ここの実装はsorted listであることを使っていなくてかなりサボっている
-                        if query_unixepoch_list.contains(dict_unixepoch) {
-                            result.data.push((*dict_geohash, *dict_unixepoch));
-                        }
-                    }
+                Some(query_unixepoch_vec) => {
+                    self.judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
                 },
                 None => {}
             }
         }
+    }
 
-        // /* queryの合計サイズの方が大きい場合はこちら採用した方が早い */
-        // for (query_geohash, query_unixepoch_vec) in mapped_query_buffer.map.iter() {
-        //     match self.data.get(query_geohash) {
-        //         Some(dic_unixepoch_list) => {
-        //             for query_unixepoch in query_unixepoch_vec.iter() { // ここの実装はsorted listであることを使っていなくてかなりサボっている
-        //                 if dic_unixepoch_list.contains(query_unixepoch) {
-        //                     result.data.push((*query_geohash, *query_unixepoch));
-        //                 }
-        //             }
-        //         },
-        //         None => {}
-        //     }
-        // }
+    /* CONTACT_TIME_THREASHOLDの幅で接触を判定して結果をResultBufferに返す */
+    /* resultbufferにいれるところまでやるのは分かりにくいけど，パフォーマンス的にそうする */
+    fn judge_contact(&self, query_unixepoch_vec: &Vec<UnixEpoch>, dict_unixepoch_vec: &Vec<UnixEpoch>, geohash: &GeoHashKey, result: &mut ResultBuffer) {
+        let mut finish: bool = false;
+        for query_unixepoch in query_unixepoch_vec.iter() {
+            let last = dict_unixepoch_vec.len() - 1;
+            for (i, dict_unixepoch) in dict_unixepoch_vec.iter().enumerate() {
+                if *dict_unixepoch > CONTACT_TIME_THREASHOLD + *query_unixepoch {
+                    break;
+                } else if (*dict_unixepoch < CONTACT_TIME_THREASHOLD + *query_unixepoch) && (*query_unixepoch < CONTACT_TIME_THREASHOLD + *dict_unixepoch) {
+                    result.data.push((*geohash ,*query_unixepoch));
+                } else {
+                    if i == last {
+                        finish = true;
+                    }
+                    continue;
+                }
+            }
+            if finish { break; }
+        }
     }
 }
 
@@ -105,16 +110,16 @@ pub fn unixepoch_from_u8(u_timestamp: [u8; UNIXEPOCH_U8_SIZE]) -> UnixEpoch {
     num
 }
 
-#[derive(Clone, Default, Debug)]
-pub struct Period {
-    pub array: Vec<(UnixEpoch, UnixEpoch)>
-}
+// #[derive(Clone, Default, Debug)]
+// pub struct Period {
+//     pub array: Vec<(UnixEpoch, UnixEpoch)>
+// }
 
-impl Period {
-    pub fn new() -> Self {
-        Period::default()
-    }
-}
+// impl Period {
+//     pub fn new() -> Self {
+//         Period::default()
+//     }
+// }
 
 /* Type QueryRep */
 #[derive(Clone, Default, Debug)]
