@@ -15,6 +15,7 @@ impl <'a>Clocker<'a>  {
     }
     
     pub fn set_and_start(&mut self, name: &'a str) {
+        println!("[Clocker] {} start.", name);
         self.data.insert(name, Instant::now());
     }
 
@@ -23,6 +24,7 @@ impl <'a>Clocker<'a>  {
             Some(instant) => { 
                 let end = instant.elapsed();
                 self.result.insert(name, end);
+                println!("[Clocker] {} end.", name);
             },
             None => { println!("[Clocker] error!! {} is not found", name); }
         }

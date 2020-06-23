@@ -52,6 +52,8 @@ def make_normal_summary(results, args):
         contact_trace_time = extract_secounds(result["ECALL private_contact_trace"])
         distribute_time = extract_secounds(result["Distribute central data"])
         upload_to_sgx_time = extract_secounds(result["ECALL upload_query_data"])
+        query_data_file = result["query data file"]
+        central_data_file = result["central data file"]
         data = {
             "data_structure_type": data_structure_type,
             "query_size": query_size,
@@ -60,7 +62,9 @@ def make_normal_summary(results, args):
             "threashould": threashould,
             "contact_trace_time": contact_trace_time,
             "distribute_time": distribute_time,
-            "upload_to_sgx_time": upload_to_sgx_time
+            "upload_to_sgx_time": upload_to_sgx_time,
+            "query_data_file": query_data_file,
+            "central_data_file": central_data_file
         }
         
         if "data_structure_type" in args and args.get("data_structure_type") != data_structure_type:
@@ -86,10 +90,13 @@ def make_normal_summary(results, args):
     print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     for data in sorted_data:
         print(" contact_trace_time : %s" % data["contact_trace_time"])
+        print(" upload_to_sgx_time : %s" % data["upload_to_sgx_time"])
         print(" threashould        : %s" % data["threashould"])
         print(" query_size         : %s" % data["query_size"])
         print(" client_size        : %s" % data["client_size"])
         print(" central_data_size  : %s" % data["central_data_size"])
+        print(" query_data_file    : %s" % data["query_data_file"])
+        print(" central_data_file  : %s" % data["central_data_file"])
         print("-------------------------------------------------------")
 
 def extract_from_query_file(file_name):
@@ -118,8 +125,8 @@ args = {
 def main():
     summary_type = SummaryType.NORMAL
     args = {
-        "client_size": 2000,
-        "central_data_size": 1000000,
+#        "client_size": 3000,
+        "central_data_size": 100000000,
         "threashould": 100000
     }
     results =parse_from_result_files("data/result")

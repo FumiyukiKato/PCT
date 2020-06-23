@@ -31,13 +31,12 @@ def gen_soreppoi_geohash(length):
     # 人間は偏在しているということで適当にBase16に削る
     # 12^8 = 4億くらい（日本のPOIってそんなもんじゃない？勘）
     # 感染者がいった場所だから100万POIくらいに絞りたい？
-    # 6^8 = 160万くらいにした
-    small_base32 = 'fghjkm'
+    # 8^8 = 1600万くらいにした
+    base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
     for i in range(length - 2):
-        r = random.randint(0, 5)
-        geohash[i+1] = small_base32[r]
+        r = random.randint(0, 13)
+        geohash[i+1] = base32[r]
     return ''.join(geohash)
-    
 
 def main():
     data_size = 100000000
@@ -55,7 +54,7 @@ def main():
     json_data["vec"] = total_data_list
     print("\n" + "done!")
     now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = './data/soreppoi_central/generated-central-data-%d-%s.json' % (data_size, now_timestamp)
+    filename = './data/soreppoi_central14/generated-central-data-%d-%s.json' % (data_size, now_timestamp)
     with open(filename, 'w') as f:
         json.dump(json_data, f, indent=None)
 

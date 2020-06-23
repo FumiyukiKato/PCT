@@ -78,18 +78,15 @@ fn main() {
     
     let mut clocker = Clocker::new();
 
-    clocker.set_and_start("Read Query Data");
-    let query_data = QueryData::read_raw_from_file(q_filename);
-    clocker.stop("Read Query Data");
-
+    /* read central data */
     clocker.set_and_start("Read Central Data");
     let external_data = PCTHash::read_raw_from_file(c_filename);
     clocker.stop("Read Central Data");
 
+    /* preprocess central data */
     clocker.set_and_start("Distribute central data");
     let mut chunked_buf: Vec<PCTHash> = Vec::with_capacity(threashould);
     external_data.disribute(&mut chunked_buf, threashould);
-    
     let mut sgx_data: Vec<(Vec<u8>, Vec<u64>, Vec<usize>, usize)> = Vec::with_capacity(100);
     let mut chunk_curret_index: usize = 0;
     let chunk_last_index = chunked_buf.len() - 1;
@@ -118,7 +115,12 @@ fn main() {
     };
     clocker.stop("ECALL init_enclave");
 
-    /* upload query mock data */
+    /* read query data */
+    clocker.set_and_start("Read Query Data");
+    let query_data = QueryData::read_raw_from_file(q_filename);
+    clocker.stop("Read Query Data");
+
+    /* upload query data */
     clocker.set_and_start("ECALL upload_query_data");
     let mut retval = sgx_status_t::SGX_SUCCESS;
     let result = unsafe {
@@ -164,7 +166,7 @@ fn main() {
         };
         match result {
             sgx_status_t::SGX_SUCCESS => {
-                println!("[UNTRUSTED] private_contact_trace Succes! {} th iteration", chunk_index);
+                print!("\r[UNTRUSTED] private_contact_trace Succes! {} th iteration", chunk_index);
             },
             _ => {
                 println!("[UNTRUSTED] private_contact_trace Failed {}!", result.as_str());
@@ -173,6 +175,8 @@ fn main() {
         }
         chunk_index += 1;
     }
+    println!("");
+    
     clocker.stop("ECALL private_contact_trace");
 
     /* response reconstruction */

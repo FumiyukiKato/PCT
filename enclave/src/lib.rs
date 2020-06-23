@@ -227,7 +227,7 @@ pub extern "C" fn private_contact_trace(
     size_list: *const usize,
     epoch_data_size: usize,
 ) -> sgx_status_t {
-    println!("[SGX] private_contact_trace start");
+    // println!("[SGX] private_contact_trace start");
     let mut dictionary_buffer = DictionaryBuffer::new();
 
     let geohash_data_vec: Vec<u8> = unsafe {
@@ -256,7 +256,7 @@ pub extern "C" fn private_contact_trace(
     let mut result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
     dictionary_buffer.intersect(&mapped_query_buffer, &mut result_buffer);
     
-    println!("[SGX] private_contact_trace succes!");
+    // println!("[SGX] private_contact_trace succes!");
     sgx_status_t::SGX_SUCCESS
 }
 
