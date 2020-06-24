@@ -7,6 +7,8 @@ import random
 import datetime
 import collections as cl
 
+ACCURACY = 20
+
 def gen_rand_geohash(length):
     geohash = [''] * length
     base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
@@ -36,7 +38,7 @@ def gen_soreppoi_geohash(length):
     # 12^8 = 4億くらい（日本のPOIってそんなもんじゃない？勘）
     base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
     for i in range(length - 2):
-        r = random.randint(0, 20)
+        r = random.randint(0, ACCURACY-1)
         geohash[i+1] = base32[r]
     
     return ''.join(geohash)
@@ -62,7 +64,7 @@ def gen_soreppoi_query(query_size):
 
 def main():
     current_id = 0
-    query_size = 4500
+    query_size = 1008
     client_size = 3000
     json_data = cl.OrderedDict()
     total_data_list = []
@@ -79,7 +81,7 @@ def main():
     
     print("\n" + "done!")
     now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = './data/soreppoi_query20/generated-client-query-qs-%d-cs-%s-%s.json' % (query_size, client_size, now_timestamp)
+    filename = './data/soreppoi_query%s/generated-client-query-qs-%d-cs-%s-%s.json' % (ACCURACY, query_size, client_size, now_timestamp)
     with open(filename, 'w') as f:
         json.dump(json_data, f, indent=None)
 

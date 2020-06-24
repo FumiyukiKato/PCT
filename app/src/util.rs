@@ -15,16 +15,16 @@ impl <'a>Clocker<'a>  {
     }
     
     pub fn set_and_start(&mut self, name: &'a str) {
-        println!("[Clocker] {} start.", name);
+        // println!("[Clocker] {} start.", name);
         self.data.insert(name, Instant::now());
     }
 
     pub fn stop(&mut self, name: &'a str) {
         match self.data.get_mut(name) {
             Some(instant) => { 
-                let end = instant.elapsed();
-                self.result.insert(name, end);
-                println!("[Clocker] {} end.", name);
+                let duration = instant.elapsed();
+                self.result.insert(name, duration);
+                // println!("[Clocker] {} end.", name);
             },
             None => { println!("[Clocker] error!! {} is not found", name); }
         }
@@ -32,14 +32,14 @@ impl <'a>Clocker<'a>  {
 
     pub fn show_all(&self) {
         for (name, duration) in self.result.iter() {
-            println!("[Clocker] {}:  {}.{:016} seconds", name, duration.as_secs(), duration.subsec_nanos() / 1_000_000);
+            println!("[Clocker] {}:  {}.{:06} seconds", name, duration.as_secs(), duration.subsec_nanos() / 1_000);
         }
     }
 
     pub fn to_string(&self) -> String {
         let mut res = String::new();
         for (name, duration) in self.result.iter() {
-            res = format!("{}{:<30}:  {}.{:016} seconds\n", res, name, duration.as_secs(), duration.subsec_nanos() / 1_000_000);
+            res = format!("{}{:<30}:  {}.{:06} seconds\n", res, name, duration.as_secs(), duration.subsec_nanos() / 1_000);
         }
         res
     }

@@ -54,6 +54,8 @@ def make_normal_summary(results, args):
         upload_to_sgx_time = extract_secounds(result["ECALL upload_query_data"])
         query_data_file = result["query data file"]
         central_data_file = result["central data file"]
+        query_data_variance = extract_query_variance(query_data_file)
+        central_data_variance = extract_central_variance(central_data_file)
         data = {
             "data_structure_type": data_structure_type,
             "query_size": query_size,
@@ -64,7 +66,10 @@ def make_normal_summary(results, args):
             "distribute_time": distribute_time,
             "upload_to_sgx_time": upload_to_sgx_time,
             "query_data_file": query_data_file,
-            "central_data_file": central_data_file
+            "central_data_file": central_data_file,
+            "query_data_variance": query_data_variance,
+            "central_data_variance": central_data_variance
+
         }
         
         if "data_structure_type" in args and args.get("data_structure_type") != data_structure_type:
@@ -79,6 +84,10 @@ def make_normal_summary(results, args):
             continue
         if "contact_trace_time" in args and args.get("contact_trace_time") > contact_trace_time:
             continue
+        if "query_data_variance" in args and args.get("query_data_variance") != query_data_variance:
+            continue
+        if "central_data_variance" in args and args.get("central_data_variance") != central_data_variance:
+            continue
         normal_summary_data.append(data)
     
     sorted_data = sorted(normal_summary_data, key=lambda x: x["contact_trace_time"])
@@ -89,14 +98,14 @@ def make_normal_summary(results, args):
     print("Summary")
     print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     for data in sorted_data:
-        print(" contact_trace_time : %s" % data["contact_trace_time"])
-        print(" upload_to_sgx_time : %s" % data["upload_to_sgx_time"])
-        print(" threashould        : %s" % data["threashould"])
-        print(" query_size         : %s" % data["query_size"])
-        print(" client_size        : %s" % data["client_size"])
-        print(" central_data_size  : %s" % data["central_data_size"])
-        print(" query_data_file    : %s" % data["query_data_file"])
-        print(" central_data_file  : %s" % data["central_data_file"])
+        print(" contact_trace_time    : %s" % data["contact_trace_time"])
+        print(" upload_to_sgx_time    : %s" % data["upload_to_sgx_time"])
+        print(" threashould           : %s" % data["threashould"])
+        print(" query_size            : %s" % data["query_size"])
+        print(" client_size           : %s" % data["client_size"])
+        print(" central_data_size     : %s" % data["central_data_size"])
+        print(" query_data_variance   : %s" % data["query_data_variance"])
+        print(" central_data_variance : %s" % data["central_data_variance"])
         print("-------------------------------------------------------")
 
 def extract_from_query_file(file_name):
@@ -113,6 +122,14 @@ def extract_int(int_string):
 def extract_secounds(seconds_string):
     matches = re.findall("(\d.+) seconds", seconds_string)
     return float(matches[0])
+
+def extract_query_variance(query_data_file):
+    matches = re.findall("data/[^/]*query(\d+)/", query_data_file)
+    return int(matches[0])
+
+def extract_central_variance(central_data_file):
+    matches = re.findall("data/[^/]*central(\d+)/", central_data_file)
+    return int(matches[0])
 
 """
 filter

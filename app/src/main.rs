@@ -193,7 +193,7 @@ fn main() {
     };
     match result {
         sgx_status_t::SGX_SUCCESS => {
-            println!("[UNTRUSTED] get_result Succes!");
+            // println!("[UNTRUSTED] get_result Succes!");
         },
         _ => {
             println!("[UNTRUSTED] get_result Failed {}!", result.as_str());
@@ -210,7 +210,7 @@ fn main() {
 
     /* finish */
     enclave.destroy();
-    println!("[UNTRUSTED] All process is successful!!");
+    // println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
     if args[3] == "true".to_string() {
         let now: String = get_timestamp();

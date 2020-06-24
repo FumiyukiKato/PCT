@@ -33,6 +33,8 @@ use std::cell::RefCell;
 use std::slice;
 use std::sync::atomic::{Ordering};
 use std::boxed::Box;
+use std::time::{Instant};
+use std::untrusted::time::InstantEx;
 
 mod buffers;
 use buffers::*;
@@ -45,10 +47,14 @@ pub extern "C" fn upload_query_data(
     client_size     : usize,
     query_id_list   : *const u64,
 ) -> sgx_status_t {
-    println!("[SGX] upload_query_data start");
-    
+    // println!("[SGX] upload_query_data start");
+    let whole_start = Instant::now();
+    let start = Instant::now();
     _init_buffers();
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "init_buffers", end.as_secs(), end.subsec_nanos() / 1_000);
 
+    let start = Instant::now();
     let total_query_data_vec: Vec<u8> = unsafe {
         slice::from_raw_parts(total_query_data, toal_size)
     }.to_vec();
@@ -69,14 +75,25 @@ pub extern "C" fn upload_query_data(
     if query_id_list_vec.len() != client_size {
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "reading?", end.as_secs(), end.subsec_nanos() / 1_000);
 
+    let start = Instant::now();
     let mut query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
     _build_query_buffer(&mut query_buffer, &total_query_data_vec, &size_list_vec, &query_id_list_vec);
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "build_query_buffer", end.as_secs(), end.subsec_nanos() / 1_000);
 
+    let start = Instant::now();
     let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
     _map_into_pct(&mut mapped_query_buffer, &query_buffer);
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "map_into_pct", end.as_secs(), end.subsec_nanos() / 1_000);
 
-    println!("[SGX] upload_query_data succes!");
+    // println!("[SGX] upload_query_data succes!");
+    let end = whole_start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
+    
     sgx_status_t::SGX_SUCCESS
 }
 
@@ -284,7 +301,7 @@ pub extern "C" fn get_result(
     response: *mut u8,
     response_size: usize,
 ) -> sgx_status_t {
-    println!("[SGX] get_result start");
+    // println!("[SGX] get_result start");
 
     let result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
     let query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
@@ -298,7 +315,7 @@ pub extern "C" fn get_result(
         }
     }
     
-    println!("[SGX] get_result succes!");
+    // println!("[SGX] get_result succes!");
     sgx_status_t::SGX_SUCCESS
 }
 

@@ -7,6 +7,8 @@ import random
 import datetime
 import collections as cl
 
+ACCURACY = 24
+
 # それっぽいデータをうまく生成したい感じはある
 def gen_rand_geohash(length):
     geohash = [''] * length
@@ -34,12 +36,12 @@ def gen_soreppoi_geohash(length):
     # 8^8 = 1600万くらいにした
     base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
     for i in range(length - 2):
-        r = random.randint(0, 13)
+        r = random.randint(0, ACCURACY-1)
         geohash[i+1] = base32[r]
     return ''.join(geohash)
 
 def main():
-    data_size = 100000000
+    data_size = 10000000
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(data_size):
@@ -54,7 +56,7 @@ def main():
     json_data["vec"] = total_data_list
     print("\n" + "done!")
     now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = './data/soreppoi_central14/generated-central-data-%d-%s.json' % (data_size, now_timestamp)
+    filename = './data/soreppoi_central%s/generated-central-data-%d-%s.json' % (ACCURACY, data_size, now_timestamp)
     with open(filename, 'w') as f:
         json.dump(json_data, f, indent=None)
 
