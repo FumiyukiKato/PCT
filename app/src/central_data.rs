@@ -9,6 +9,82 @@ use std::vec::Vec;
 */
 
 /*
+ジオハッシュベースに圧縮したデータ構造
+    キーがgeohash, バリューがUnix epochのベクタ
+*/
+
+/* Type Period */
+pub type UnixEpoch = u64;
+// UNIX EPOCH INTERVAL OF THE GPS DATA
+pub const TIME_INTERVAL: u64 = 600;
+
+#[derive(Clone, Default, Debug)]
+pub struct Period(UnixEpoch, UnixEpoch);
+
+impl Period {
+    pub fn new() -> Self {
+        Period::default()
+    }
+
+    pub fn with_start(start: UnixEpoch) -> Self {
+        Period(start, start)
+    }
+
+    pub fn from_unixepoch_vector(unixepoch_vec: &Vec<UnixEpoch>) -> Vec<Period> {
+        let mut period_vec: Vec<Period> = vec![];
+        
+        assert!(unixepoch_vec.len() > 0);
+        let mut latest_unixepoch: UnixEpoch = unixepoch_vec[0];
+        let mut period = Period::with_start(latest_unixepoch);
+        
+        for unixepoch in unixepoch_vec.iter() {
+            if latest_unixepoch + TIME_INTERVAL >= *unixepoch {
+                latest_unixepoch = *unixepoch;
+            } else {
+                period.1 = latest_unixepoch;
+                period_vec.push(period);
+                period = Period::with_start(*unixepoch);
+                latest_unixepoch = *unixepoch;
+            }
+        }
+        period.1 = latest_unixepoch;
+        period_vec.push(period);
+        period_vec
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct GeohashTable {
+    structure: HashMap<[u8; 10], Vec<Period>>
+}
+
+impl GeohashTable {
+    pub fn new() -> Self {
+        GeohashTable {
+            structure: HashMap::with_capacity(10000)
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        self.structure.len()
+    }
+
+    pub fn read_raw_from_file(filename: &str) -> Self {
+        let external_data = PCTHash::read_raw_from_file(filename);
+        Self::geohash_based_compress(external_data)
+        
+    }
+    
+    fn geohash_based_compress(original_data: PCTHash) -> GeohashTable {
+        let mut geohash_table = GeohashTable::new();
+        for (geohash, unixepoch_vec) in original_data.structure.iter() {
+            geohash_table.structure.insert(*geohash, Period::from_unixepoch_vector(unixepoch_vec));
+        }
+        geohash_table
+    }
+}
+
+/*
 単純なハッシュマップ
     キーがgeohash, バリューがUnix epochのベクタ
 */
@@ -19,7 +95,9 @@ pub struct PCTHash {
 
 impl PCTHash {
     pub fn new() -> Self {
-        PCTHash::default()
+        PCTHash {
+            structure: HashMap::with_capacity(10000)
+        }
     }
 
     pub fn size(&self) -> usize {
