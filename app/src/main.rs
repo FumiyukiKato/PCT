@@ -63,29 +63,19 @@ fn main() {
     let args = _get_options();
     /* parameters */
     let threashould: usize = args[0].parse().unwrap();
-    
     let q_filename = &args[1];
-    // let q_filename = "data/query/generated-client-query-qs-450-cs-2000-20200614184628.json";
-    // let q_filename = "data/query/generated-client-query-qs-4500-cs-1000-20200614022547.json";
-    // let q_filename = "data/query/generated-client-query-qs-4500-cs-2000-20200614170915.json";
-    // let q_filename = "data/query/generated-client-query-qs-45000-cs-1000-20200614023852.json"; デカすぎ感
-    
     let c_filename = &args[2];
-    // let c_filename = "data/central/generated-central-data-100000-20200614022035.json";
-    // let c_filename = "data/central/generated-central-data-1000000-20200614022055.json";
-    // let c_filename = "data/central/generated-central-data-10000000-20200614022325.json";
-    // let c_filename = "data/central/generated-central-data-100000000-20200614030320.json";
-    
+
     let mut clocker = Clocker::new();
 
     /* read central data */
     clocker.set_and_start("Read Central Data");
-    let external_data = PCTHash::read_raw_from_file(c_filename);
+    let external_data = Base::read_raw_from_file(c_filename);
     clocker.stop("Read Central Data");
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
-    let mut chunked_buf: Vec<PCTHash> = Vec::with_capacity(threashould);
+    let mut chunked_buf: Vec<Base> = Vec::with_capacity(threashould);
     external_data.disribute(&mut chunked_buf, threashould);
     let mut sgx_data: Vec<(Vec<u8>, Vec<u64>, Vec<usize>, usize)> = Vec::with_capacity(100);
     let mut chunk_curret_index: usize = 0;

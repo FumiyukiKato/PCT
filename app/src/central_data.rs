@@ -4,14 +4,9 @@ use std::io::BufReader;
 use std::collections::HashMap;
 use std::vec::Vec;
 
-/* 
-実装っぽい部分
-*/
 
-/*
-ジオハッシュベースに圧縮したデータ構造
-    キーがgeohash, バリューがUnix epochのベクタ
-*/
+/* ############################################## */
+/* typedef */
 
 /* Type Period */
 pub type UnixEpoch = u64;
@@ -53,10 +48,14 @@ impl Period {
     }
 }
 
+
+/* ############################################## */
+/* GeohashTable */
 #[derive(Clone, Default, Debug)]
 pub struct GeohashTable {
     structure: HashMap<[u8; 10], Vec<Period>>
 }
+
 
 impl GeohashTable {
     pub fn new() -> Self {
@@ -70,32 +69,69 @@ impl GeohashTable {
     }
 
     pub fn read_raw_from_file(filename: &str) -> Self {
-        let external_data = PCTHash::read_raw_from_file(filename);
-        Self::geohash_based_compress(external_data)
-        
+        let external_data = Base::read_raw_from_file(filename);
+        Self::geohash_based_compress(&external_data)
     }
     
-    fn geohash_based_compress(original_data: PCTHash) -> GeohashTable {
+    fn geohash_based_compress(original_data: &Base) -> GeohashTable {
         let mut geohash_table = GeohashTable::new();
         for (geohash, unixepoch_vec) in original_data.structure.iter() {
             geohash_table.structure.insert(*geohash, Period::from_unixepoch_vector(unixepoch_vec));
         }
         geohash_table
     }
+
+    // Period側の合計データ数がthreashould以下になるようにチャンクに分ける
+    pub fn disribute(&self, buf: &mut Vec<Self>, threashould: usize) {
+        let mut val_num = 0;
+        let mut data = Self::new();
+        for (key, val) in self.structure.iter() {
+            val_num += val.len();
+            if val_num > threashould {
+                val_num = val.len();
+                buf.push(data);
+                data = Self::new();
+            }
+            data.structure.insert(*key, val.to_vec());
+        }
+        if data.size() > 0 {
+            buf.push(data);
+        }
+    }
+
+    pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, period_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
+        let mut i = 0;
+        for (key, value) in self.structure.iter() {
+            let length = value.len();
+            size_list.push(length);
+            geohash_u8.extend_from_slice(key);
+            let mut ret_vec: Vec<u64> = Vec::with_capacity(value.len() * 2);
+            for period in value.iter() {
+                ret_vec.push(period.0);
+                ret_vec.push(period.1);
+            }
+            period_u64.extend_from_slice(ret_vec.as_slice());
+            i += 1;
+        }
+        i
+    }
 }
+
+/* ############################################## */
+/* Base */
 
 /*
 単純なハッシュマップ
     キーがgeohash, バリューがUnix epochのベクタ
 */
 #[derive(Clone, Default, Debug)]
-pub struct PCTHash {
+pub struct Base {
     structure: HashMap<[u8; 10], Vec<u64>>
 }
 
-impl PCTHash {
+impl Base {
     pub fn new() -> Self {
-        PCTHash {
+        Base {
             structure: HashMap::with_capacity(10000)
         }
     }
@@ -109,7 +145,7 @@ impl PCTHash {
         let reader = BufReader::new(file);
         let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
         
-        let mut hash = PCTHash::new();
+        let mut hash = Base::new();
         for v in data.vec.iter() {
             let mut geohash_u8 = [0_u8; 10];
             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
@@ -124,15 +160,15 @@ impl PCTHash {
     
     // Unixepoch側の合計データ数がthreashould以下になるようにチャンクに分ける
     // オペレーション的には，バッチ的にチャンク化しておくのが良さそう
-    pub fn disribute(&self, buf: &mut Vec<PCTHash>, threashould: usize) {
+    pub fn disribute(&self, buf: &mut Vec<Self>, threashould: usize) {
         let mut val_num = 0;
-        let mut data = PCTHash::new();
+        let mut data = Self::new();
         for (key, val) in self.structure.iter() {
             val_num += val.len();
             if val_num > threashould {
                 val_num = val.len();
                 buf.push(data);
-                data = PCTHash::new();
+                data = Self::new();
             }
             data.structure.insert(*key, val.to_vec());
         }
@@ -156,6 +192,9 @@ impl PCTHash {
         i
     }
 }
+
+/* ############################################## */
+/* 補助的なものたち */
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ExternalDataJson {

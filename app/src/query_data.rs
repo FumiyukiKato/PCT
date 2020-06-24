@@ -9,6 +9,8 @@ pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
 // バファリングするクエリはせいぜい10000なので64bitで余裕
 pub type QueryId = u64;
 
+
+// query data sholud be no compressioned...
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QueryData {
     pub data: Vec<QueryDataDetail>,
