@@ -67,6 +67,11 @@ impl Period {
         period_vec.push(period);
         period_vec
     }
+
+    // period - CONTACT_TIME_THREASHOLD < unixepoch < period + CONTACT_TIME_THREASHOLD
+    pub fn is_include(&self, unixepoch: UnixEpoch) -> bool {
+        self.0 - CONTACT_TIME_THREASHOLD < unixepoch && unixepoch < self.1 + CONTACT_TIME_THREASHOLD
+    }
 }
 
 /* ######################################################## */
@@ -95,7 +100,7 @@ impl Base {
         for (dict_geohash, dict_unixepoch_vec) in self.map.iter() {
             match mapped_query_buffer.map.get(dict_geohash) {
                 Some(query_unixepoch_vec) => {
-                    self.judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
+                    Self::judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
                 },
                 None => {}
             }
@@ -104,7 +109,7 @@ impl Base {
 
     /* CONTACT_TIME_THREASHOLDの幅で接触を判定して結果をResultBufferに返す */
     /* resultbufferにいれるところまでやるのは分かりにくいけど，パフォーマンス的にそうする */
-    fn judge_contact(&self, query_unixepoch_vec: &Vec<UnixEpoch>, dict_unixepoch_vec: &Vec<UnixEpoch>, geohash: &GeoHashKey, result: &mut ResultBuffer) {
+    fn judge_contact(query_unixepoch_vec: &Vec<UnixEpoch>, dict_unixepoch_vec: &Vec<UnixEpoch>, geohash: &GeoHashKey, result: &mut ResultBuffer) {
         let mut finish: bool = false;
         for query_unixepoch in query_unixepoch_vec.iter() {
             let last = dict_unixepoch_vec.len() - 1;
@@ -120,7 +125,7 @@ impl Base {
                     continue;
                 }
             }
-            if finish { break; }
+            if finish { return; }
         }
     }
 
@@ -129,7 +134,7 @@ impl Base {
         geohash_data_vec: &Vec<u8>,
         unixepoch_data_vec: &Vec<u64>,
         size_list_vec: &Vec<usize>,
-    ) -> i8 {
+    ) {
         let mut cursor: usize = 0;
         for i in 0usize..(size_list_vec.len()) {
             let mut geohash = GeoHashKey::default(); 
@@ -139,19 +144,74 @@ impl Base {
             self.map.insert(geohash, unixepoch);
             cursor += size_list_vec[i];
         }
-        return 0;
     }
 }
 
+/* 
+geohashTable
+*/
+
 #[derive(Clone, Default, Debug)]
 pub struct GeohashTable {
-    structure: HashMap<GeoHashKey, Vec<Period>>
+    map: HashMap<GeoHashKey, Vec<Period>>
 }
 
 impl GeohashTable {
     pub fn new() -> Self {
         GeohashTable {
-            structure: HashMap::with_capacity(10000)
+            map: HashMap::with_capacity(10000)
+        }
+    }
+
+    pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
+        for (dict_geohash, dict_period_vec) in self.map.iter() {
+            match mapped_query_buffer.map.get(dict_geohash) {
+                Some(query_unixepoch_vec) => {
+                    Self::judge_contact(query_unixepoch_vec, dict_period_vec, dict_geohash, result);
+                },
+                None => {}
+            }
+        }
+    }
+
+    /* CONTACT_TIME_THREASHOLDの幅で接触を判定して結果をResultBufferに返す */
+    /* resultbufferにいれるところまでやるのは分かりにくいけど，パフォーマンス的にそうする */
+    fn judge_contact(query_unixepoch_vec: &Vec<UnixEpoch>, dict_period_vec: &Vec<Period>, geohash: &GeoHashKey, result: &mut ResultBuffer) {
+        let mut period_cursor = 0;
+        let last = dict_period_vec.len();
+        let finish = false;
+
+        for query_unixepoch in query_unixepoch_vec.iter() {
+            while period_cursor < last {
+                if dict_period_vec[period_cursor].is_include(*query_unixepoch) {
+                    result.data.push((*geohash, *query_unixepoch));
+                    break;
+                } else if *query_unixepoch < dict_period_vec[period_cursor].0 - CONTACT_TIME_THREASHOLD {
+                    break;
+                } else {
+                    period_cursor += 1;
+                }
+            }
+            if period_cursor == last { return; }
+        }
+    }
+
+    fn build_dictionary_buffer(
+        &mut self,
+        geohash_data_vec: &Vec<u8>,
+        period_data_vec: &Vec<u64>,
+        size_list_vec: &Vec<usize>,
+    ) {
+        let mut cursor: usize = 0;
+        for i in 0usize..(size_list_vec.len()) {
+            let mut geohash = GeoHashKey::default(); 
+            geohash.copy_from_slice(&geohash_data_vec[GEOHASH_U8_SIZE*i..GEOHASH_U8_SIZE*(i+1)]);
+            let mut period: Vec<Period> = Vec::with_capacity(size_list_vec[i]);
+            for j in 0..size_list_vec[i] {
+                period.push(Period(period_data_vec[cursor+j*2], period_data_vec[cursor+j*2+1]));
+            }
+            self.map.insert(geohash, period);
+            cursor += size_list_vec[i]*2;
         }
     }
 }
