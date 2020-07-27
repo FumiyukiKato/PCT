@@ -59,7 +59,7 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    geohashTableWithPeriodArray();
+    geohashTable();
 }
 
 // リーズブルなのでmainの呼び出しで切り替える

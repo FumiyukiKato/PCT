@@ -40,7 +40,7 @@ Type DictionaryBuffer "R"
 */
 #[derive(Clone, Default, Debug)]
 pub struct DictionaryBuffer {
-    pub data: GeohashTableWithPeriodArray
+    pub data: GeohashTable
 }
 
 impl DictionaryBuffer {
@@ -124,22 +124,20 @@ impl GeohashTable {
     /* CONTACT_TIME_THREASHOLDの幅で接触を判定して結果をResultBufferに返す */
     /* resultbufferにいれるところまでやるのは分かりにくいけど，パフォーマンス的にそうする */
     fn judge_contact(query_unixepoch_vec: &Vec<UnixEpoch>, dict_unixepoch_vec: &Vec<UnixEpoch>, geohash: &GeoHashKey, result: &mut ResultBuffer) {
-        let mut finish: bool = false;
-        for query_unixepoch in query_unixepoch_vec.iter() {
-            let last = dict_unixepoch_vec.len() - 1;
-            for (i, dict_unixepoch) in dict_unixepoch_vec.iter().enumerate() {
-                if *dict_unixepoch > CONTACT_TIME_THREASHOLD + *query_unixepoch {
-                    break;
-                } else if (*dict_unixepoch < CONTACT_TIME_THREASHOLD + *query_unixepoch) && (*query_unixepoch < CONTACT_TIME_THREASHOLD + *dict_unixepoch) {
-                    result.data.push((*geohash ,*query_unixepoch));
-                } else {
-                    if i == last {
-                        finish = true;
-                    }
-                    continue;
-                }
+        let last_index_of_query_unixepoch_vec = query_unixepoch_vec.len() - 1;
+        let last_index_of_dict_unixepoch_vec = dict_unixepoch_vec.len() - 1;
+        let mut i = 0;
+        let mut j = 0;
+
+        while i <= last_index_of_query_unixepoch_vec && j <= last_index_of_dict_unixepoch_vec {
+            if dict_unixepoch_vec[j] - CONTACT_TIME_THREASHOLD < query_unixepoch_vec[i] && query_unixepoch_vec[i] < dict_unixepoch_vec[j] + CONTACT_TIME_THREASHOLD {
+                result.data.push((*geohash, query_unixepoch_vec[i]));
+                i += 1;
+            } else if query_unixepoch_vec[i] < dict_unixepoch_vec[j] - CONTACT_TIME_THREASHOLD {
+                i += 1;
+            } else {
+                j += 1;
             }
-            if finish { return; }
         }
     }
 
