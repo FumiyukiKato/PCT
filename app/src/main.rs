@@ -59,11 +59,11 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    base();
+    geohashTableWithPeriodArray();
 }
 
 // リーズブルなのでmainの呼び出しで切り替える
-fn base() {
+fn geohashTable() {
     let args = _get_options();
     /* parameters */
     let threashould: usize = args[0].parse().unwrap();
@@ -74,12 +74,12 @@ fn base() {
 
     /* read central data */
     clocker.set_and_start("Read Central Data");
-    let external_data = Base::read_raw_from_file(c_filename);
+    let external_data = GeohashTable::read_raw_from_file(c_filename);
     clocker.stop("Read Central Data");
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
-    let mut chunked_buf: Vec<Base> = Vec::with_capacity(threashould);
+    let mut chunked_buf: Vec<GeohashTable> = Vec::with_capacity(threashould);
     external_data.disribute(&mut chunked_buf, threashould);
     let mut sgx_data: Vec<(Vec<u8>, Vec<u64>, Vec<usize>, usize)> = Vec::with_capacity(100);
     let mut chunk_curret_index: usize = 0;
@@ -221,7 +221,7 @@ fn base() {
 }
 
 
-fn geohashTable() {
+fn geohashTableWithPeriodArray() {
     let args = _get_options();
     /* parameters */
     let threashould: usize = args[0].parse().unwrap();
@@ -232,12 +232,12 @@ fn geohashTable() {
 
     /* read central data */
     clocker.set_and_start("Read Central Data");
-    let external_data = GeohashTable::read_raw_from_file(c_filename);
+    let external_data = GeohashTableWithPeriodArray::read_raw_from_file(c_filename);
     clocker.stop("Read Central Data");
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
-    let mut chunked_buf: Vec<GeohashTable> = Vec::with_capacity(threashould);
+    let mut chunked_buf: Vec<GeohashTableWithPeriodArray> = Vec::with_capacity(threashould);
     external_data.disribute(&mut chunked_buf, threashould);
     let mut sgx_data: Vec<(Vec<u8>, Vec<u64>, Vec<usize>, usize)> = Vec::with_capacity(100);
     let mut chunk_curret_index: usize = 0;

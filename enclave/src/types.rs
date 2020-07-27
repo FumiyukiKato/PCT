@@ -33,61 +33,75 @@ pub fn unixepoch_from_u8(u_timestamp: [u8; UNIXEPOCH_U8_SIZE]) -> UnixEpoch {
 // バファリングするクエリはせいぜい10000なので64bitで余裕
 pub type QueryId = u64;
 
-/* Type Period */
-#[derive(Clone, Default, Debug)]
-pub struct Period(UnixEpoch, UnixEpoch);
-
-impl Period {
-    pub fn new() -> Self {
-        Period::default()
-    }
-
-    pub fn with_start(start: UnixEpoch) -> Self {
-        Period(start, start)
-    }
-
-    pub fn from_unixepoch_vector(unixepoch_vec: &Vec<UnixEpoch>) -> Vec<Period> {
-        let mut period_vec: Vec<Period> = vec![];
-        
-        assert!(unixepoch_vec.len() > 0);
-        let mut latest_unixepoch: UnixEpoch = unixepoch_vec[0];
-        let mut period = Period::with_start(latest_unixepoch);
-        
-        for unixepoch in unixepoch_vec.iter() {
-            if latest_unixepoch + TIME_INTERVAL >= *unixepoch {
-                latest_unixepoch = *unixepoch;
-            } else {
-                period.1 = latest_unixepoch;
-                period_vec.push(period);
-                period = Period::with_start(*unixepoch);
-                latest_unixepoch = *unixepoch;
-            }
-        }
-        period.1 = latest_unixepoch;
-        period_vec.push(period);
-        period_vec
-    }
-
-    // period - CONTACT_TIME_THREASHOLD < unixepoch < period + CONTACT_TIME_THREASHOLD
-    pub fn is_include(&self, unixepoch: UnixEpoch) -> bool {
-        self.0 - CONTACT_TIME_THREASHOLD < unixepoch && unixepoch < self.1 + CONTACT_TIME_THREASHOLD
-    }
-}
-
-/* ######################################################## */
-/* 特徴的なデータ型を定義したいところ */
-
 /* 
-PCTに最適化したデータ構造 
-    ジェネリクスじゃなくてここで直接データ構造を変える 
+Type DictionaryBuffer "R"
+    シーケンシャルな読み込みのためのバッファ，サイズを固定しても良い
+    data.vec<Unixepoch>がソート済みでユニークセットになっていることは呼び出し側が保証している
 */
 #[derive(Clone, Default, Debug)]
-pub struct Base {
+pub struct DictionaryBuffer {
+    pub data: GeohashTableWithPeriodArray
+}
+
+impl DictionaryBuffer {
+    pub fn new() -> Self {
+        DictionaryBuffer::default()
+    }
+
+    pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
+        self.data.intersect(mapped_query_buffer, result);
+    }
+
+    pub fn build_dictionary_buffer(
+        &mut self,
+        geohash_data_vec: &Vec<u8>,
+        unixepoch_data_vec: &Vec<u64>,
+        size_list_vec: &Vec<usize>,
+    ) {
+        self.data.build_dictionary_buffer(geohash_data_vec, unixepoch_data_vec, size_list_vec);
+    }
+}
+
+/* 
+Type MappedQueryBuffer "Q"
+    こっちのクエリ側のデータ構造も変わる可能性がある
+    いい感じに抽象化するのがめんどくさいのでこのデータ構造自体を変える
+    map.vec<Unixepoch>がソート済みでユニークセットになっていることは呼び出し側が保証している
+*/
+#[derive(Clone, Default, Debug)]
+pub struct MappedQueryBuffer {
+    pub map: HashMap<GeoHashKey, Vec<UnixEpoch>>,
+}
+
+impl MappedQueryBuffer {
+    pub fn new() -> Self {
+        MappedQueryBuffer::default()
+    }
+
+    // !!このメソッドでは全くerror処理していない
+    pub fn from_query_buffer(&mut self, query_buffer: &QueryBuffer) {
+        for query_rep in query_buffer.queries.iter() {
+            for (geohash, unixepoch_vec) in query_rep.parameters.iter() {
+                match self.map.get(geohash) {
+                    Some(sorted_list) => { self.map.insert(*geohash, _sorted_merge(&sorted_list, unixepoch_vec)); },
+                    None => { self.map.insert(*geohash, unixepoch_vec.to_vec()); },
+                };
+            }
+        }
+    }
+}
+
+/* 
+    PCTに最適化したデータ構造 
+    ジェネリクスじゃなくてここに直接書く
+*/
+#[derive(Clone, Default, Debug)]
+pub struct GeohashTable {
     pub map: HashMap<GeoHashKey, Vec<UnixEpoch>>
 }
-impl Base {
+impl GeohashTable {
     pub fn new() -> Self {
-        Base {
+        GeohashTable {
             map: HashMap::with_capacity(THREASHOLD)
         }
     }
@@ -148,17 +162,17 @@ impl Base {
 }
 
 /* 
-geohashTable
+GeohashTableWithPeriodArray
 */
 
 #[derive(Clone, Default, Debug)]
-pub struct GeohashTable {
+pub struct GeohashTableWithPeriodArray {
     map: HashMap<GeoHashKey, Vec<Period>>
 }
 
-impl GeohashTable {
+impl GeohashTableWithPeriodArray {
     pub fn new() -> Self {
-        GeohashTable {
+        GeohashTableWithPeriodArray {
             map: HashMap::with_capacity(10000)
         }
     }
@@ -216,44 +230,10 @@ impl GeohashTable {
     }
 }
 
-/* ######################################################## */
-/* Chunked Data */
-
-/* 
-Type DictionaryBuffer 
-    シーケンシャルな読み込みのためのバッファ，サイズを固定しても良い
-    data.vec<Unixepoch>がソート済みでユニークセットになっていることは呼び出し側が保証している
+/* Type QueryBuffer [q_1,...q_{N_c}]
+    このデータ構造は基本的に固定して良いはず
 */
-#[derive(Clone, Default, Debug)]
-pub struct DictionaryBuffer {
-    pub data: Base
-}
 
-impl DictionaryBuffer {
-    pub fn new() -> Self {
-        DictionaryBuffer {
-            data: Base::new()
-        }
-    }
-
-    pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
-        self.data.intersect(mapped_query_buffer, result);
-    }
-
-    pub fn build_dictionary_buffer(
-        &mut self,
-        geohash_data_vec: &Vec<u8>,
-        unixepoch_data_vec: &Vec<u64>,
-        size_list_vec: &Vec<usize>,
-    ) {
-        self.data.build_dictionary_buffer(geohash_data_vec, unixepoch_data_vec, size_list_vec);
-    }
-}
-
-/* ######################################################## */
-/* Query Load */
-
-/* Type QueryBuffer */
 #[derive(Clone, Default, Debug)]
 pub struct QueryBuffer {
     pub queries: Vec<QueryRep>,
@@ -310,35 +290,6 @@ impl QueryRep {
     }
 }
 
-/* 
-Type MappedQueryBuffer 
-    こっちのクエリ側のデータ構造も変わる可能性がある
-    いい感じに抽象化するのがめんどくさいのでこのデータ構造自体を変える
-    map.vec<Unixepoch>がソート済みでユニークセットになっていることは呼び出し側が保証している
-*/
-#[derive(Clone, Default, Debug)]
-pub struct MappedQueryBuffer {
-    pub map: HashMap<GeoHashKey, Vec<UnixEpoch>>,
-}
-
-impl MappedQueryBuffer {
-    pub fn new() -> Self {
-        MappedQueryBuffer::default()
-    }
-
-    // !!このメソッドでは全くerror処理していない
-    pub fn from_query_buffer(&mut self, query_buffer: &QueryBuffer) {
-        for query_rep in query_buffer.queries.iter() {
-            for (geohash, unixepoch_vec) in query_rep.parameters.iter() {
-                match self.map.get(geohash) {
-                    Some(sorted_list) => { self.map.insert(*geohash, _sorted_merge(&sorted_list, unixepoch_vec)); },
-                    None => { self.map.insert(*geohash, unixepoch_vec.to_vec()); },
-                };
-            }
-        }
-    }
-}
-
 /* ######################################################## */
 /* Result */
 
@@ -350,7 +301,6 @@ Type QueryResult
 pub struct QueryResult {
     pub query_id: QueryId,
     pub risk_level: u8,
-    pub result_vec: Vec<(GeoHashKey, UnixEpoch)>,
 }
 
 impl QueryResult {
@@ -358,7 +308,6 @@ impl QueryResult {
         return QueryResult {
             query_id: 1,
             risk_level: 0,
-            result_vec: vec![],
         }
     }
 
@@ -402,15 +351,10 @@ impl ResultBuffer {
                     None => { false },
                 };
                 if is_exist {
-                    result.result_vec.push((*geohash, *unixepoch));
+                    result.risk_level = 1;
+                    break;
                 }
             }
-            result.risk_level = match result.result_vec.len() {
-                x if x > 20 => 3,
-                x if x > 5 => 2,
-                x if x > 0  => 1,
-                _ => 0,
-            };
             response_vec.extend_from_slice(&result.to_be_bytes());
         }
     }
@@ -484,4 +428,45 @@ pub fn _sorted_push(sorted_list: &mut Vec<UnixEpoch>, unixepoch: UnixEpoch) {
         }
     }
     sorted_list.push(unixepoch);
+}
+
+/* Type Period */
+#[derive(Clone, Default, Debug)]
+pub struct Period(UnixEpoch, UnixEpoch);
+
+impl Period {
+    pub fn new() -> Self {
+        Period::default()
+    }
+
+    pub fn with_start(start: UnixEpoch) -> Self {
+        Period(start, start)
+    }
+
+    pub fn from_unixepoch_vector(unixepoch_vec: &Vec<UnixEpoch>) -> Vec<Period> {
+        let mut period_vec: Vec<Period> = vec![];
+        
+        assert!(unixepoch_vec.len() > 0);
+        let mut latest_unixepoch: UnixEpoch = unixepoch_vec[0];
+        let mut period = Period::with_start(latest_unixepoch);
+        
+        for unixepoch in unixepoch_vec.iter() {
+            if latest_unixepoch + TIME_INTERVAL >= *unixepoch {
+                latest_unixepoch = *unixepoch;
+            } else {
+                period.1 = latest_unixepoch;
+                period_vec.push(period);
+                period = Period::with_start(*unixepoch);
+                latest_unixepoch = *unixepoch;
+            }
+        }
+        period.1 = latest_unixepoch;
+        period_vec.push(period);
+        period_vec
+    }
+
+    // period - CONTACT_TIME_THREASHOLD < unixepoch < period + CONTACT_TIME_THREASHOLD
+    pub fn is_include(&self, unixepoch: UnixEpoch) -> bool {
+        self.0 - CONTACT_TIME_THREASHOLD < unixepoch && unixepoch < self.1 + CONTACT_TIME_THREASHOLD
+    }
 }

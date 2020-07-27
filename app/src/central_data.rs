@@ -13,53 +13,17 @@ pub type UnixEpoch = u64;
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
 
-#[derive(Clone, Default, Debug)]
-pub struct Period(UnixEpoch, UnixEpoch);
-
-impl Period {
-    pub fn new() -> Self {
-        Period::default()
-    }
-
-    pub fn with_start(start: UnixEpoch) -> Self {
-        Period(start, start)
-    }
-
-    pub fn from_unixepoch_vector(unixepoch_vec: &Vec<UnixEpoch>) -> Vec<Period> {
-        let mut period_vec: Vec<Period> = vec![];
-        
-        assert!(unixepoch_vec.len() > 0);
-        let mut latest_unixepoch: UnixEpoch = unixepoch_vec[0];
-        let mut period = Period::with_start(latest_unixepoch);
-        
-        for unixepoch in unixepoch_vec.iter() {
-            if latest_unixepoch + TIME_INTERVAL >= *unixepoch {
-                latest_unixepoch = *unixepoch;
-            } else {
-                period.1 = latest_unixepoch;
-                period_vec.push(period);
-                period = Period::with_start(*unixepoch);
-                latest_unixepoch = *unixepoch;
-            }
-        }
-        period.1 = latest_unixepoch;
-        period_vec.push(period);
-        period_vec
-    }
-}
-
-
 /* ############################################## */
-/* GeohashTable */
+/* GeohashTableWithPeriodArray */
 #[derive(Clone, Default, Debug)]
-pub struct GeohashTable {
+pub struct GeohashTableWithPeriodArray {
     structure: HashMap<[u8; 10], Vec<Period>>
 }
 
 
-impl GeohashTable {
+impl GeohashTableWithPeriodArray {
     pub fn new() -> Self {
-        GeohashTable {
+        GeohashTableWithPeriodArray {
             structure: HashMap::with_capacity(10000)
         }
     }
@@ -69,12 +33,12 @@ impl GeohashTable {
     }
 
     pub fn read_raw_from_file(filename: &str) -> Self {
-        let external_data = Base::read_raw_from_file(filename);
+        let external_data = GeohashTable::read_raw_from_file(filename);
         Self::geohash_based_compress(&external_data)
     }
     
-    fn geohash_based_compress(original_data: &Base) -> GeohashTable {
-        let mut geohash_table = GeohashTable::new();
+    fn geohash_based_compress(original_data: &GeohashTable) -> GeohashTableWithPeriodArray {
+        let mut geohash_table = GeohashTableWithPeriodArray::new();
         for (geohash, unixepoch_vec) in original_data.structure.iter() {
             geohash_table.structure.insert(*geohash, Period::from_unixepoch_vector(unixepoch_vec));
         }
@@ -118,20 +82,20 @@ impl GeohashTable {
 }
 
 /* ############################################## */
-/* Base */
+/* GeohashTable */
 
 /*
 単純なハッシュマップ
     キーがgeohash, バリューがUnix epochのベクタ
 */
 #[derive(Clone, Default, Debug)]
-pub struct Base {
+pub struct GeohashTable {
     structure: HashMap<[u8; 10], Vec<u64>>
 }
 
-impl Base {
+impl GeohashTable {
     pub fn new() -> Self {
-        Base {
+        GeohashTable {
             structure: HashMap::with_capacity(10000)
         }
     }
@@ -145,7 +109,7 @@ impl Base {
         let reader = BufReader::new(file);
         let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
         
-        let mut hash = Base::new();
+        let mut hash = GeohashTable::new();
         for v in data.vec.iter() {
             let mut geohash_u8 = [0_u8; 10];
             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
@@ -195,6 +159,41 @@ impl Base {
 
 /* ############################################## */
 /* 補助的なものたち */
+
+#[derive(Clone, Default, Debug)]
+pub struct Period(UnixEpoch, UnixEpoch);
+
+impl Period {
+    pub fn new() -> Self {
+        Period::default()
+    }
+
+    pub fn with_start(start: UnixEpoch) -> Self {
+        Period(start, start)
+    }
+
+    pub fn from_unixepoch_vector(unixepoch_vec: &Vec<UnixEpoch>) -> Vec<Period> {
+        let mut period_vec: Vec<Period> = vec![];
+        
+        assert!(unixepoch_vec.len() > 0);
+        let mut latest_unixepoch: UnixEpoch = unixepoch_vec[0];
+        let mut period = Period::with_start(latest_unixepoch);
+        
+        for unixepoch in unixepoch_vec.iter() {
+            if latest_unixepoch + TIME_INTERVAL >= *unixepoch {
+                latest_unixepoch = *unixepoch;
+            } else {
+                period.1 = latest_unixepoch;
+                period_vec.push(period);
+                period = Period::with_start(*unixepoch);
+                latest_unixepoch = *unixepoch;
+            }
+        }
+        period.1 = latest_unixepoch;
+        period_vec.push(period);
+        period_vec
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ExternalDataJson {
