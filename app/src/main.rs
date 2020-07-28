@@ -59,7 +59,7 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    geohashTable();
+    baselineNoQueryMulitiplexingAndNoChunk();
 }
 
 // ハッシュテーブル
@@ -209,7 +209,7 @@ fn geohashTable() {
     if args[3] == "true".to_string() {
         let now: String = get_timestamp();
         write_to_file(
-            format!("data/result/ex-result-{}.txt", now),
+            format!("data/result/result-{}-geohashTable.txt", now),
             "simple hash and list".to_string(),
             c_filename.to_string(),
             q_filename.to_string(),
@@ -367,7 +367,7 @@ fn geohashTableWithPeriodArray() {
     if args[3] == "true".to_string() {
         let now: String = get_timestamp();
         write_to_file(
-            format!("data/result/ex-result-{}.txt", now),
+            format!("data/result/result-{}-geohashTableWithPeriodArray.txt", now),
             "simple hash and list".to_string(),
             c_filename.to_string(),
             q_filename.to_string(),
@@ -378,8 +378,151 @@ fn geohashTableWithPeriodArray() {
     }
 }
 
-// ベースライン クエリ多重化なし チャンク化なし
-fn baselineNoQueryMulitiplexingAndNoChunk() {
+// ベースライン チャンク化なし
+fn baselineNoChunk() {
+    let args = _get_options();
+    /* parameters */
+    let threashould: usize = args[0].parse().unwrap();
+    let q_filename = &args[1];
+    let c_filename = &args[2];
+
+    let mut clocker = Clocker::new();
+
+    /* read central data */
+    clocker.set_and_start("Read Central Data");
+    let external_data = PlainTable::read_raw_from_file(c_filename);
+    clocker.stop("Read Central Data");
+
+    /* preprocess central data 
+        チャンク化しないでセットする
+    */
+    clocker.set_and_start("Prepare central data");
+    let mut geohash_u8: Vec<u8> = Vec::with_capacity(100000);
+    let mut unixepoch_u64: Vec<u64> = Vec::with_capacity(100000);
+    let mut size_list: Vec<usize> = Vec::with_capacity(100000);
+    let data_size = external_data.prepare_sgx_data(&mut geohash_u8, &mut unixepoch_u64, &mut size_list);
+    clocker.stop("Prepare central data");
+
+    /* initialize enclave */
+    clocker.set_and_start("ECALL init_enclave");
+    let enclave = match init_enclave() {
+        Ok(r) => {
+            println!("[UNTRUSTED] Init Enclave Successful {}!", r.geteid());
+            r
+        },
+        Err(x) => {
+            println!("[UNTRUSTED] Init Enclave Failed {}!", x.as_str());
+            return;
+        },
+    };
+    clocker.stop("ECALL init_enclave");
+
+    /* read query data */
+    clocker.set_and_start("Read Query Data");
+    let query_data = QueryData::read_raw_from_file(q_filename);
+    clocker.stop("Read Query Data");
+
+    /* upload query data */
+    clocker.set_and_start("ECALL upload_query_data");
+    let mut retval = sgx_status_t::SGX_SUCCESS;
+    let result = unsafe {
+        upload_query_data(
+            enclave.geteid(),
+            &mut retval,
+            query_data.total_data_to_u8().as_ptr() as * const u8,
+            query_data.total_size(),
+            query_data.size_list().as_ptr() as * const usize,
+            query_data.client_size,
+            query_data.query_id_list().as_ptr() as * const u64
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            println!("[UNTRUSTED] upload_query_data Succes!");
+        },
+        _ => {
+            println!("[UNTRUSTED] upload_query_data Failed {}!", result.as_str());
+            return;
+        }
+    }
+    clocker.stop("ECALL upload_query_data");
+
+    /* main logic contact tracing */
+    clocker.set_and_start("ECALL private_contact_trace");
+    let result = unsafe {
+        private_contact_trace(
+            enclave.geteid(),
+            &mut retval,
+            geohash_u8.as_ptr() as * const u8,
+            geohash_u8.len(),
+            unixepoch_u64.as_ptr() as * const u64,
+            unixepoch_u64.len(),
+            size_list.as_ptr() as * const usize,
+            data_size
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            print!("\r[UNTRUSTED] private_contact_trace Succes!");
+        },
+        _ => {
+            println!("[UNTRUSTED] private_contact_trace Failed {}!", result.as_str());
+            return;
+        }
+    }
+    println!("");
+    clocker.stop("ECALL private_contact_trace");
+
+    /* response reconstruction */
+    clocker.set_and_start("ECALL get_result");
+    let response_size = query_data.client_size * RESPONSE_DATA_SIZE_U8;
+    let mut response: Vec<u8> = vec![0; response_size];
+    let result = unsafe {
+        get_result(
+            enclave.geteid(),
+            &mut retval,
+            response.as_mut_ptr(),
+            response_size
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            // println!("[UNTRUSTED] get_result Succes!");
+        },
+        _ => {
+            println!("[UNTRUSTED] get_result Failed {}!", result.as_str());
+            return;
+        }
+    }
+    clocker.stop("ECALL get_result");
+    
+    for i in 0..query_data.client_size {
+        if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
+            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+        }
+    }
+
+    /* finish */
+    enclave.destroy();
+    // println!("[UNTRUSTED] All process is successful!!");
+    clocker.show_all();
+    if args[3] == "true".to_string() {
+        let now: String = get_timestamp();
+        write_to_file(
+            format!("data/result/result-{}-baselineNoChunk.txt", now),
+            "simple hash and list".to_string(),
+            c_filename.to_string(),
+            q_filename.to_string(),
+            threashould,
+            "only risk_level".to_string(),
+            clocker
+        );
+    }
+}
+
+// cuckoo ハッシュ やる意味があまりなさそう
+// サークルゲームで辞書表現を使用している中だとFPRが認められないので，，，
+fn cuckooHasing() {
     let args = _get_options();
     /* parameters */
     let threashould: usize = args[0].parse().unwrap();
@@ -525,7 +668,7 @@ fn baselineNoQueryMulitiplexingAndNoChunk() {
     if args[3] == "true".to_string() {
         let now: String = get_timestamp();
         write_to_file(
-            format!("data/result/ex-result-{}.txt", now),
+            format!("data/result/result-{}-cuckooHasing.txt", now),
             "simple hash and list".to_string(),
             c_filename.to_string(),
             q_filename.to_string(),

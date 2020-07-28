@@ -7,7 +7,7 @@ import random
 import datetime
 import collections as cl
 
-ACCURACY = 20
+ACCURACY = 14
 
 def gen_rand_geohash(length):
     geohash = [''] * length
@@ -65,7 +65,7 @@ def gen_soreppoi_query(query_size):
 def main():
     current_id = 0
     query_size = 2016
-    client_size = 1500
+    client_size = 500
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(client_size):

@@ -183,7 +183,7 @@ impl GeohashTable {
 }
 
 /* 
-GeohashTableWithPeriodArray
+    GeohashTableWithPeriodArray
 */
 
 #[derive(Clone, Default, Debug)]
