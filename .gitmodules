@@ -1,3 +1,0 @@
-[submodule "rust-cuckoofilter"]
-	path = rust-cuckoofilter
-	url = https://github.com/axiomhq/rust-cuckoofilter.git
