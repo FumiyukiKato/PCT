@@ -119,6 +119,7 @@ impl GeohashTable {
                 None => { hash.structure.insert(geohash_u8, vec![v.unixepoch]); },
             };
         }
+        println!("[UNTRUSTED] central data size {}", hash.size());
         hash
     }
     

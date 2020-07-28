@@ -70,7 +70,8 @@ Type MappedQueryBuffer "Q"
 */
 #[derive(Clone, Default, Debug)]
 pub struct MappedQueryBuffer {
-    pub map: HashMap<GeoHashKey, Vec<UnixEpoch>>,
+    pub map: Vec<(GeoHashKey, Vec<UnixEpoch>)>,
+    // pub map: HashMap<GeoHashKey, Vec<UnixEpoch>>,
 }
 
 impl MappedQueryBuffer {
@@ -80,14 +81,27 @@ impl MappedQueryBuffer {
 
     // !!このメソッドでは全くerror処理していない
     pub fn from_query_buffer(&mut self, query_buffer: &QueryBuffer) {
+        let mut map: HashMap<GeoHashKey, Vec<UnixEpoch>> = HashMap::new();
         for query_rep in query_buffer.queries.iter() {
             for (geohash, unixepoch_vec) in query_rep.parameters.iter() {
-                match self.map.get(geohash) {
-                    Some(sorted_list) => { self.map.insert(*geohash, _sorted_merge(&sorted_list, unixepoch_vec)); },
-                    None => { self.map.insert(*geohash, unixepoch_vec.to_vec()); },
+                match map.get(geohash) {
+                    Some(sorted_list) => { map.insert(*geohash, _sorted_merge(&sorted_list, unixepoch_vec)); },
+                    None => { map.insert(*geohash, unixepoch_vec.to_vec()); },
                 };
             }
         }
+        self.map = map.iter().map(|(g, u)| (g.clone(), u.clone())).collect();
+
+        // for query_rep in query_buffer.queries.iter() {
+        //     for (geohash, unixepoch_vec) in query_rep.parameters.iter() {
+        //         match self.map.get(geohash) {
+        //             Some(sorted_list) => { self.map.insert(*geohash, _sorted_merge(&sorted_list, unixepoch_vec)); },
+        //             None => { self.map.insert(*geohash, unixepoch_vec.to_vec()); },
+        //         };
+        //     }
+        // }
+
+        println!("[SGX] Q size {}", self.map.len());
     }
 }
 
@@ -111,14 +125,23 @@ impl GeohashTable {
     // 計算量はMかNのどっちかになるのでどちらも実装しておく
     /* dictinaryの合計サイズの方が大きい場合はこれを採用した方が早いけど逆なら改善可能 */
     pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
-        for (dict_geohash, dict_unixepoch_vec) in self.map.iter() {
-            match mapped_query_buffer.map.get(dict_geohash) {
-                Some(query_unixepoch_vec) => {
-                    Self::judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
+        for (query_geohash, query_unixepoch_vec) in mapped_query_buffer.map.iter() {
+            match self.map.get(query_geohash) {
+                Some(dict_unixepoch_vec) => {
+                    Self::judge_contact(query_unixepoch_vec, dict_unixepoch_vec, query_geohash, result);
                 },
                 None => {}
             }
         }
+
+        // for (dict_geohash, dict_unixepoch_vec) in self.map.iter() {
+        //     match mapped_query_buffer.map.get(dict_geohash) {
+        //         Some(query_unixepoch_vec) => {
+        //             Self::judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
+        //         },
+        //         None => {}
+        //     }
+        // }
     }
 
     /* CONTACT_TIME_THREASHOLDの幅で接触を判定して結果をResultBufferに返す */
@@ -176,14 +199,23 @@ impl GeohashTableWithPeriodArray {
     }
 
     pub fn intersect(&self, mapped_query_buffer: &MappedQueryBuffer, result: &mut ResultBuffer) {
-        for (dict_geohash, dict_period_vec) in self.map.iter() {
-            match mapped_query_buffer.map.get(dict_geohash) {
-                Some(query_unixepoch_vec) => {
-                    Self::judge_contact(query_unixepoch_vec, dict_period_vec, dict_geohash, result);
+        for (query_geohash, query_unixepoch_vec) in mapped_query_buffer.map.iter() {
+            match self.map.get(query_geohash) {
+                Some(dict_period_vec) => {
+                    Self::judge_contact(query_unixepoch_vec, dict_period_vec, query_geohash, result);
                 },
                 None => {}
             }
         }
+
+        // for (dict_geohash, dict_period_vec) in self.map.iter() {
+        //     match mapped_query_buffer.map.get(dict_geohash) {
+        //         Some(query_unixepoch_vec) => {
+        //             Self::judge_contact(query_unixepoch_vec, dict_period_vec, dict_geohash, result);
+        //         },
+        //         None => {}
+        //     }
+        // }
     }
 
     /* CONTACT_TIME_THREASHOLDの幅で接触を判定して結果をResultBufferに返す */

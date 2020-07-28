@@ -54,8 +54,8 @@ def gen_soreppoi_query(query_size):
 
     for i in range(query_size):
         dt = start + interval * i
-        # 1日6回だいたい400分に一回くらいgeohashをランダムに移動する感じで良さそう
-        if random.random() < 0.05:
+        # 10分ごとに30%の確率でランダムに移動
+        if random.random() < 0.3:
             soreppoi_geohash = gen_soreppoi_geohash(10)
         soreppoi_query.append(generateMergeByteData(str(int(dt.timestamp())), soreppoi_geohash))
     
@@ -64,8 +64,8 @@ def gen_soreppoi_query(query_size):
 
 def main():
     current_id = 0
-    query_size = 1008
-    client_size = 3000
+    query_size = 2016
+    client_size = 1500
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(client_size):
