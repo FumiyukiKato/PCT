@@ -8,6 +8,8 @@ import datetime
 import collections as cl
 
 ACCURACY = 20
+GEOHASH_LEN = 9
+DISTRIBUTED = 600
 
 def generateMergeByteData(timestamp, geohash):
     timestamp = timestamp.encode()
@@ -28,11 +30,15 @@ def gen_soreppoi_geohash(length):
     
     return ''.join(geohash)
 
-# それっぽいクエリを生成する
-def gen_soreppoi_query(query_size):
+def encode(geohash, start_unixepoch, unixepoch):
+    diff = unixepoch - start_unixepoch
+    return geohash + str(diff // DISTRIBUTED).zfill(4)
+
+def gen_soreppoi_trajectory(query_size):
     soreppoi_query = []
-    soreppoi_geohash = gen_soreppoi_geohash(9)
+    soreppoi_geohash = gen_soreppoi_geohash(GEOHASH_LEN)
     start = datetime.datetime(2020, 6, 16)
+    start_int = int(start.timestamp())
     end = datetime.datetime(2020, 6, 30)
     # 2 weekをquery_sizeで分割する 2week = 2*7*24*60 = 20160 minutes query_size=1000なら20分間隔
     interval = (end - start) / query_size
@@ -41,23 +47,21 @@ def gen_soreppoi_query(query_size):
         dt = start + interval * i
         # 10分ごとに30%の確率でランダムに移動
         if random.random() < 0.3:
-            soreppoi_geohash = gen_soreppoi_geohash(9)
-        soreppoi_query.append(generateMergeByteData(str(int(dt.timestamp())), soreppoi_geohash))
+            soreppoi_geohash = gen_soreppoi_geohash(GEOHASH_LEN)
+        soreppoi_query.append(encode(soreppoi_geohash, start_int, int(dt.timestamp())))
     
     return soreppoi_query
-
 
 def main():
     current_id = 0
     query_size = 2016
-    client_size = 1000
+    client_size = 3000
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(client_size):
         print("\r" + "generate process (%d/%d)" % (i+1, client_size), end="")
-        data_list = gen_soreppoi_query(query_size)
-        byte = b''.join(data_list)
-        value = { "geodata": byte.hex(), "query_size": query_size, "query_id": current_id }
+        data_list = gen_soreppoi_trajectory(query_size)
+        value = { "geodata": data_list, "query_size": query_size, "query_id": current_id }
         total_data_list.append(value)
         current_id = current_id + 1
 
@@ -66,7 +70,7 @@ def main():
     
     print("\n" + "done!")
     now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = './data/query%s/generated-client-query-qs-%d-cs-%s-%s.json' % (ACCURACY, query_size, client_size, now_timestamp)
+    filename = './data/encode-query%s/generated-%d-%s-%s.json' % (ACCURACY, query_size, client_size, now_timestamp)
     with open(filename, 'w') as f:
         json.dump(json_data, f, indent=None)
 

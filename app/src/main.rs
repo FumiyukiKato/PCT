@@ -59,7 +59,7 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    baselineNoQueryMulitiplexingAndNoChunk();
+    geohashTable();
 }
 
 // ハッシュテーブル

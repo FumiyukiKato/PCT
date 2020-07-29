@@ -3,7 +3,7 @@ use std::vec::Vec;
 use std::collections::HashMap;
 
 pub const UNIXEPOCH_U8_SIZE: usize = 10;
-pub const GEOHASH_U8_SIZE: usize = 10;
+pub const GEOHASH_U8_SIZE: usize = 9;
 pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
 // risk_level 1バイト + qeuryId
 pub const QUERY_ID_SIZE_U8: usize = 8;

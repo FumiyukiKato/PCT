@@ -9,11 +9,12 @@ use std::vec::Vec;
 pub type UnixEpoch = u64;
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
+const GEOHASH_U8_SIZE: usize = 9;
 
 /* GeohashTableWithPeriodArray */
 #[derive(Clone, Default, Debug)]
 pub struct GeohashTableWithPeriodArray {
-    structure: HashMap<[u8; 10], Vec<Period>>
+    structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<Period>>
 }
 
 impl GeohashTableWithPeriodArray {
@@ -83,7 +84,7 @@ impl GeohashTableWithPeriodArray {
 */
 #[derive(Clone, Default, Debug)]
 pub struct GeohashTable {
-    structure: HashMap<[u8; 10], Vec<u64>>
+    structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<u64>>
 }
 
 impl GeohashTable {
@@ -104,7 +105,7 @@ impl GeohashTable {
         
         let mut hash = GeohashTable::new();
         for v in data.vec.iter() {
-            let mut geohash_u8 = [0_u8; 10];
+            let mut geohash_u8 = [0_u8; GEOHASH_U8_SIZE];
             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
             match hash.structure.get_mut(&geohash_u8) {
                 // centralデータに関しては，こいつがunique soted listである責務を持つ
@@ -151,13 +152,12 @@ impl GeohashTable {
     }
 }
 
-/* GeohashTable 
-    単純なハッシュマップ
-    キーがgeohash, バリューがUnix epochのベクタ
+/* PlainTable
+    チャンク化しない
 */
 #[derive(Clone, Default, Debug)]
 pub struct PlainTable {
-    structure: HashMap<[u8; 10], Vec<u64>>
+    structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<u64>>
 }
 
 impl PlainTable {
@@ -178,7 +178,7 @@ impl PlainTable {
         
         let mut hash = PlainTable::new();
         for v in data.vec.iter() {
-            let mut geohash_u8 = [0_u8; 10];
+            let mut geohash_u8 = [0_u8; GEOHASH_U8_SIZE];
             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
             match hash.structure.get_mut(&geohash_u8) {
                 // centralデータに関しては，こいつがunique soted listである責務を持つ
@@ -205,6 +205,60 @@ impl PlainTable {
         i
     }
 }
+
+// /* TrajectoryTrie
+//     チャンク化しない
+// */
+// #[derive(Clone, Default, Debug)]
+// pub struct TrajectoryTrie {
+//     structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<u64>>
+// }
+
+// impl TrajectoryTrie {
+//     pub fn new() -> Self {
+//         TrajectoryTrie {
+//             structure: HashMap::with_capacity(10000)
+//         }
+//     }
+
+//     pub fn size(&self) -> usize {
+//         self.structure.len()
+//     }
+
+//     pub fn read_raw_from_file(filename: &str) -> Self {
+//         let file = File::open(filename).unwrap();
+//         let reader = BufReader::new(file);
+//         let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
+        
+//         let mut hash = PlainTable::new();
+//         for v in data.vec.iter() {
+//             let mut geohash_u8 = [0_u8; GEOHASH_U8_SIZE];
+//             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
+//             match hash.structure.get_mut(&geohash_u8) {
+//                 // centralデータに関しては，こいつがunique soted listである責務を持つ
+//                 Some(sorted_list) => { _sorted_push(sorted_list, v.unixepoch) },
+//                 None => { hash.structure.insert(geohash_u8, vec![v.unixepoch]); },
+//             };
+//         }
+//         println!("[UNTRUSTED] central data size {}", hash.size());
+//         hash
+//     }
+
+//     // データは geohash, [u8], geohash, [u8],... と [u8]のサイズの配列というフォーマットでシリアライスする
+//     // 時間がかかっていそうならシリアライズは先にまとめて計算しておく
+//     // extend_from_sliceを使ったやり方(pushとかじゃなくてコピーするようにすれば少しだけ早くなる余地がある？)
+//     pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, unixepoch_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
+//         let mut i = 0;
+//         for (key, value) in self.structure.iter() {
+//             let length = value.len();
+//             size_list.push(length);
+//             geohash_u8.extend_from_slice(key);
+//             unixepoch_u64.extend_from_slice(value);
+//             i += 1;
+//         }
+//         i
+//     }
+// }
 
 /* 補助的なものたち */
 

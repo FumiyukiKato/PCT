@@ -7,7 +7,7 @@ import random
 import datetime
 import collections as cl
 
-ACCURACY = 24
+ACCURACY = 28
 
 # それっぽいデータをうまく生成したい感じはある
 def gen_rand_geohash(length):
@@ -48,7 +48,7 @@ def main():
         if (i+1) % 10 == 0:
             print("\r" + "generate process (%d/%d)" % (i+1, data_size), end="")
         timestamp = gen_rand_timestamp()
-        geohash = gen_soreppoi_geohash(10).encode().hex()
+        geohash = gen_soreppoi_geohash(9).encode().hex()
         
         value = { "geohash": geohash, "unixepoch": timestamp }
         total_data_list.append(value)
@@ -56,7 +56,7 @@ def main():
     json_data["vec"] = total_data_list
     print("\n" + "done!")
     now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = './data/soreppoi_central%s/generated-central-data-%d-%s.json' % (ACCURACY, data_size, now_timestamp)
+    filename = './data/central%s/generated-central-data-%d-%s.json' % (ACCURACY, data_size, now_timestamp)
     with open(filename, 'w') as f:
         json.dump(json_data, f, indent=None)
 
