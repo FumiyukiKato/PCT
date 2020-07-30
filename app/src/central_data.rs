@@ -10,6 +10,8 @@ pub type UnixEpoch = u64;
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
 const GEOHASH_U8_SIZE: usize = 9;
+const TIMEHASH_U8_SIZE: usize = 4;
+const ENCODEDVALUE_SIZE: usize = GEOHASH_U8_SIZE + TIMEHASH_U8_SIZE;
 
 /* GeohashTableWithPeriodArray */
 #[derive(Clone, Default, Debug)]
@@ -206,59 +208,61 @@ impl PlainTable {
     }
 }
 
-// /* TrajectoryTrie
-//     チャンク化しない
-// */
-// #[derive(Clone, Default, Debug)]
-// pub struct TrajectoryTrie {
-//     structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<u64>>
-// }
+/* TrajectoryTrie
+    チャンク化しない
+*/
+type EncodedValue = [u8; ENCODEDVALUE_SIZE];
 
-// impl TrajectoryTrie {
-//     pub fn new() -> Self {
-//         TrajectoryTrie {
-//             structure: HashMap::with_capacity(10000)
-//         }
-//     }
+#[derive(Clone, Default, Debug)]
+pub struct EncodedData {
+    structure: Vec<EncodedValue>
+}
 
-//     pub fn size(&self) -> usize {
-//         self.structure.len()
-//     }
+impl EncodedData {
+    pub fn new() -> Self {
+        EncodedData {
+            structure: Vec::with_capacity(100000)
+        }
+    }
 
-//     pub fn read_raw_from_file(filename: &str) -> Self {
-//         let file = File::open(filename).unwrap();
-//         let reader = BufReader::new(file);
-//         let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
+    pub fn read_raw_from_file(filename: &str) -> Self {
+        let file = File::open(filename).unwrap();
+        let reader = BufReader::new(file);
+        let data: ExternalEncodedDataJson = serde_json::from_reader(reader).unwrap();
         
-//         let mut hash = PlainTable::new();
-//         for v in data.vec.iter() {
-//             let mut geohash_u8 = [0_u8; GEOHASH_U8_SIZE];
-//             geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
-//             match hash.structure.get_mut(&geohash_u8) {
-//                 // centralデータに関しては，こいつがunique soted listである責務を持つ
-//                 Some(sorted_list) => { _sorted_push(sorted_list, v.unixepoch) },
-//                 None => { hash.structure.insert(geohash_u8, vec![v.unixepoch]); },
-//             };
-//         }
-//         println!("[UNTRUSTED] central data size {}", hash.size());
-//         hash
-//     }
+        let mut encoded_data = EncodedData::new();
+        for v in data.vec.iter() {
+            let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+            encoded_value_u8.copy_from_slice(hex_string_to_u8(&v.encoded_value).as_slice());
+            encoded_data.structure.push(encoded_value_u8);
+        }
+        encoded_data
+    }
+    
+    pub fn prepare_sgx_data(&self, encoded_value_u8: &mut Vec<u8>) -> usize {
+        let mut i = 0;
+        for value in self.structure.iter() {
+            encoded_value_u8.extend_from_slice(value);
+            i += 1;
+        }
+        i
+    }
 
-//     // データは geohash, [u8], geohash, [u8],... と [u8]のサイズの配列というフォーマットでシリアライスする
-//     // 時間がかかっていそうならシリアライズは先にまとめて計算しておく
-//     // extend_from_sliceを使ったやり方(pushとかじゃなくてコピーするようにすれば少しだけ早くなる余地がある？)
-//     pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, unixepoch_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
-//         let mut i = 0;
-//         for (key, value) in self.structure.iter() {
-//             let length = value.len();
-//             size_list.push(length);
-//             geohash_u8.extend_from_slice(key);
-//             unixepoch_u64.extend_from_slice(value);
-//             i += 1;
-//         }
-//         i
-//     }
-// }
+    pub fn disribute(&self, buf: &mut Vec<Self>, threashould: usize) {
+        let mut val_num = 0;
+        let mut data = Self::new();
+        for (i, vec) in self.structure.iter().enumerate() {
+            data.structure.push(*vec);
+            if (i+1) % threashould == 0 {
+                buf.push(data);
+                data = Self::new();
+            }
+        }
+        if data.structure.len() > 0 {
+            buf.push(data);
+        }
+    }
+}
 
 /* 補助的なものたち */
 
@@ -295,6 +299,16 @@ impl Period {
         period_vec.push(period);
         period_vec
     }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ExternalEncodedDataJson {
+    vec: Vec<ExternalEncodedDataDetail>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ExternalEncodedDataDetail {
+    encoded_value: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

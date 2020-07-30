@@ -1,6 +1,7 @@
 use std::string::String;
 use std::vec::Vec;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use fst::{Set};
 
 pub const UNIXEPOCH_U8_SIZE: usize = 10;
@@ -20,7 +21,9 @@ pub const TIME_INTERVAL: u64 = 600;
 
 pub const ENCODE_GEOHASH_U8_SIZE: usize = 9;
 pub const ENCODE_TIME_U8_SIZE: usize = 4;
-pub const ENCODE_SIZE: usize = ENCODE_GEOHASH_U8_SIZE + ENCODE_TIME_U8_SIZE;
+pub const ENCODEDVALUE_SIZE: usize = ENCODE_GEOHASH_U8_SIZE + ENCODE_TIME_U8_SIZE;
+
+pub const QUERY_SIZE: usize = 2016;
 
 /* 
 Type key for data structures (= GeoHash) 
@@ -93,7 +96,7 @@ impl MappedQueryBuffer {
     }
 
     // !!このメソッドでは全くerror処理していない
-    pub fn from_query_buffer(&mut self, query_buffer: &QueryBuffer) {
+    pub fn mapping(&mut self, query_buffer: &QueryBuffer) {
         let mut map: HashMap<GeoHashKey, Vec<UnixEpoch>> = HashMap::new();
         for query_rep in query_buffer.queries.iter() {
             for (geohash, unixepoch_vec) in query_rep.parameters.iter() {
@@ -113,6 +116,30 @@ impl MappedQueryBuffer {
         //         };
         //     }
         // }
+
+        println!("[SGX] Q size {}", self.map.len());
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct MappedEncodedQueryBuffer {
+    pub map: Vec<EncodedValue>,
+}
+
+impl MappedEncodedQueryBuffer {
+    pub fn new() -> Self {
+        MappedEncodedQueryBuffer::default()
+    }
+
+    // !!このメソッドでは全くerror処理していない
+    pub fn mapping(&mut self, query_buffer: &EncodedQueryBuffer) {
+        let mut set: HashSet<EncodedValue> = HashSet::new();
+        for query_rep in query_buffer.queries.iter() {
+            for encoded_value in query_rep.parameters.iter() {
+                set.insert(*encoded_value);
+            }
+        }
+        self.map = set.into_iter().collect();
 
         println!("[SGX] Q size {}", self.map.len());
     }
@@ -302,8 +329,8 @@ impl EncodedValueFst {
     ) {
         let mut tmp_vec: Vec<Vec<u8>> = Vec::with_capacity(100000);
         for i in 0usize..(size) {
-            let mut encoded_value: Vec<u8> = Vec::with_capacity(ENCODE_SIZE);
-            encoded_value.copy_from_slice(&encoded_value_vec[ENCODE_SIZE*i..ENCODE_SIZE*(i+1)]);            
+            let mut encoded_value: Vec<u8> = Vec::with_capacity(ENCODEDVALUE_SIZE);
+            encoded_value.copy_from_slice(&encoded_value_vec[ENCODEDVALUE_SIZE*i..ENCODEDVALUE_SIZE*(i+1)]);            
             tmp_vec.push(encoded_value);
         }
         self.map = Set::from_iter(tmp_vec).unwrap();
@@ -313,7 +340,6 @@ impl EncodedValueFst {
 /* Type QueryBuffer [q_1,...q_{N_c}]
     このデータ構造は基本的に固定して良いはず
 */
-
 #[derive(Clone, Default, Debug)]
 pub struct QueryBuffer {
     pub queries: Vec<QueryRep>,
@@ -353,6 +379,52 @@ impl QueryBuffer {
             self.queries.push(query);
         }
         return 0;
+    }
+}
+
+type EncodedValue = [u8; ENCODEDVALUE_SIZE];
+
+#[derive(Clone, Default, Debug)]
+pub struct EncodedQueryBuffer {
+    pub queries: Vec<EncodedQueryRep>,
+}
+
+impl EncodedQueryBuffer {
+    pub fn new() -> Self {
+        EncodedQueryBuffer::default()
+    }
+
+    // !!このメソッドでは全くerror処理していない
+    // queryを個々に組み立ててbufferに保持する
+    pub fn build_query_buffer(
+        &mut self,
+        total_query_data_vec: &Vec<u8>,
+        query_id_list_vec   : &Vec<u64>,
+    ) -> i8 {
+        for i in 0_usize..(query_id_list_vec.len()) {
+            let mut query = EncodedQueryRep::new();
+            query.id = query_id_list_vec[i];
+            for j in 0_usize..QUERY_SIZE {
+                let mut encoded_value = [0_u8; ENCODEDVALUE_SIZE];
+                encoded_value.copy_from_slice(&total_query_data_vec[i*QUERY_SIZE+j*ENCODEDVALUE_SIZE..i*QUERY_SIZE+(j+1)*ENCODEDVALUE_SIZE]);
+                query.parameters.push(encoded_value);
+            }
+            self.queries.push(query);
+        }
+        return 0;
+    }
+}
+
+/* Type EncodedQueryRep */
+#[derive(Clone, Default, Debug)]
+pub struct EncodedQueryRep {
+    pub id: QueryId,
+    pub parameters: Vec<EncodedValue>,
+}
+
+impl EncodedQueryRep {
+    pub fn new() -> Self {
+        EncodedQueryRep::default()
     }
 }
 

@@ -9,6 +9,12 @@ extern {
         total_query_data: * const u8, total_size: usize,
         size_list: * const usize, client_size: usize, query_id_list: * const u64
     ) -> sgx_status_t;
+
+    pub fn upload_encoded_query_data(
+        eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
+        total_query_data: * const u8, total_size: usize,
+        client_size: usize, query_id_list: * const u64
+    ) -> sgx_status_t;
     
     pub fn private_contact_trace(
         eid: sgx_enclave_id_t,

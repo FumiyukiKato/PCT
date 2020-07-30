@@ -30,6 +30,13 @@ enclave {
             size_t client_size,
             [in, count=client_size] uint64_t* query_id_list
         );
+        
+        public sgx_status_t upload_encoded_query_data(
+            [in, count=toal_size] uint8_t* total_query_data,
+            size_t toal_size,
+            size_t client_size,
+            [in, count=client_size] uint64_t* query_id_list
+        );
 
         public sgx_status_t private_contact_trace(
             [in, count=geohash_u8_size] uint8_t* geohash_u8,

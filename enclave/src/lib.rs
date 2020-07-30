@@ -75,6 +75,26 @@ pub fn get_ref_result_buffer() -> Option<&'static RefCell<ResultBuffer>> {
     }
 }
 
+pub static ENCODED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
+pub fn get_ref_encoded_query_buffer() -> Option<&'static RefCell<EncodedQueryBuffer>> {
+    let ptr = ENCODED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<EncodedQueryBuffer>;
+    if ptr.is_null() {
+        None
+    } else {
+        Some(unsafe { &* ptr })
+    }
+}
+
+pub static MAPPED_ENCODED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
+pub fn get_ref_mapped_encoded_query_buffer() -> Option<&'static RefCell<MappedEncodedQueryBuffer>> {
+    let ptr = MAPPED_ENCODED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<MappedEncodedQueryBuffer>;
+    if ptr.is_null() {
+        None
+    } else {
+        Some(unsafe { &* ptr })
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn upload_query_data(
     total_query_data: *const u8,
@@ -122,7 +142,57 @@ pub extern "C" fn upload_query_data(
 
     let start = Instant::now();
     let mut mapped_query_buffer = get_ref_mapped_query_buffer().unwrap().borrow_mut();
-    mapped_query_buffer.from_query_buffer(&query_buffer);
+    mapped_query_buffer.mapping(&query_buffer);
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "map_into_pct", end.as_secs(), end.subsec_nanos() / 1_000);
+
+    // println!("[SGX] upload_query_data succes!");
+    let end = whole_start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
+    
+    sgx_status_t::SGX_SUCCESS
+}
+
+#[no_mangle]
+pub extern "C" fn upload_encoded_query_data(
+    total_query_data: *const u8,
+    total_size       : usize,
+    client_size     : usize,
+    query_id_list   : *const u64,
+) -> sgx_status_t {
+    // println!("[SGX] upload_query_data start");
+    let whole_start = Instant::now();
+    let start = Instant::now();
+    _init_encoded_buffers();
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "init_buffers", end.as_secs(), end.subsec_nanos() / 1_000);
+
+    let start = Instant::now();
+    let total_query_data_vec: Vec<u8> = unsafe {
+        slice::from_raw_parts(total_query_data, total_size)
+    }.to_vec();
+    if total_query_data_vec.len() != total_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
+    }
+    
+    let query_id_list_vec: Vec<u64> = unsafe {
+        slice::from_raw_parts(query_id_list, client_size)
+    }.to_vec();
+    if query_id_list_vec.len() != client_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
+    }
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "reading?", end.as_secs(), end.subsec_nanos() / 1_000);
+
+    let start = Instant::now();
+    let mut query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
+    query_buffer.build_query_buffer(&total_query_data_vec, &query_id_list_vec);
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "build_query_buffer", end.as_secs(), end.subsec_nanos() / 1_000);
+
+    let start = Instant::now();
+    let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
+    mapped_query_buffer.mapping(&query_buffer);
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "map_into_pct", end.as_secs(), end.subsec_nanos() / 1_000);
 
@@ -146,6 +216,27 @@ fn _init_buffers() {
     let mapped_query_buffer_box = Box::new(RefCell::<MappedQueryBuffer>::new(mapped_query_buffer));
     let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
     MAPPED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
+
+    // initialize result buffer
+    let result_buffer = ResultBuffer::new();
+    let result_buffer_box = Box::new(RefCell::<ResultBuffer>::new(result_buffer));
+    let result_buffer_ptr = Box::into_raw(result_buffer_box);
+    RESULT_BUFFER.store(result_buffer_ptr as *mut (), Ordering::SeqCst);
+}
+
+fn _init_encoded_buffers() {
+
+    // initialize query buffer
+    let query_buffer = EncodedQueryBuffer::new();
+    let query_buffer_box = Box::new(RefCell::<EncodedQueryBuffer>::new(query_buffer));
+    let query_buffer_ptr = Box::into_raw(query_buffer_box);
+    ENCODED_QUERY_BUFFER.store(query_buffer_ptr as *mut (), Ordering::SeqCst);
+
+    // initialize mapped query buffer
+    let mapped_query_buffer = MappedEncodedQueryBuffer::new();
+    let mapped_query_buffer_box = Box::new(RefCell::<MappedEncodedQueryBuffer>::new(mapped_query_buffer));
+    let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
+    MAPPED_ENCODED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize result buffer
     let result_buffer = ResultBuffer::new();

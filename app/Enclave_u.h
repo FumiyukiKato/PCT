@@ -263,6 +263,7 @@ int SGX_UBRIDGE(SGX_CDECL, sgx_thread_set_multiple_untrusted_events_ocall, (cons
 #endif
 
 sgx_status_t upload_query_data(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* total_query_data, size_t toal_size, size_t* size_list, size_t client_size, uint64_t* query_id_list);
+sgx_status_t upload_encoded_query_data(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* total_query_data, size_t toal_size, size_t client_size, uint64_t* query_id_list);
 sgx_status_t private_contact_trace(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* geohash_u8, size_t geohash_u8_size, uint64_t* unixepoch_u64, size_t unixepoch_u64_size, size_t* size_list, size_t epoch_data_size);
 sgx_status_t get_result(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* response, size_t response_size);
 sgx_status_t t_global_init_ecall(sgx_enclave_id_t eid, uint64_t id, const uint8_t* path, size_t len);
