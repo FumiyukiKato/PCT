@@ -1,6 +1,7 @@
 use std::string::String;
 use std::vec::Vec;
 use std::collections::HashMap;
+use fst::{Set};
 
 pub const UNIXEPOCH_U8_SIZE: usize = 10;
 pub const GEOHASH_U8_SIZE: usize = 9;
@@ -16,6 +17,10 @@ pub const CONTACT_TIME_THREASHOLD: u64 = 600;
 
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
+
+pub const ENCODE_GEOHASH_U8_SIZE: usize = 9;
+pub const ENCODE_TIME_U8_SIZE: usize = 4;
+pub const ENCODE_SIZE: usize = ENCODE_GEOHASH_U8_SIZE + ENCODE_TIME_U8_SIZE;
 
 /* 
 Type key for data structures (= GeoHash) 
@@ -60,6 +65,14 @@ impl DictionaryBuffer {
     ) {
         self.data.build_dictionary_buffer(geohash_data_vec, unixepoch_data_vec, size_list_vec);
     }
+
+    // pub fn build_fst_dictionary_buffer(
+    //     &mut self,
+    //     encoded_value_vec: &Vec<u8>,
+    //     size: usize,
+    // ) {
+    //     self.data.build_dictionary_buffer(encoded_value_vec, size);
+    // }
 }
 
 /* 
@@ -257,6 +270,43 @@ impl GeohashTableWithPeriodArray {
             self.map.insert(geohash, period);
             cursor += size_list_vec[i]*2;
         }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct U8 { vec: Vec<u8> }
+
+impl U8 {
+    fn from_vec(value: Vec<u8>) -> Self {
+        U8 { vec: value }
+    }
+}
+
+impl AsRef<[u8]> for U8 {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        &self.vec
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct EncodedValueFst {
+    map: Set<Vec<u8>>
+}
+
+impl EncodedValueFst {
+    fn build_dictionary_buffer(
+        &mut self,
+        encoded_value_vec: &Vec<u8>,
+        size: usize,
+    ) {
+        let mut tmp_vec: Vec<Vec<u8>> = Vec::with_capacity(100000);
+        for i in 0usize..(size) {
+            let mut encoded_value: Vec<u8> = Vec::with_capacity(ENCODE_SIZE);
+            encoded_value.copy_from_slice(&encoded_value_vec[ENCODE_SIZE*i..ENCODE_SIZE*(i+1)]);            
+            tmp_vec.push(encoded_value);
+        }
+        self.map = Set::from_iter(tmp_vec).unwrap();
     }
 }
 
