@@ -38,8 +38,36 @@ use std::time::{Instant};
 use std::untrusted::time::InstantEx;
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-mod types;
-use types::*;
+mod constant;
+mod query_buffer;
+mod query_rep;
+mod primitive;
+mod utils;
+mod encoded_query_rep;
+mod period;
+mod encoded_query_buffer;
+mod result_buffer;
+mod query_result;
+mod encoded_result_buffer;
+mod geohash_table_with_period_array;
+mod mapped_query_buffer;
+mod mapped_encoded_query_buffer;
+mod geohash_table;
+mod dictionary_buffer;
+mod encoded_dictionary_buffer;
+mod encoded_hash_table;
+mod encode_finite_state_transducer;
+
+use constant::*;
+use query_buffer::QueryBuffer;
+use primitive::*;
+use encoded_query_buffer::EncodedQueryBuffer;
+use result_buffer::ResultBuffer;
+use encoded_result_buffer::EncodedResultBuffer;
+use mapped_query_buffer::MappedQueryBuffer;
+use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
+use dictionary_buffer::DictionaryBuffer;
+use encoded_dictionary_buffer::EncodedDictionaryBuffer;
 
 /* 
 SGXのステート

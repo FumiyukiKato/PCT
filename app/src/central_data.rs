@@ -216,13 +216,13 @@ type EncodedValue = [u8; ENCODEDVALUE_SIZE];
 
 #[derive(Clone, Default, Debug)]
 pub struct EncodedData {
-    structure: HashSet<EncodedValue>
+    structure: Vec<EncodedValue>
 }
 
 impl EncodedData {
     pub fn new() -> Self {
         EncodedData {
-            structure: HashSet::with_capacity(1000000)
+            structure: Vec::with_capacity(1000000)
         }
     }
 
@@ -231,14 +231,16 @@ impl EncodedData {
         let reader = BufReader::new(file);
         let data: ExternalEncodedDataJson = serde_json::from_reader(reader).unwrap();
         
-        let mut encoded_data = EncodedData::new();
+        let mut set: HashSet<EncodedValue> = HashSet::with_capacity(100000);
         for v in data.data.iter() {
             let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
             encoded_value_u8.copy_from_slice(v.as_bytes());
-            encoded_data.structure.insert(encoded_value_u8);
+            set.insert(encoded_value_u8);
         }
-        println!("[UNTRUSTED] D size {}", encoded_data.structure.len());
-        encoded_data
+        println!("[UNTRUSTED] D size {}", set.len());
+        let mut vec: Vec<EncodedValue> = set.into_iter().collect();
+        vec.sort();
+        EncodedData { structure: vec }
     }
     
     pub fn prepare_sgx_data(&self, encoded_value_u8: &mut Vec<u8>) -> usize {
@@ -254,7 +256,7 @@ impl EncodedData {
         let mut val_num = 0;
         let mut data = Self::new();
         for (i, value) in self.structure.iter().enumerate() {
-            data.structure.insert(*value);
+            data.structure.push(*value);
             if (i+1) % threashould == 0 {
                 buf.push(data);
                 data = Self::new();
