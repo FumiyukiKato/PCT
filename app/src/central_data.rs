@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::collections::HashMap;
 use std::vec::Vec;
+use std::collections::HashSet;
 
 
 /* Type Period */
@@ -215,13 +216,13 @@ type EncodedValue = [u8; ENCODEDVALUE_SIZE];
 
 #[derive(Clone, Default, Debug)]
 pub struct EncodedData {
-    structure: Vec<EncodedValue>
+    structure: HashSet<EncodedValue>
 }
 
 impl EncodedData {
     pub fn new() -> Self {
         EncodedData {
-            structure: Vec::with_capacity(100000)
+            structure: HashSet::with_capacity(1000000)
         }
     }
 
@@ -231,11 +232,12 @@ impl EncodedData {
         let data: ExternalEncodedDataJson = serde_json::from_reader(reader).unwrap();
         
         let mut encoded_data = EncodedData::new();
-        for v in data.vec.iter() {
+        for v in data.data.iter() {
             let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
-            encoded_value_u8.copy_from_slice(hex_string_to_u8(&v.encoded_value).as_slice());
-            encoded_data.structure.push(encoded_value_u8);
+            encoded_value_u8.copy_from_slice(v.as_bytes());
+            encoded_data.structure.insert(encoded_value_u8);
         }
+        println!("[UNTRUSTED] D size {}", encoded_data.structure.len());
         encoded_data
     }
     
@@ -251,8 +253,8 @@ impl EncodedData {
     pub fn disribute(&self, buf: &mut Vec<Self>, threashould: usize) {
         let mut val_num = 0;
         let mut data = Self::new();
-        for (i, vec) in self.structure.iter().enumerate() {
-            data.structure.push(*vec);
+        for (i, value) in self.structure.iter().enumerate() {
+            data.structure.insert(*value);
             if (i+1) % threashould == 0 {
                 buf.push(data);
                 data = Self::new();
@@ -303,12 +305,7 @@ impl Period {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ExternalEncodedDataJson {
-    vec: Vec<ExternalEncodedDataDetail>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ExternalEncodedDataDetail {
-    encoded_value: String,
+    data: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -78,6 +78,29 @@ impl DictionaryBuffer {
     // }
 }
 
+#[derive(Clone, Default, Debug)]
+pub struct EncodedDictionaryBuffer {
+    pub data: EncodedHashTable
+}
+
+impl EncodedDictionaryBuffer {
+    pub fn new() -> Self {
+        EncodedDictionaryBuffer::default()
+    }
+
+    pub fn intersect(&self, mapped_query_buffer: &MappedEncodedQueryBuffer, result: &mut EncodedResultBuffer) {
+        self.data.intersect(mapped_query_buffer, result);
+    }
+
+    pub fn build_dictionary_buffer(
+        &mut self,
+        encoded_value_vec: &Vec<u8>,
+        size: usize,
+    ) {
+        self.data.build_dictionary_buffer(encoded_value_vec, size);
+    }
+}
+
 /* 
 Type MappedQueryBuffer "Q"
     こっちのクエリ側のデータ構造も変わる可能性がある
@@ -218,6 +241,47 @@ impl GeohashTable {
             let unixepoch: Vec<UnixEpoch> = unixepoch_data_vec[cursor..cursor+size_list_vec[i]].to_vec();
             self.map.insert(geohash, unixepoch);
             cursor += size_list_vec[i];
+        }
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct EncodedHashTable {
+    pub map: HashSet<EncodedValue>,
+}
+impl EncodedHashTable {
+    pub fn new() -> Self {
+        EncodedHashTable {
+            map: HashSet::with_capacity(THREASHOLD)
+        }
+    }
+
+    pub fn intersect(&self, mapped_query_buffer: &MappedEncodedQueryBuffer, result: &mut EncodedResultBuffer) {
+        for encoded_value_vec in mapped_query_buffer.map.iter() {
+            if self.map.contains(encoded_value_vec) {
+                result.data.push(*encoded_value_vec);
+            }
+        }
+
+        // for (dict_geohash, dict_unixepoch_vec) in self.map.iter() {
+        //     match mapped_query_buffer.map.get(dict_geohash) {
+        //         Some(query_unixepoch_vec) => {
+        //             Self::judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
+        //         },
+        //         None => {}
+        //     }
+        // }
+    }
+
+    fn build_dictionary_buffer(
+        &mut self,
+        encoded_value_vec: &Vec<u8>,
+        size: usize,
+    ) {
+        for i in 0usize..(size) {
+            let mut encoded_value: EncodedValue = [0u8; ENCODEDVALUE_SIZE];
+            encoded_value.copy_from_slice(&encoded_value_vec[ENCODEDVALUE_SIZE*i..ENCODEDVALUE_SIZE*(i+1)]);
+            self.map.insert(encoded_value);
         }
     }
 }
@@ -407,7 +471,7 @@ impl EncodedQueryBuffer {
             for j in 0_usize..QUERY_SIZE {
                 let mut encoded_value = [0_u8; ENCODEDVALUE_SIZE];
                 encoded_value.copy_from_slice(&total_query_data_vec[i*QUERY_SIZE+j*ENCODEDVALUE_SIZE..i*QUERY_SIZE+(j+1)*ENCODEDVALUE_SIZE]);
-                query.parameters.push(encoded_value);
+                query.parameters.insert(encoded_value);
             }
             self.queries.push(query);
         }
@@ -419,7 +483,7 @@ impl EncodedQueryBuffer {
 #[derive(Clone, Default, Debug)]
 pub struct EncodedQueryRep {
     pub id: QueryId,
-    pub parameters: Vec<EncodedValue>,
+    pub parameters: HashSet<EncodedValue>,
 }
 
 impl EncodedQueryRep {
@@ -506,6 +570,37 @@ impl ResultBuffer {
                     result.risk_level = 1;
                     break;
                 }
+            }
+            response_vec.extend_from_slice(&result.to_be_bytes());
+        }
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct EncodedResultBuffer {
+    pub data: Vec<EncodedValue>
+}
+
+impl EncodedResultBuffer {
+    pub fn new() -> Self {
+        EncodedResultBuffer::default()
+    }
+
+    // matchがネストして読みにくくなってしまっている
+    // メソッドチェーンでもっと関数型っぽく書けば読みやすくなりそうではある
+    pub fn build_query_response(
+        &self,
+        query_buffer: &EncodedQueryBuffer,
+        response_vec: &mut Vec<u8>,
+    ) {
+        for query in query_buffer.queries.iter() {
+            let mut result = QueryResult::new();
+            result.query_id = query.id;
+            for encoded_value in self.data.iter() {
+                if query.parameters.contains(encoded_value) {
+                    result.risk_level = 1;
+                    break;
+                };
             }
             response_vec.extend_from_slice(&result.to_be_bytes());
         }

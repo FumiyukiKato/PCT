@@ -48,7 +48,7 @@ def gen_soreppoi_trajectory(query_size):
         # 10分ごとに30%の確率でランダムに移動
         if random.random() < 0.3:
             soreppoi_geohash = gen_soreppoi_geohash(GEOHASH_LEN)
-        soreppoi_query.append(encode(soreppoi_geohash, start_int, int(dt.timestamp())))
+        soreppoi_query.append(encode(soreppoi_geohash, start_int, int(dt.timestamp())).encode())
     
     return soreppoi_query
 
@@ -61,7 +61,8 @@ def main():
     for i in range(client_size):
         print("\r" + "generate process (%d/%d)" % (i+1, client_size), end="")
         data_list = gen_soreppoi_trajectory(query_size)
-        value = { "geodata": data_list, "query_size": query_size, "query_id": current_id }
+        byte = b''.join(data_list)
+        value = { "geodata": byte.hex(), "query_size": query_size, "query_id": current_id }
         total_data_list.append(value)
         current_id = current_id + 1
 

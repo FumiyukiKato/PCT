@@ -28,7 +28,11 @@ use query_data::*;
 
 // ecallsはnamedで呼び出す
 mod ecalls;
-use ecalls::{upload_query_data, upload_encoded_query_data, init_enclave, private_contact_trace, get_result};
+use ecalls::{ 
+    upload_query_data, upload_encoded_query_data, 
+    init_enclave, private_contact_trace, get_result,
+    private_encode_contact_trace, get_encoded_result
+};
 
 mod central_data;
 use central_data::*;
@@ -59,7 +63,7 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    geohashTable();
+    encodedHasing();
 }
 
 // ハッシュテーブル
@@ -520,7 +524,7 @@ fn baselineNoChunk() {
     }
 }
 
-fn encoded_trie() {
+fn encodedHasing() {
     let args = _get_options();
     /* parameters */
     let threashould: usize = args[0].parse().unwrap();
@@ -566,7 +570,7 @@ fn encoded_trie() {
 
     /* read query data */
     clocker.set_and_start("Read Query Data");
-    let query_data = QueryData::read_raw_from_file(q_filename);
+    let query_data = EncodedQueryData::read_raw_from_file(q_filename);
     clocker.stop("Read Query Data");
 
     /* upload query data */
@@ -593,83 +597,80 @@ fn encoded_trie() {
     }
     clocker.stop("ECALL upload_query_data");
 
-    // /* main logic contact tracing */
-    // let mut chunk_index: usize = 0;
-    // let last = chunked_buf.len() - 1;
-    // clocker.set_and_start("ECALL private_contact_trace");
-    // while last >= chunk_index {
+    /* main logic contact tracing */
+    let mut chunk_index: usize = 0;
+    let last = chunked_buf.len() - 1;
+    clocker.set_and_start("ECALL private_contact_trace");
+    while last >= chunk_index {
 
-    //     let chunk = &sgx_data[chunk_index];
-    //     let result = unsafe {
-    //         private_contact_trace(
-    //             enclave.geteid(),
-    //             &mut retval,
-    //             chunk.0.as_ptr() as * const u8,
-    //             chunk.0.len(),
-    //             chunk.1.as_ptr() as * const u64,
-    //             chunk.1.len(),
-    //             chunk.2.as_ptr() as * const usize,
-    //             chunk.3
-    //         )
-    //     };
-    //     match result {
-    //         sgx_status_t::SGX_SUCCESS => {
-    //             print!("\r[UNTRUSTED] private_contact_trace Succes! {} th iteration", chunk_index);
-    //         },
-    //         _ => {
-    //             println!("[UNTRUSTED] private_contact_trace Failed {}!", result.as_str());
-    //             return;
-    //         }
-    //     }
-    //     chunk_index += 1;
-    // }
-    // println!("");
+        let chunk = &sgx_data[chunk_index];
+        let result = unsafe {
+            private_encode_contact_trace(
+                enclave.geteid(),
+                &mut retval,
+                chunk.0.as_ptr() as * const u8,
+                chunk.0.len(),
+                chunk.1
+            )
+        };
+        match result {
+            sgx_status_t::SGX_SUCCESS => {
+                print!("\r[UNTRUSTED] private_contact_trace Succes! {} th iteration", chunk_index);
+            },
+            _ => {
+                println!("[UNTRUSTED] private_contact_trace Failed {}!", result.as_str());
+                return;
+            }
+        }
+        chunk_index += 1;
+    }
+    println!("");
     
-    // clocker.stop("ECALL private_contact_trace");
+    clocker.stop("ECALL private_contact_trace");
 
-    // /* response reconstruction */
-    // clocker.set_and_start("ECALL get_result");
-    // let response_size = query_data.client_size * RESPONSE_DATA_SIZE_U8;
-    // let mut response: Vec<u8> = vec![0; response_size];
-    // let result = unsafe {
-    //     get_result(
-    //         enclave.geteid(),
-    //         &mut retval,
-    //         response.as_mut_ptr(),
-    //         response_size
-    //     )
-    // };
-    // match result {
-    //     sgx_status_t::SGX_SUCCESS => {
-    //         // println!("[UNTRUSTED] get_result Succes!");
-    //     },
-    //     _ => {
-    //         println!("[UNTRUSTED] get_result Failed {}!", result.as_str());
-    //         return;
-    //     }
-    // }
-    // clocker.stop("ECALL get_result");
+    /* response reconstruction */
+    clocker.set_and_start("ECALL get_result");
+    let response_size = query_data.client_size * RESPONSE_DATA_SIZE_U8;
+    let mut response: Vec<u8> = vec![0; response_size];
+    let result = unsafe {
+        get_encoded_result(
+            enclave.geteid(),
+            &mut retval,
+            response.as_mut_ptr(),
+            response_size
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            // println!("[UNTRUSTED] get_result Succes!");
+        },
+        _ => {
+            println!("[UNTRUSTED] get_result Failed {}!", result.as_str());
+            return;
+        }
+    }
+    clocker.stop("ECALL get_result");
     
-    // for i in 0..query_data.client_size {
-    //     if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-    //         println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
-    //     }
-    // }
+    for i in 0..query_data.client_size {
+        if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
+            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+        }
+    }
 
-    // /* finish */
-    // enclave.destroy();
-    // // println!("[UNTRUSTED] All process is successful!!");
-    // clocker.show_all();
-    // if args[3] == "true".to_string() {
-    //     let now: String = get_timestamp();
-    //     write_to_file(
-    //         format!("data/result/result-{}-cuckooHasing.txt", now),
-    //         "simple hash and list".to_string(),
-    //         c_filename.to_string(),
-    //         q_filename.to_string(),
-    //         threashould,
-    //         "only risk_level".to_string(),
-    //         clocker
-    //     );
-    // }
+    /* finish */
+    enclave.destroy();
+    // println!("[UNTRUSTED] All process is successful!!");
+    clocker.show_all();
+    if args[3] == "true".to_string() {
+        let now: String = get_timestamp();
+        write_to_file(
+            format!("data/result/result-{}-encodedHasing.txt", now),
+            "simple hash and list".to_string(),
+            c_filename.to_string(),
+            q_filename.to_string(),
+            threashould,
+            "only risk_level".to_string(),
+            clocker
+        );
+    }
 }

@@ -28,11 +28,24 @@ typedef struct ms_private_contact_trace_t {
 	size_t ms_epoch_data_size;
 } ms_private_contact_trace_t;
 
+typedef struct ms_private_encode_contact_trace_t {
+	sgx_status_t ms_retval;
+	uint8_t* ms_encoded_value_u8;
+	size_t ms_encoded_value_u8_size;
+	size_t ms_epoch_data_size;
+} ms_private_encode_contact_trace_t;
+
 typedef struct ms_get_result_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_response;
 	size_t ms_response_size;
 } ms_get_result_t;
+
+typedef struct ms_get_encoded_result_t {
+	sgx_status_t ms_retval;
+	uint8_t* ms_response;
+	size_t ms_response_size;
+} ms_get_encoded_result_t;
 
 typedef struct ms_t_global_init_ecall_t {
 	uint64_t ms_id;
@@ -1056,13 +1069,36 @@ sgx_status_t private_contact_trace(sgx_enclave_id_t eid, sgx_status_t* retval, u
 	return status;
 }
 
+sgx_status_t private_encode_contact_trace(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* encoded_value_u8, size_t encoded_value_u8_size, size_t epoch_data_size)
+{
+	sgx_status_t status;
+	ms_private_encode_contact_trace_t ms;
+	ms.ms_encoded_value_u8 = encoded_value_u8;
+	ms.ms_encoded_value_u8_size = encoded_value_u8_size;
+	ms.ms_epoch_data_size = epoch_data_size;
+	status = sgx_ecall(eid, 3, &ocall_table_Enclave, &ms);
+	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
+	return status;
+}
+
 sgx_status_t get_result(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* response, size_t response_size)
 {
 	sgx_status_t status;
 	ms_get_result_t ms;
 	ms.ms_response = response;
 	ms.ms_response_size = response_size;
-	status = sgx_ecall(eid, 3, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 4, &ocall_table_Enclave, &ms);
+	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
+	return status;
+}
+
+sgx_status_t get_encoded_result(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* response, size_t response_size)
+{
+	sgx_status_t status;
+	ms_get_encoded_result_t ms;
+	ms.ms_response = response;
+	ms.ms_response_size = response_size;
+	status = sgx_ecall(eid, 5, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
 }
@@ -1074,14 +1110,14 @@ sgx_status_t t_global_init_ecall(sgx_enclave_id_t eid, uint64_t id, const uint8_
 	ms.ms_id = id;
 	ms.ms_path = path;
 	ms.ms_len = len;
-	status = sgx_ecall(eid, 4, &ocall_table_Enclave, &ms);
+	status = sgx_ecall(eid, 6, &ocall_table_Enclave, &ms);
 	return status;
 }
 
 sgx_status_t t_global_exit_ecall(sgx_enclave_id_t eid)
 {
 	sgx_status_t status;
-	status = sgx_ecall(eid, 5, &ocall_table_Enclave, NULL);
+	status = sgx_ecall(eid, 7, &ocall_table_Enclave, NULL);
 	return status;
 }
 

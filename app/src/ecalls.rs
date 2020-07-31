@@ -27,7 +27,22 @@ extern {
         epoch_data_size: usize,
     ) -> sgx_status_t;
     
+    pub fn private_encode_contact_trace(
+        eid: sgx_enclave_id_t,
+        retval: *mut sgx_status_t,
+        encoded_value_u8: * const u8,
+        encoded_value_u8_size: usize,
+        epoch_data_size: usize,
+    ) -> sgx_status_t;
+
     pub fn get_result(
+        eid: sgx_enclave_id_t,
+        retval: *mut sgx_status_t,
+        response: *mut u8,
+        response_size: usize,
+    ) -> sgx_status_t;
+
+    pub fn get_encoded_result(
         eid: sgx_enclave_id_t,
         retval: *mut sgx_status_t,
         response: *mut u8,

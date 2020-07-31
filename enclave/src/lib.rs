@@ -95,6 +95,16 @@ pub fn get_ref_mapped_encoded_query_buffer() -> Option<&'static RefCell<MappedEn
     }
 }
 
+pub static ENCODED_RESULT_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
+pub fn get_ref_encoded_result_buffer() -> Option<&'static RefCell<EncodedResultBuffer>> {
+    let ptr = ENCODED_RESULT_BUFFER.load(Ordering::SeqCst) as * mut RefCell<EncodedResultBuffer>;
+    if ptr.is_null() {
+        None
+    } else {
+        Some(unsafe { &* ptr })
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn upload_query_data(
     total_query_data: *const u8,
@@ -239,10 +249,10 @@ fn _init_encoded_buffers() {
     MAPPED_ENCODED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize result buffer
-    let result_buffer = ResultBuffer::new();
-    let result_buffer_box = Box::new(RefCell::<ResultBuffer>::new(result_buffer));
+    let result_buffer = EncodedResultBuffer::new();
+    let result_buffer_box = Box::new(RefCell::<EncodedResultBuffer>::new(result_buffer));
     let result_buffer_ptr = Box::into_raw(result_buffer_box);
-    RESULT_BUFFER.store(result_buffer_ptr as *mut (), Ordering::SeqCst);
+    ENCODED_RESULT_BUFFER.store(result_buffer_ptr as *mut (), Ordering::SeqCst);
 }
 
 /*
@@ -292,6 +302,27 @@ pub extern "C" fn private_contact_trace(
     sgx_status_t::SGX_SUCCESS
 }
 
+#[no_mangle]
+pub extern "C" fn private_encode_contact_trace(
+    encoded_value_u8: *const u8,
+    encoded_value_u8_size: usize,
+    epoch_data_size: usize,
+) -> sgx_status_t {
+    let mut dictionary_buffer = EncodedDictionaryBuffer::new();
+    let encoded_value_vec: Vec<u8> = unsafe {
+        slice::from_raw_parts(encoded_value_u8, encoded_value_u8_size)
+    }.to_vec();
+    if encoded_value_vec.len() != encoded_value_u8_size {
+        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
+    }
+    dictionary_buffer.build_dictionary_buffer(&encoded_value_vec, epoch_data_size);
+    let mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
+    let mut result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
+    dictionary_buffer.intersect(&mapped_query_buffer, &mut result_buffer);
+    // println!("[SGX] private_contact_trace succes!");
+    sgx_status_t::SGX_SUCCESS
+}
+
 // ResultBufferからQueryResultを組み立てて返す
 #[no_mangle]
 pub extern "C" fn get_result(
@@ -302,6 +333,29 @@ pub extern "C" fn get_result(
 
     let result_buffer = get_ref_result_buffer().unwrap().borrow_mut();
     let query_buffer = get_ref_query_buffer().unwrap().borrow_mut();
+    let mut response_vec: Vec<u8> = Vec::with_capacity(response_size);
+
+    result_buffer.build_query_response(&query_buffer, &mut response_vec);
+    let slice = response_vec.as_mut_slice();
+    unsafe {
+        for i in 0..response_size {
+            *response.offset(i as isize) = slice[i];
+        }
+    }
+    
+    // println!("[SGX] get_result succes!");
+    sgx_status_t::SGX_SUCCESS
+}
+
+#[no_mangle]
+pub extern "C" fn get_encoded_result(
+    response: *mut u8,
+    response_size: usize,
+) -> sgx_status_t {
+    // println!("[SGX] get_result start");
+
+    let result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
+    let query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
     let mut response_vec: Vec<u8> = Vec::with_capacity(response_size);
 
     result_buffer.build_query_response(&query_buffer, &mut response_vec);

@@ -54,11 +54,24 @@ typedef struct ms_private_contact_trace_t {
 	size_t ms_epoch_data_size;
 } ms_private_contact_trace_t;
 
+typedef struct ms_private_encode_contact_trace_t {
+	sgx_status_t ms_retval;
+	uint8_t* ms_encoded_value_u8;
+	size_t ms_encoded_value_u8_size;
+	size_t ms_epoch_data_size;
+} ms_private_encode_contact_trace_t;
+
 typedef struct ms_get_result_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_response;
 	size_t ms_response_size;
 } ms_get_result_t;
+
+typedef struct ms_get_encoded_result_t {
+	sgx_status_t ms_retval;
+	uint8_t* ms_response;
+	size_t ms_response_size;
+} ms_get_encoded_result_t;
 
 typedef struct ms_t_global_init_ecall_t {
 	uint64_t ms_id;
@@ -792,6 +805,58 @@ err:
 	return status;
 }
 
+static sgx_status_t SGX_CDECL sgx_private_encode_contact_trace(void* pms)
+{
+	CHECK_REF_POINTER(pms, sizeof(ms_private_encode_contact_trace_t));
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+	ms_private_encode_contact_trace_t* ms = SGX_CAST(ms_private_encode_contact_trace_t*, pms);
+	sgx_status_t status = SGX_SUCCESS;
+	uint8_t* _tmp_encoded_value_u8 = ms->ms_encoded_value_u8;
+	size_t _tmp_encoded_value_u8_size = ms->ms_encoded_value_u8_size;
+	size_t _len_encoded_value_u8 = _tmp_encoded_value_u8_size * sizeof(uint8_t);
+	uint8_t* _in_encoded_value_u8 = NULL;
+
+	if (sizeof(*_tmp_encoded_value_u8) != 0 &&
+		(size_t)_tmp_encoded_value_u8_size > (SIZE_MAX / sizeof(*_tmp_encoded_value_u8))) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	CHECK_UNIQUE_POINTER(_tmp_encoded_value_u8, _len_encoded_value_u8);
+
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+
+	if (_tmp_encoded_value_u8 != NULL && _len_encoded_value_u8 != 0) {
+		if ( _len_encoded_value_u8 % sizeof(*_tmp_encoded_value_u8) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_encoded_value_u8 = (uint8_t*)malloc(_len_encoded_value_u8);
+		if (_in_encoded_value_u8 == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_encoded_value_u8, _len_encoded_value_u8, _tmp_encoded_value_u8, _len_encoded_value_u8)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+
+	ms->ms_retval = private_encode_contact_trace(_in_encoded_value_u8, _tmp_encoded_value_u8_size, ms->ms_epoch_data_size);
+
+err:
+	if (_in_encoded_value_u8) free(_in_encoded_value_u8);
+	return status;
+}
+
 static sgx_status_t SGX_CDECL sgx_get_result(void* pms)
 {
 	CHECK_REF_POINTER(pms, sizeof(ms_get_result_t));
@@ -833,6 +898,59 @@ static sgx_status_t SGX_CDECL sgx_get_result(void* pms)
 	}
 
 	ms->ms_retval = get_result(_in_response, _tmp_response_size);
+	if (_in_response) {
+		if (memcpy_s(_tmp_response, _len_response, _in_response, _len_response)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+	}
+
+err:
+	if (_in_response) free(_in_response);
+	return status;
+}
+
+static sgx_status_t SGX_CDECL sgx_get_encoded_result(void* pms)
+{
+	CHECK_REF_POINTER(pms, sizeof(ms_get_encoded_result_t));
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+	ms_get_encoded_result_t* ms = SGX_CAST(ms_get_encoded_result_t*, pms);
+	sgx_status_t status = SGX_SUCCESS;
+	uint8_t* _tmp_response = ms->ms_response;
+	size_t _tmp_response_size = ms->ms_response_size;
+	size_t _len_response = _tmp_response_size * sizeof(uint8_t);
+	uint8_t* _in_response = NULL;
+
+	if (sizeof(*_tmp_response) != 0 &&
+		(size_t)_tmp_response_size > (SIZE_MAX / sizeof(*_tmp_response))) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	CHECK_UNIQUE_POINTER(_tmp_response, _len_response);
+
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
+
+	if (_tmp_response != NULL && _len_response != 0) {
+		if ( _len_response % sizeof(*_tmp_response) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		if ((_in_response = (uint8_t*)malloc(_len_response)) == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		memset((void*)_in_response, 0, _len_response);
+	}
+
+	ms->ms_retval = get_encoded_result(_in_response, _tmp_response_size);
 	if (_in_response) {
 		if (memcpy_s(_tmp_response, _len_response, _in_response, _len_response)) {
 			status = SGX_ERROR_UNEXPECTED;
@@ -902,14 +1020,16 @@ static sgx_status_t SGX_CDECL sgx_t_global_exit_ecall(void* pms)
 
 SGX_EXTERNC const struct {
 	size_t nr_ecall;
-	struct {void* ecall_addr; uint8_t is_priv; uint8_t is_switchless;} ecall_table[6];
+	struct {void* ecall_addr; uint8_t is_priv; uint8_t is_switchless;} ecall_table[8];
 } g_ecall_table = {
-	6,
+	8,
 	{
 		{(void*)(uintptr_t)sgx_upload_query_data, 0, 0},
 		{(void*)(uintptr_t)sgx_upload_encoded_query_data, 0, 0},
 		{(void*)(uintptr_t)sgx_private_contact_trace, 0, 0},
+		{(void*)(uintptr_t)sgx_private_encode_contact_trace, 0, 0},
 		{(void*)(uintptr_t)sgx_get_result, 0, 0},
+		{(void*)(uintptr_t)sgx_get_encoded_result, 0, 0},
 		{(void*)(uintptr_t)sgx_t_global_init_ecall, 0, 0},
 		{(void*)(uintptr_t)sgx_t_global_exit_ecall, 0, 0},
 	}
@@ -917,70 +1037,70 @@ SGX_EXTERNC const struct {
 
 SGX_EXTERNC const struct {
 	size_t nr_ocall;
-	uint8_t entry_table[60][6];
+	uint8_t entry_table[60][8];
 } g_dyn_entry_table = {
 	60,
 	{
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
-		{0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
+		{0, 0, 0, 0, 0, 0, 0, 0, },
 	}
 };
 
