@@ -55,7 +55,7 @@ def gen_soreppoi_trajectory(query_size):
 def main():
     current_id = 0
     query_size = 2016
-    client_size = 3000
+    client_size = 4500
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(client_size):

@@ -60,11 +60,10 @@ def main():
     for i in range(client_size):
         print("\r" + "generate process (%d/%d)" % (i+1, client_size), end="")
         data_list = gen_soreppoi_trajectory(query_size)
-        total_data_list.append(data_list)
+        for data in data_list:
+            total_data_list.append(data)
 
-    flat = sum(total_data_list, [])
-    flat.sort()
-    json_data["data"] = flat
+    json_data["data"] = total_data_list
     
     print("\n" + "done!")
     now_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")

@@ -14,8 +14,8 @@ pub struct EncodedDictionaryBuffer {
 impl EncodedDictionaryBuffer {
     pub fn new() -> Self {
         EncodedDictionaryBuffer {
-            data: EncodedFiniteStateTransducer::new()
             // data: EncodedHashTable::new()
+            data: EncodedFiniteStateTransducer::new()
         }
     }
 
