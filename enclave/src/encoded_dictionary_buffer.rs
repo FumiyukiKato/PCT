@@ -1,26 +1,18 @@
 use std::vec::Vec;
 
-use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
-use encoded_result_buffer::EncodedResultBuffer;
-use encoded_hash_table::EncodedHashTable;
-use encode_finite_state_transducer::EncodedFiniteStateTransducer;
+use primitive::*;
+use constant::*;
 
 #[derive(Clone, Debug)]
 pub struct EncodedDictionaryBuffer {
-    // pub data: EncodedHashTable
-    pub data: EncodedFiniteStateTransducer
+    pub data: Vec<EncodedValue>,
 }
 
 impl EncodedDictionaryBuffer {
     pub fn new() -> Self {
         EncodedDictionaryBuffer {
-            // data: EncodedHashTable::new()
-            data: EncodedFiniteStateTransducer::new()
+            data: Vec::<EncodedValue>::new()
         }
-    }
-
-    pub fn intersect(&self, mapped_query_buffer: &MappedEncodedQueryBuffer, result: &mut EncodedResultBuffer) {
-        self.data.intersect(mapped_query_buffer, result);
     }
 
     pub fn build_dictionary_buffer(
@@ -28,6 +20,10 @@ impl EncodedDictionaryBuffer {
         encoded_value_vec: &Vec<u8>,
         size: usize,
     ) {
-        self.data.build_dictionary_buffer(encoded_value_vec, size);
+        for i in 0usize..(size) {
+            let mut encoded_value: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+            encoded_value.copy_from_slice(&encoded_value_vec[ENCODEDVALUE_SIZE*i..ENCODEDVALUE_SIZE*(i+1)]);
+            self.data.push(encoded_value);
+        }
     }
 }
