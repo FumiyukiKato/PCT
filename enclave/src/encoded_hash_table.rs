@@ -41,5 +41,6 @@ impl EncodedHashTable {
                 self.map.insert(*encoded_value);
             }
         }
+        println!("[SGX] Q size {}", self.map.len());
     }
 }

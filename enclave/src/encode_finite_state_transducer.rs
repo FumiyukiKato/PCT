@@ -51,6 +51,7 @@ impl EncodedFiniteStateTransducer {
                 set.insert(*encoded_value);
             }
         }
+        println!("[SGX] Q size {}", set.len());
         let mut encoded_value_vec: Vec<EncodedValue> = set.into_iter().collect();
         encoded_value_vec.sort();
         self.map = Set::from_iter(encoded_value_vec).unwrap();
