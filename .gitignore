@@ -29,6 +29,7 @@ Intel_SGX_Attestaion_RootCA.pem
 
 
 .vscode
+data/*
 generated-*
 ex-result-*
 result-*
