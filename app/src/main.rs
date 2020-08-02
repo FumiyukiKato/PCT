@@ -63,7 +63,7 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    finiteStateTranducer();
+    encodedNoChunk();
 }
 
 // ハッシュテーブル
@@ -816,6 +816,139 @@ fn finiteStateTranducer() {
         let now: String = get_timestamp();
         write_to_file(
             format!("data/result/result-{}-finiteStateTranducer.txt", now),
+            "simple hash and list".to_string(),
+            c_filename.to_string(),
+            q_filename.to_string(),
+            threashould,
+            "only risk_level".to_string(),
+            clocker
+        );
+    }
+}
+
+fn encodedNoChunk() {
+    let args = _get_options();
+    /* parameters */
+    let threashould: usize = args[0].parse().unwrap();
+    let q_filename = &args[1];
+    let c_filename = &args[2];
+
+    let mut clocker = Clocker::new();
+
+    /* read central data */
+    clocker.set_and_start("Read Central Data");
+    let external_data = EncodedData::read_raw_from_file(c_filename);
+    clocker.stop("Read Central Data");
+
+    /* preprocess central data */
+    clocker.set_and_start("Distribute central data");
+    let mut encoded_value_u8: Vec<u8> = Vec::with_capacity(100000000);
+    let epoch_data_size = external_data.prepare_sgx_data(&mut encoded_value_u8);
+    clocker.stop("Distribute central data");
+
+    /* initialize enclave */
+    clocker.set_and_start("ECALL init_enclave");
+    let enclave = match init_enclave() {
+        Ok(r) => {
+            println!("[UNTRUSTED] Init Enclave Successful {}!", r.geteid());
+            r
+        },
+        Err(x) => {
+            println!("[UNTRUSTED] Init Enclave Failed {}!", x.as_str());
+            return;
+        },
+    };
+    clocker.stop("ECALL init_enclave");
+
+    /* read query data */
+    clocker.set_and_start("Read Query Data");
+    let query_data = EncodedQueryData::read_raw_from_file(q_filename);
+    clocker.stop("Read Query Data");
+
+    /* upload query data */
+    clocker.set_and_start("ECALL upload_query_data");
+    let mut retval = sgx_status_t::SGX_SUCCESS;
+    let result = unsafe {
+        upload_encoded_query_data(
+            enclave.geteid(),
+            &mut retval,
+            query_data.total_data_to_u8().as_ptr() as * const u8,
+            query_data.total_size(),
+            query_data.client_size,
+            query_data.query_id_list().as_ptr() as * const u64
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            println!("[UNTRUSTED] upload_query_data Succes!");
+        },
+        _ => {
+            println!("[UNTRUSTED] upload_query_data Failed {}!", result.as_str());
+            return;
+        }
+    }
+    clocker.stop("ECALL upload_query_data");
+
+    /* main logic contact tracing */
+    clocker.set_and_start("ECALL private_contact_trace");    
+    let result = unsafe {
+        private_encode_contact_trace(
+            enclave.geteid(),
+            &mut retval,
+            encoded_value_u8.as_ptr() as * const u8,
+            encoded_value_u8.len(),
+            epoch_data_size
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            print!("\r[UNTRUSTED] private_contact_trace Succes! {} th iteration", 0);
+        },
+        _ => {
+            println!("[UNTRUSTED] private_contact_trace Failed {}!", result.as_str());
+            return;
+        }
+    }
+    println!("");
+    clocker.stop("ECALL private_contact_trace");
+
+    /* response reconstruction */
+    clocker.set_and_start("ECALL get_result");
+    let response_size = query_data.client_size * RESPONSE_DATA_SIZE_U8;
+    let mut response: Vec<u8> = vec![0; response_size];
+    let result = unsafe {
+        get_encoded_result(
+            enclave.geteid(),
+            &mut retval,
+            response.as_mut_ptr(),
+            response_size
+        )
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {
+            // println!("[UNTRUSTED] get_result Succes!");
+        },
+        _ => {
+            println!("[UNTRUSTED] get_result Failed {}!", result.as_str());
+            return;
+        }
+    }
+    clocker.stop("ECALL get_result");
+    
+    for i in 0..query_data.client_size {
+        if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
+            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+        }
+    }
+
+    /* finish */
+    enclave.destroy();
+    // println!("[UNTRUSTED] All process is successful!!");
+    clocker.show_all();
+    if args[3] == "true".to_string() {
+        let now: String = get_timestamp();
+        write_to_file(
+            format!("data/result/result-{}-encodedNoChunk.txt", now),
             "simple hash and list".to_string(),
             c_filename.to_string(),
             q_filename.to_string(),
