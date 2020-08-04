@@ -19,6 +19,7 @@ checksum = "ee2a4ec343196209d6594e19543ae87a39f96d5534d7174822a3ad825dd6ed7e"
 name = "app"
 version = "1.0.0"
 dependencies = [
+ "fst",
  "hex",
  "savefile",
  "savefile-derive",
@@ -96,6 +97,11 @@ dependencies = [
  "syn 1.0.36",
  "synstructure",
 ]
+
+[[package]]
+name = "fst"
+version = "0.4.4"
+source = "git+https://github.com/BurntSushi/fst.git#17bbc05c914d648b7346a12838ecdc21f67c76e1"
 
 [[package]]
 name = "fuchsia-cprng"

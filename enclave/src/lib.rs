@@ -198,7 +198,6 @@ pub extern "C" fn upload_encoded_query_data(
     client_size     : usize,
     query_id_list   : *const u64,
 ) -> sgx_status_t {
-    // println!("[SGX] upload_query_data start");
     let whole_start = Instant::now();
     let start = Instant::now();
     _init_encoded_buffers();
@@ -234,7 +233,8 @@ pub extern "C" fn upload_encoded_query_data(
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "map_into_pct", end.as_secs(), end.subsec_nanos() / 1_000);
 
-    // println!("[SGX] upload_query_data succes!");
+    mapped_query_buffer.show_size();
+
     let end = whole_start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
     

@@ -1,5 +1,6 @@
 use std::vec::Vec;
 use std::collections::HashSet;
+use std::mem;
 use primitive::*;
 use constant::*;
 use encoded_result_buffer::EncodedResultBuffer;
@@ -41,6 +42,11 @@ impl EncodedHashTable {
                 self.map.insert(*encoded_value);
             }
         }
-        println!("[SGX] Q size {}", self.map.len());
+        self.map.shrink_to(self.map.len());
+        println!("[SGX] unique query size {}", self.map.len());
+    }
+
+    pub fn calc_memory(&self) -> usize {
+        return (self.map.capacity() * 11 / 10) * (mem::size_of::<EncodedValue>() + mem::size_of::<()>() + mem::size_of::<u64>());
     }
 }

@@ -1,6 +1,7 @@
 use fst::{Set};
 use std::vec::Vec;
 use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use primitive::*;
 use constant::*;
@@ -45,16 +46,14 @@ impl EncodedFiniteStateTransducer {
     }
 
     pub fn mapping(&mut self, query_buffer: &EncodedQueryBuffer) {
-        let mut set: HashSet<EncodedValue> = HashSet::new();
+        let mut set: BTreeSet<EncodedValue> = BTreeSet::new();
         for query_rep in query_buffer.queries.iter() {
             for encoded_value in query_rep.parameters.iter() {
                 set.insert(*encoded_value);
             }
         }
-        println!("[SGX] Q size {}", set.len());
-        let mut encoded_value_vec: Vec<EncodedValue> = set.into_iter().collect();
-        encoded_value_vec.sort();
-        self.map = Set::from_iter(encoded_value_vec).unwrap();
+        println!("[SGX] unique query size {}", set.len());
+        self.map = Set::from_iter(set.into_iter().collect::<Vec<EncodedValue>>()).unwrap();
     }
 
     pub fn intersect(&self, dictionary_buffer: &EncodedDictionaryBuffer, result: &mut EncodedResultBuffer) {
@@ -63,5 +62,9 @@ impl EncodedFiniteStateTransducer {
                 result.data.push(*encoded_value_vec);
             }
         }
+    }
+
+    pub fn calc_memory(&self) -> usize {
+        return self.map.as_ref().size()
     }
 }

@@ -19,6 +19,7 @@ extern crate sgx_types;
 extern crate sgx_urts;
 extern crate serde;
 extern crate serde_json;
+extern crate fst;
 use std::env;
 
 use sgx_types::*;
@@ -63,7 +64,7 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    encodedNoChunk();
+    encodedHasing();
 }
 
 // ハッシュテーブル
@@ -199,12 +200,14 @@ fn geohashTable() {
         }
     }
     clocker.stop("ECALL get_result");
-    
+
+    let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
         if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
+    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
@@ -358,11 +361,13 @@ fn geohashTableWithPeriodArray() {
     }
     clocker.stop("ECALL get_result");
     
+    let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
         if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
+    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
@@ -500,11 +505,13 @@ fn baselineNoChunk() {
     }
     clocker.stop("ECALL get_result");
     
+    let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
         if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
+    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
@@ -547,7 +554,7 @@ fn encodedHasing() {
     let chunk_last_index = chunked_buf.len() - 1;
     while chunk_last_index >= chunk_curret_index {
         let chunk = &chunked_buf[chunk_curret_index];
-        let mut encoded_value_u8: Vec<u8> = Vec::with_capacity(threashould*13);
+        let mut encoded_value_u8: Vec<u8> = Vec::with_capacity(threashould*14);
         let epoch_data_size = chunk.prepare_sgx_data(&mut encoded_value_u8);
         sgx_data.push((encoded_value_u8, epoch_data_size));
         chunk_curret_index += 1;
@@ -651,11 +658,13 @@ fn encodedHasing() {
     }
     clocker.stop("ECALL get_result");
     
+    let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
         if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
+    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
@@ -698,7 +707,7 @@ fn finiteStateTranducer() {
     let chunk_last_index = chunked_buf.len() - 1;
     while chunk_last_index >= chunk_curret_index {
         let chunk = &chunked_buf[chunk_curret_index];
-        let mut encoded_value_u8: Vec<u8> = Vec::with_capacity(threashould*13);
+        let mut encoded_value_u8: Vec<u8> = Vec::with_capacity(threashould*14);
         let epoch_data_size = chunk.prepare_sgx_data(&mut encoded_value_u8);
         sgx_data.push((encoded_value_u8, epoch_data_size));
         chunk_curret_index += 1;
@@ -802,11 +811,13 @@ fn finiteStateTranducer() {
     }
     clocker.stop("ECALL get_result");
     
+    let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
         if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
+    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
@@ -935,11 +946,13 @@ fn encodedNoChunk() {
     }
     clocker.stop("ECALL get_result");
     
+    let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
         if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            println!("[UNTRUSTED] positive result queryId: {}, {}", query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]), response[i*RESPONSE_DATA_SIZE_U8+8]);
+            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
+    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();

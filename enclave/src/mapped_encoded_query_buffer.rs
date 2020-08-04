@@ -10,15 +10,15 @@ use encoded_hash_table::EncodedHashTable;
 
 #[derive(Clone, Debug)]
 pub struct MappedEncodedQueryBuffer {
-    // pub map: EncodedFiniteStateTransducer,
-    pub map: EncodedHashTable,
+    pub map: EncodedFiniteStateTransducer,
+    // pub map: EncodedHashTable,
 }
 
 impl MappedEncodedQueryBuffer {
     pub fn new() -> Self {
         MappedEncodedQueryBuffer {
-            // map: EncodedFiniteStateTransducer::new()
-            map: EncodedHashTable::new()
+            map: EncodedFiniteStateTransducer::new()
+            // map: EncodedHashTable::new()
         }
     }
 
@@ -29,5 +29,10 @@ impl MappedEncodedQueryBuffer {
 
     pub fn intersect(&self, dictionary_buffer: &EncodedDictionaryBuffer, result: &mut EncodedResultBuffer) {
         self.map.intersect(dictionary_buffer, result);
+    }
+
+    pub fn show_size(&self) {
+        let size: usize = self.map.calc_memory();
+        println!("[MappedEncodedQueryBuffer] Q size = {} bytes", size);
     }
 }
