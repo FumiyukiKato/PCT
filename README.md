@@ -6,7 +6,7 @@ As component of [this querying system](https://github.com/FumiyukiKato/tee-psi)
 
 OS: Ubuntu 16.04 TLS
 
-0. prepare CPU with Intel SGX instruction set and setup linux-sgx-driver
+0. prepare CPU with Intel SGX instruction set. Docker and docker-compose are needed.
 
 1. Clone Rust SGX SDK
 ```
