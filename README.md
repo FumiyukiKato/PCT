@@ -23,8 +23,6 @@ $ cd PCT
 ```
 RUST_SDK_ROOT=/path/to/incubator-teaclave-sgx-sdk
 PCT_DIR=/path/to/PCT
-
-PROJECT_NAME=PROJECT_NAME
 ```
 
 4. Wake up docker container including AESM service
