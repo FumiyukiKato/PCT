@@ -45,6 +45,6 @@ impl MappedQueryBuffer {
         //     }
         // }
 
-        println!("[SGX] Q size {}", self.map.len());
+        println!("[SGX] unique query size {}", self.map.len());
     }
 }

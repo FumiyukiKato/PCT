@@ -6,6 +6,7 @@ use constant::*;
 use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
 
+
 #[derive(Clone, Debug, Default)]
 pub struct FstValue { pub value: EncodedValue }
 
@@ -22,6 +23,7 @@ impl AsRef<[u8]> for FstValue {
     }
 }
 
+// queryデータの方に使います．
 #[derive(Clone, Debug)]
 pub struct EncodedFiniteStateTransducer {
     pub map: Set<Vec<u8>>,

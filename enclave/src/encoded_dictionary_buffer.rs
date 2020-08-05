@@ -1,5 +1,7 @@
 use std::vec::Vec;
 
+use primitive::*;
+use constant::*;
 use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
 use encoded_hash_table::EncodedHashTable;
@@ -7,15 +9,15 @@ use encode_finite_state_transducer::EncodedFiniteStateTransducer;
 
 #[derive(Clone, Debug)]
 pub struct EncodedDictionaryBuffer {
-    // pub data: EncodedHashTable
-    pub data: EncodedFiniteStateTransducer
+    pub data: EncodedFiniteStateTransducer,
+    // pub data: EncodedHashTable,
 }
 
 impl EncodedDictionaryBuffer {
     pub fn new() -> Self {
         EncodedDictionaryBuffer {
+            data: EncodedFiniteStateTransducer::new()            
             // data: EncodedHashTable::new()
-            data: EncodedFiniteStateTransducer::new()
         }
     }
 
@@ -29,5 +31,9 @@ impl EncodedDictionaryBuffer {
         size: usize,
     ) {
         self.data.build_dictionary_buffer(encoded_value_vec, size);
+    }
+
+    pub fn show_size(&self) {
+        self.data.calc_memory();
     }
 }

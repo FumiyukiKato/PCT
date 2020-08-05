@@ -12,6 +12,7 @@ serde_json = { version= "1.0" }
 hex = { version = "0.4", default-features = false }
 savefile = { version="0.2.11" }
 savefile-derive = { version="0.6.1" }
+fst = { git = "https://github.com/BurntSushi/fst.git" }
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
 sgx_types = { path = "../../../sgx_types" }

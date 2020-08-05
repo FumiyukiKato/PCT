@@ -4,13 +4,14 @@ use std::io::BufReader;
 use std::collections::HashMap;
 use std::vec::Vec;
 use std::collections::HashSet;
+use fst::{Set};
 
 
 /* Type Period */
 pub type UnixEpoch = u64;
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
-const GEOHASH_U8_SIZE: usize = 9;
+const GEOHASH_U8_SIZE: usize = 10;
 const TIMEHASH_U8_SIZE: usize = 4;
 const ENCODEDVALUE_SIZE: usize = GEOHASH_U8_SIZE + TIMEHASH_U8_SIZE;
 
@@ -237,9 +238,11 @@ impl EncodedData {
             encoded_value_u8.copy_from_slice(v.as_bytes());
             set.insert(encoded_value_u8);
         }
-        println!("[UNTRUSTED] D size {}", set.len());
+        println!("[UNTRUSTED] unique data size {}", set.len());
         let mut vec: Vec<EncodedValue> = set.into_iter().collect();
         vec.sort();
+        let mut set = Set::from_iter(&vec).unwrap();
+        println!("[FST] fst R size {}", set.as_ref().size());
         EncodedData { structure: vec }
     }
     

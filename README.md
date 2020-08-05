@@ -2,19 +2,30 @@
 Private Contact Tracing boosted by TEE(Intel SGX).  
 As component of [this querying system](https://github.com/FumiyukiKato/tee-psi)  
 
-**move from https://github.com/FumiyukiKato/PCT**
+## Setup
 
-## Build
+OS: Ubuntu 16.04 TLS
 
-set environment variables in `.env`.
+0. prepare CPU with Intel SGX instruction set. Docker and docker-compose are needed.
+
+1. Clone Rust SGX SDK
+```
+$ git clone https://github.com/apache/incubator-teaclave-sgx-sdk
+```
+
+2. Clone this repository
+```
+$ git clone https://github.com/ylab-public/PCT
+$ cd PCT
+```
+
+3. Set environment variables in `.env`. (using direnv)
 ```
 RUST_SDK_ROOT=/path/to/incubator-teaclave-sgx-sdk
 PCT_DIR=/path/to/PCT
-
-PROJECT_NAME=PROJECT_NAME
 ```
 
-#### wake up container including AESM service
+4. Wake up docker container including AESM service
 ```
 $ bin/up
 ```
@@ -27,9 +38,13 @@ $ bin/in
 
 #### run
 ```
-[docker-inside]$ bin/app
+[docker-inside]$ bin/app 100000 data/sample/client.json data/sample/central.json true
 ```
 
+#### data generator (python3)
+```
+$ python script/generator-script-name
+```
 
 #### materials
 
