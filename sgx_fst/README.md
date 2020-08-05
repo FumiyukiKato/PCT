@@ -1,3 +1,5 @@
+This is original repository https://github.com/BurntSushi/fst
+
 fst
 ===
 This crate provides a fast implementation of ordered sets and maps using finite
