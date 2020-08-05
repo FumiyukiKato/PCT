@@ -1,5 +1,6 @@
 use std::vec::Vec;
 use std::collections::HashSet;
+use std::mem;
 use primitive::*;
 use constant::*;
 use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
@@ -22,15 +23,6 @@ impl EncodedHashTable {
                 result.data.push(*encoded_value_vec);
             }
         }
-
-        // for (dict_geohash, dict_unixepoch_vec) in self.map.iter() {
-        //     match mapped_query_buffer.map.get(dict_geohash) {
-        //         Some(query_unixepoch_vec) => {
-        //             Self::judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
-        //         },
-        //         None => {}
-        //     }
-        // }
     }
 
     pub fn build_dictionary_buffer(
@@ -43,5 +35,9 @@ impl EncodedHashTable {
             encoded_value.copy_from_slice(&encoded_value_vec[ENCODEDVALUE_SIZE*i..ENCODEDVALUE_SIZE*(i+1)]);
             self.map.insert(encoded_value);
         }
+    }
+
+    pub fn calc_memory(&self) {
+        println!("[HashTable] Q size = {} bytes", (self.map.capacity() * 11 / 10) * (mem::size_of::<EncodedValue>() + mem::size_of::<()>() + mem::size_of::<u64>()));
     }
 }

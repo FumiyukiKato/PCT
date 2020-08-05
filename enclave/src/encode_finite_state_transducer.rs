@@ -40,15 +40,6 @@ impl EncodedFiniteStateTransducer {
                 result.data.push(*encoded_value_vec);
             }
         }
-
-        // for (dict_geohash, dict_unixepoch_vec) in self.map.iter() {
-        //     match mapped_query_buffer.map.get(dict_geohash) {
-        //         Some(query_unixepoch_vec) => {
-        //             Self::judge_contact(query_unixepoch_vec, dict_unixepoch_vec, dict_geohash, result);
-        //         },
-        //         None => {}
-        //     }
-        // }
     }
 
     pub fn build_dictionary_buffer(
@@ -63,5 +54,9 @@ impl EncodedFiniteStateTransducer {
             tmp_vec.push(FstValue { value: encoded_value });
         }
         self.map = Set::from_iter(tmp_vec).unwrap();
+    }
+
+    pub fn calc_memory(&self) {
+        println!("[FSA] Q size = {} bytes", self.map.as_ref().size());
     }
 }
