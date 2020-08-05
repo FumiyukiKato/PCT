@@ -242,7 +242,7 @@ impl EncodedData {
         let mut vec: Vec<EncodedValue> = set.into_iter().collect();
         vec.sort();
         let mut set = Set::from_iter(&vec).unwrap();
-        println!("[FST] fst R size {}", set.as_ref().size());
+        println!("[FST] fst R size {} bytes", set.as_ref().size());
         EncodedData { structure: vec }
     }
     

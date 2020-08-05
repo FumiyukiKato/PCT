@@ -38,6 +38,6 @@ impl EncodedHashTable {
     }
 
     pub fn calc_memory(&self) {
-        println!("[HashTable] Q size = {} bytes", (self.map.capacity() * 11 / 10) * (mem::size_of::<EncodedValue>() + mem::size_of::<()>() + mem::size_of::<u64>()));
+        println!("[HashTable] r_i size = {} bytes", (self.map.capacity() * 11 / 10) * (mem::size_of::<EncodedValue>() + mem::size_of::<()>() + mem::size_of::<u64>()));
     }
 }

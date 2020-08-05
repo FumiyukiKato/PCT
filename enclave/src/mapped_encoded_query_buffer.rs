@@ -24,6 +24,6 @@ impl MappedEncodedQueryBuffer {
         }
         self.map = set.into_iter().collect();
 
-        println!("[SGX] Q size {}", self.map.len());
+        println!("[SGX] unique query size {}", self.map.len());
     }
 }

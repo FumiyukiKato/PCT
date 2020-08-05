@@ -59,6 +59,6 @@ impl EncodedFiniteStateTransducer {
     }
 
     pub fn calc_memory(&self) {
-        println!("[FSA] Q size = {} bytes", self.map.as_ref().size());
+        println!("[FSA] r_i size = {} bytes", self.map.as_ref().size());
     }
 }
