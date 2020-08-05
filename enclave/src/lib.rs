@@ -233,8 +233,6 @@ pub extern "C" fn upload_encoded_query_data(
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "map_into_pct", end.as_secs(), end.subsec_nanos() / 1_000);
 
-    mapped_query_buffer.show_size();
-
     let end = whole_start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
     
@@ -346,8 +344,7 @@ pub extern "C" fn private_encode_contact_trace(
     dictionary_buffer.build_dictionary_buffer(&encoded_value_vec, epoch_data_size);
     let mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
     let mut result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
-    mapped_query_buffer.intersect(&dictionary_buffer, &mut result_buffer);
-    // println!("[SGX] private_contact_trace succes!");
+    dictionary_buffer.intersect(&mapped_query_buffer, &mut result_buffer);
     sgx_status_t::SGX_SUCCESS
 }
 

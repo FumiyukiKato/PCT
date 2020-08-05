@@ -1,13 +1,10 @@
 use fst::{Set};
 use std::vec::Vec;
-use std::collections::HashSet;
-use std::collections::BTreeSet;
 
 use primitive::*;
 use constant::*;
-use encoded_dictionary_buffer::EncodedDictionaryBuffer;
+use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
-use encoded_query_buffer::EncodedQueryBuffer;
 
 
 #[derive(Clone, Debug, Default)]
@@ -39,29 +36,26 @@ impl EncodedFiniteStateTransducer {
         }
     }
 
-    pub fn from_vec(encoded_value_vec: &Vec<EncodedValue>) -> Self {
-        EncodedFiniteStateTransducer {
-            map: Set::from_iter(encoded_value_vec).unwrap()
-        }
-    }
-
-    pub fn mapping(&mut self, query_buffer: &EncodedQueryBuffer) {
-        let mut set: BTreeSet<EncodedValue> = BTreeSet::new();
-        for query_rep in query_buffer.queries.iter() {
-            for encoded_value in query_rep.parameters.iter() {
-                set.insert(*encoded_value);
-            }
-        }
-        println!("[SGX] unique query size {}", set.len());
-        self.map = Set::from_iter(set.into_iter().collect::<Vec<EncodedValue>>()).unwrap();
-    }
-
-    pub fn intersect(&self, dictionary_buffer: &EncodedDictionaryBuffer, result: &mut EncodedResultBuffer) {
-        for encoded_value_vec in dictionary_buffer.data.iter() {
+    pub fn intersect(&self, mapped_query_buffer: &MappedEncodedQueryBuffer, result: &mut EncodedResultBuffer) {
+        for encoded_value_vec in mapped_query_buffer.map.iter() {
             if self.map.contains(encoded_value_vec) {
                 result.data.push(*encoded_value_vec);
             }
         }
+    }
+
+    pub fn build_dictionary_buffer(
+        &mut self,
+        encoded_value_vec: &Vec<u8>,
+        size: usize,
+    ) {
+        let mut tmp_vec: Vec<FstValue> = Vec::with_capacity(100000);
+        for i in 0usize..(size) {
+            let mut encoded_value: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+            encoded_value.copy_from_slice(&encoded_value_vec[ENCODEDVALUE_SIZE*i..ENCODEDVALUE_SIZE*(i+1)]);
+            tmp_vec.push(FstValue { value: encoded_value });
+        }
+        self.map = Set::from_iter(tmp_vec).unwrap();
     }
 
     pub fn calc_memory(&self) {
