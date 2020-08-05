@@ -22,14 +22,6 @@ enclave {
     from "sgx_tstdc.edl" import *;
     trusted {
         /* define ECALLs here. */
-
-        public sgx_status_t upload_query_data(
-            [in, count=toal_size] uint8_t* total_query_data,
-            size_t toal_size,
-            [in, count=client_size] size_t* size_list,
-            size_t client_size,
-            [in, count=client_size] uint64_t* query_id_list
-        );
         
         public sgx_status_t upload_encoded_query_data(
             [in, count=toal_size] uint8_t* total_query_data,
@@ -38,24 +30,10 @@ enclave {
             [in, count=client_size] uint64_t* query_id_list
         );
 
-        public sgx_status_t private_contact_trace(
-            [in, count=geohash_u8_size] uint8_t* geohash_u8,
-            size_t geohash_u8_size,
-            [in, count=unixepoch_u64_size] uint64_t* unixepoch_u64,
-            size_t unixepoch_u64_size,
-            [in, count=epoch_data_size] size_t* size_list,
-            size_t epoch_data_size
-        );
-
         public sgx_status_t private_encode_contact_trace(
             [in, count=encoded_value_u8_size] uint8_t* encoded_value_u8,
             size_t encoded_value_u8_size,
             size_t epoch_data_size
-        );
-        
-        public sgx_status_t get_result(
-            [out, count=response_size] uint8_t* response,
-            size_t response_size
         );
         
         public sgx_status_t get_encoded_result(
