@@ -64,7 +64,7 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    encodedHasing();
+    encodedNoChunk();
 }
 
 // ハッシュテーブル

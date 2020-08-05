@@ -32,7 +32,6 @@ impl MappedEncodedQueryBuffer {
     }
 
     pub fn show_size(&self) {
-        let size: usize = self.map.calc_memory();
-        println!("[MappedEncodedQueryBuffer] Q size = {} bytes", size);
+        self.map.calc_memory();
     }
 }
