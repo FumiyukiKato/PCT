@@ -1,16 +1,19 @@
-use std::collections::HashSet;
-
+use std::vec::Vec;
 use primitive::{ QueryId, EncodedValue };
+use constant::*;
 
 /* Type EncodedQueryRep */
 #[derive(Clone, Default, Debug)]
 pub struct EncodedQueryRep {
     pub id: QueryId,
-    pub parameters: HashSet<EncodedValue>,
+    pub parameters: Vec<EncodedValue>,
 }
 
 impl EncodedQueryRep {
     pub fn new() -> Self {
-        EncodedQueryRep::default()
+        EncodedQueryRep {
+            id: 0,
+            parameters: Vec::with_capacity(QUERY_SIZE)
+        }
     }
 }

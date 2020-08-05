@@ -3,7 +3,7 @@ use std::vec::Vec;
 
 use primitive::*;
 use constant::*;
-use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
+use encoded_query_buffer::EncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
 
 
@@ -36,10 +36,13 @@ impl EncodedFiniteStateTransducer {
         }
     }
 
-    pub fn intersect(&self, mapped_query_buffer: &MappedEncodedQueryBuffer, result: &mut EncodedResultBuffer) {
-        for encoded_value_vec in mapped_query_buffer.map.iter() {
-            if self.map.contains(encoded_value_vec) {
-                result.data.push(*encoded_value_vec);
+    pub fn intersect(&self, query_buffer: &EncodedQueryBuffer, result: &mut EncodedResultBuffer) {
+        for query in query_buffer.queries.iter() {
+            for encoded_value in query.parameters.iter() {
+                if self.map.contains(encoded_value) {
+                    result.data.push(query.id);
+                    break;
+                }
             }
         }
     }

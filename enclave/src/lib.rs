@@ -55,7 +55,6 @@ use constant::*;
 use primitive::*;
 use encoded_query_buffer::EncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
-use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_dictionary_buffer::EncodedDictionaryBuffer;
 
 /* 
@@ -66,16 +65,6 @@ SGXのステート
 pub static ENCODED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
 pub fn get_ref_encoded_query_buffer() -> Option<&'static RefCell<EncodedQueryBuffer>> {
     let ptr = ENCODED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<EncodedQueryBuffer>;
-    if ptr.is_null() {
-        None
-    } else {
-        Some(unsafe { &* ptr })
-    }
-}
-
-pub static MAPPED_ENCODED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
-pub fn get_ref_mapped_encoded_query_buffer() -> Option<&'static RefCell<MappedEncodedQueryBuffer>> {
-    let ptr = MAPPED_ENCODED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<MappedEncodedQueryBuffer>;
     if ptr.is_null() {
         None
     } else {
@@ -129,12 +118,6 @@ pub extern "C" fn upload_encoded_query_data(
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "build_query_buffer", end.as_secs(), end.subsec_nanos() / 1_000);
 
-    let start = Instant::now();
-    let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
-    mapped_query_buffer.mapping(&query_buffer);
-    let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "map_into_pct", end.as_secs(), end.subsec_nanos() / 1_000);
-
     let end = whole_start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
     
@@ -148,12 +131,6 @@ fn _init_encoded_buffers() {
     let query_buffer_box = Box::new(RefCell::<EncodedQueryBuffer>::new(query_buffer));
     let query_buffer_ptr = Box::into_raw(query_buffer_box);
     ENCODED_QUERY_BUFFER.store(query_buffer_ptr as *mut (), Ordering::SeqCst);
-
-    // initialize mapped query buffer
-    let mapped_query_buffer = MappedEncodedQueryBuffer::new();
-    let mapped_query_buffer_box = Box::new(RefCell::<MappedEncodedQueryBuffer>::new(mapped_query_buffer));
-    let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
-    MAPPED_ENCODED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize result buffer
     let result_buffer = EncodedResultBuffer::new();
@@ -181,11 +158,11 @@ pub extern "C" fn private_encode_contact_trace(
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
     dictionary_buffer.build_dictionary_buffer(&encoded_value_vec, epoch_data_size);
-    let mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
+    let query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
     let mut result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
 
     dictionary_buffer.show_size();
-    dictionary_buffer.intersect(&mapped_query_buffer, &mut result_buffer);
+    dictionary_buffer.intersect(&query_buffer, &mut result_buffer);
     
     sgx_status_t::SGX_SUCCESS
 }
