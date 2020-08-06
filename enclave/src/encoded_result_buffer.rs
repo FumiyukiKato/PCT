@@ -1,12 +1,12 @@
 use std::vec::Vec;
-
+use std::collections::HashSet;
 use primitive::*;
 use encoded_query_buffer::EncodedQueryBuffer;
 use query_result::QueryResult;
 
 #[derive(Clone, Default, Debug)]
 pub struct EncodedResultBuffer {
-    pub data: Vec<EncodedValue>
+    pub data: HashSet<EncodedValue>,
 }
 
 impl EncodedResultBuffer {
@@ -24,8 +24,8 @@ impl EncodedResultBuffer {
         for query in query_buffer.queries.iter() {
             let mut result = QueryResult::new();
             result.query_id = query.id;
-            for encoded_value in self.data.iter() {
-                if query.parameters.contains(encoded_value) {
+            for encoded_value in query.parameters.iter() {
+                if self.data.contains(encoded_value) {
                     result.risk_level = 1;
                     break;
                 };

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::vec::Vec;
 use primitive::{ QueryId, EncodedValue };
 use constant::*;
 
@@ -6,14 +6,14 @@ use constant::*;
 #[derive(Clone, Default, Debug)]
 pub struct EncodedQueryRep {
     pub id: QueryId,
-    pub parameters: HashSet<EncodedValue>,
+    pub parameters: Vec<EncodedValue>,
 }
 
 impl EncodedQueryRep {
     pub fn new() -> Self {
         EncodedQueryRep {
             id: 0,
-            parameters: HashSet::with_capacity(QUERY_SIZE),
+            parameters: Vec::with_capacity(QUERY_SIZE),
         }
     }
 }
