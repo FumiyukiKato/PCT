@@ -26,8 +26,8 @@ extern crate sgx_trts;
 #[cfg(not(target_env = "sgx"))]
 #[macro_use]
 extern crate sgx_tstd as std;
-
 extern crate sgx_fst as fst;
+extern crate bincode;
 
 use sgx_types::*;
 use std::vec::Vec;
