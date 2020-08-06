@@ -65,6 +65,48 @@ fn _get_options() -> Vec<String> {
 
 fn main() {
     finiteStateTranducer();
+
+    // use fst::raw::{Fst};
+    // use fst::{Set};
+
+    // #[derive(Debug)]
+    // struct U8 { vec: Vec<u8> }
+
+    // impl U8 {
+    //         fn from_vec(value: Vec<u8>) -> Self {
+    //                 U8 { vec: value }
+    //         }
+    // }
+
+    // impl AsRef<[u8]> for U8 {
+    //     #[inline]
+    //     fn as_ref(&self) -> &[u8] {
+    //         &self.vec
+    //     }
+    // }
+
+    // // A convenient way to create sets in memory.
+    // let mut keys = vec![];
+    // keys.push(U8::from_vec([1,2,3,4,5].to_vec()));
+    // keys.push(U8::from_vec([1,2,3,4,5].to_vec()));
+    // keys.push(U8::from_vec([10,2,30,40,60].to_vec()));
+    // keys.push(U8::from_vec([10,15,30,40,60].to_vec()));
+    // keys.push(U8::from_vec([10,21,30,40,60,1,1,5,6,6,4].to_vec()));
+    // keys.push(U8::from_vec([10,21,30,40,60,1,2,3,4,5].to_vec()));
+    // let set = Set::from_iter(keys).unwrap();
+    // println!("set {:?}", set);
+
+    // println!("{}", set.contains([10,21,30,40,60,1,2,3,4,5]));
+    // println!("{}", set.contains([10,21,30,40,60,1,1,5,6,6,4]));
+    // println!("{}", set.contains([10,21,30,40,60,1]));
+
+    // let bytes = set.as_ref().as_bytes().to_vec();
+    // let new_set = Set::from_bytes(bytes);
+    // println!("new_set {:?}", new_set);
+
+    // println!("{}", set.contains([10,21,30,40,60,1,2,3,4,5]));
+    // println!("{}", set.contains([10,21,30,40,60,1,1,5,6,6,4]));
+    // println!("{}", set.contains([10,21,30,40,60,1]));
 }
 
 fn encodedHasing() {

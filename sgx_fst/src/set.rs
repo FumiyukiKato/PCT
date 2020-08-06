@@ -50,6 +50,11 @@ impl Set<Vec<u8>> {
         builder.extend_iter(iter)?;
         Set::new(builder.into_inner()?)
     }
+
+    pub fn from_bytes(bytes: Vec<u8>) -> Set<Vec<u8>> {
+        let new_fst: raw::Fst<Vec<u8>> = raw::Fst::new(bytes).unwrap();
+        Set { 0: new_fst }
+    }
 }
 
 impl<D: AsRef<[u8]>> Set<D> {

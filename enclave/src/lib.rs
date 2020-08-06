@@ -133,7 +133,7 @@ pub extern "C" fn upload_encoded_query_data(
     let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
     mapped_query_buffer.mapping(&query_buffer);
     let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "map_into_pct", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "mapping to Q", end.as_secs(), end.subsec_nanos() / 1_000);
 
     let end = whole_start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);

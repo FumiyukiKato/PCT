@@ -1,6 +1,6 @@
 use std::vec::Vec;
 use std::collections::HashSet;
-
+use constant::*;
 use primitive::*;
 use encoded_query_buffer::EncodedQueryBuffer;
 
