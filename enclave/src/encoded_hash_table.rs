@@ -1,6 +1,7 @@
 use std::vec::Vec;
 use std::collections::HashSet;
 use std::mem;
+use bincode;
 use primitive::*;
 use constant::*;
 use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
@@ -29,12 +30,7 @@ impl EncodedHashTable {
         &mut self,
         bytes: Vec<u8>,
     ) {
-        let size = bytes.len() / ENCODEDVALUE_SIZE;
-        for i in 0usize..(size) {
-            let mut encoded_value: EncodedValue = [0u8; ENCODEDVALUE_SIZE];
-            encoded_value.copy_from_slice(&bytes[ENCODEDVALUE_SIZE*i..ENCODEDVALUE_SIZE*(i+1)]);
-            self.map.insert(encoded_value);
-        }
+        self.map = bincode::deserialize(&bytes[..]).unwrap();
     }
 
     pub fn calc_memory(&self) {
