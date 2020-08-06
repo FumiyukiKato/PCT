@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::vec::Vec;
 use std::collections::HashSet;
 use fst::{Set};
+use bincode;
 
 
 /* Type Period */
@@ -14,201 +15,6 @@ pub const TIME_INTERVAL: u64 = 600;
 const GEOHASH_U8_SIZE: usize = 10;
 const TIMEHASH_U8_SIZE: usize = 4;
 const ENCODEDVALUE_SIZE: usize = GEOHASH_U8_SIZE + TIMEHASH_U8_SIZE;
-
-/* GeohashTableWithPeriodArray */
-#[derive(Clone, Default, Debug)]
-pub struct GeohashTableWithPeriodArray {
-    structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<Period>>
-}
-
-impl GeohashTableWithPeriodArray {
-    pub fn new() -> Self {
-        GeohashTableWithPeriodArray {
-            structure: HashMap::with_capacity(10000)
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.structure.len()
-    }
-
-    pub fn read_raw_from_file(filename: &str) -> Self {
-        let external_data = GeohashTable::read_raw_from_file(filename);
-        Self::geohash_based_compress(&external_data)
-    }
-    
-    fn geohash_based_compress(original_data: &GeohashTable) -> GeohashTableWithPeriodArray {
-        let mut geohash_table = GeohashTableWithPeriodArray::new();
-        for (geohash, unixepoch_vec) in original_data.structure.iter() {
-            geohash_table.structure.insert(*geohash, Period::from_unixepoch_vector(unixepoch_vec));
-        }
-        geohash_table
-    }
-
-    // Period側の合計データ数がthreashould以下になるようにチャンクに分ける
-    pub fn disribute(&self, buf: &mut Vec<Self>, threashould: usize) {
-        let mut val_num = 0;
-        let mut data = Self::new();
-        for (key, val) in self.structure.iter() {
-            val_num += val.len();
-            if val_num > threashould {
-                val_num = val.len();
-                buf.push(data);
-                data = Self::new();
-            }
-            data.structure.insert(*key, val.to_vec());
-        }
-        if data.size() > 0 {
-            buf.push(data);
-        }
-    }
-
-    pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, period_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
-        let mut i = 0;
-        for (key, value) in self.structure.iter() {
-            let length = value.len();
-            size_list.push(length);
-            geohash_u8.extend_from_slice(key);
-            let mut ret_vec: Vec<u64> = Vec::with_capacity(value.len() * 2);
-            for period in value.iter() {
-                ret_vec.push(period.0);
-                ret_vec.push(period.1);
-            }
-            period_u64.extend_from_slice(ret_vec.as_slice());
-            i += 1;
-        }
-        i
-    }
-}
-
-
-/* GeohashTable 
-    単純なハッシュマップ
-    キーがgeohash, バリューがUnix epochのベクタ
-*/
-#[derive(Clone, Default, Debug)]
-pub struct GeohashTable {
-    structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<u64>>
-}
-
-impl GeohashTable {
-    pub fn new() -> Self {
-        GeohashTable {
-            structure: HashMap::with_capacity(10000)
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.structure.len()
-    }
-
-    pub fn read_raw_from_file(filename: &str) -> Self {
-        let file = File::open(filename).unwrap();
-        let reader = BufReader::new(file);
-        let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
-        
-        let mut hash = GeohashTable::new();
-        for v in data.vec.iter() {
-            let mut geohash_u8 = [0_u8; GEOHASH_U8_SIZE];
-            geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
-            match hash.structure.get_mut(&geohash_u8) {
-                // centralデータに関しては，こいつがunique soted listである責務を持つ
-                Some(sorted_list) => { _sorted_push(sorted_list, v.unixepoch) },
-                None => { hash.structure.insert(geohash_u8, vec![v.unixepoch]); },
-            };
-        }
-        println!("[UNTRUSTED] central data size {}", hash.size());
-        hash
-    }
-    
-    // Unixepoch側の合計データ数がthreashould以下になるようにチャンクに分ける
-    // オペレーション的には，バッチ的にチャンク化しておくのが良さそう
-    pub fn disribute(&self, buf: &mut Vec<Self>, threashould: usize) {
-        let mut val_num = 0;
-        let mut data = Self::new();
-        for (key, val) in self.structure.iter() {
-            val_num += val.len();
-            if val_num > threashould {
-                val_num = val.len();
-                buf.push(data);
-                data = Self::new();
-            }
-            data.structure.insert(*key, val.to_vec());
-        }
-        if data.size() > 0 {
-            buf.push(data);
-        }
-    }
-
-    // データは geohash, [u8], geohash, [u8],... と [u8]のサイズの配列というフォーマットでシリアライスする
-    // 時間がかかっていそうならシリアライズは先にまとめて計算しておく
-    // extend_from_sliceを使ったやり方(pushとかじゃなくてコピーするようにすれば少しだけ早くなる余地がある？)
-    pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, unixepoch_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
-        let mut i = 0;
-        for (key, value) in self.structure.iter() {
-            let length = value.len();
-            size_list.push(length);
-            geohash_u8.extend_from_slice(key);
-            unixepoch_u64.extend_from_slice(value);
-            i += 1;
-        }
-        i
-    }
-}
-
-/* PlainTable
-    チャンク化しない
-*/
-#[derive(Clone, Default, Debug)]
-pub struct PlainTable {
-    structure: HashMap<[u8; GEOHASH_U8_SIZE], Vec<u64>>
-}
-
-impl PlainTable {
-    pub fn new() -> Self {
-        PlainTable {
-            structure: HashMap::with_capacity(10000)
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.structure.len()
-    }
-
-    pub fn read_raw_from_file(filename: &str) -> Self {
-        let file = File::open(filename).unwrap();
-        let reader = BufReader::new(file);
-        let data: ExternalDataJson = serde_json::from_reader(reader).unwrap();
-        
-        let mut hash = PlainTable::new();
-        for v in data.vec.iter() {
-            let mut geohash_u8 = [0_u8; GEOHASH_U8_SIZE];
-            geohash_u8.copy_from_slice(hex_string_to_u8(&v.geohash).as_slice());
-            match hash.structure.get_mut(&geohash_u8) {
-                // centralデータに関しては，こいつがunique soted listである責務を持つ
-                Some(sorted_list) => { _sorted_push(sorted_list, v.unixepoch) },
-                None => { hash.structure.insert(geohash_u8, vec![v.unixepoch]); },
-            };
-        }
-        println!("[UNTRUSTED] central data size {}", hash.size());
-        hash
-    }
-
-    // データは geohash, [u8], geohash, [u8],... と [u8]のサイズの配列というフォーマットでシリアライスする
-    // 時間がかかっていそうならシリアライズは先にまとめて計算しておく
-    // extend_from_sliceを使ったやり方(pushとかじゃなくてコピーするようにすれば少しだけ早くなる余地がある？)
-    pub fn prepare_sgx_data(&self, geohash_u8: &mut Vec<u8>, unixepoch_u64: &mut Vec<u64>, size_list: &mut Vec<usize>) -> usize {
-        let mut i = 0;
-        for (key, value) in self.structure.iter() {
-            let length = value.len();
-            size_list.push(length);
-            geohash_u8.extend_from_slice(key);
-            unixepoch_u64.extend_from_slice(value);
-            i += 1;
-        }
-        i
-    }
-}
 
 /* TrajectoryTrie
     チャンク化しない
@@ -239,10 +45,7 @@ impl EncodedData {
             set.insert(encoded_value_u8);
         }
         println!("[UNTRUSTED] unique data size {}", set.len());
-        let mut vec: Vec<EncodedValue> = set.into_iter().collect();
-        vec.sort();
-        let mut set = Set::from_iter(&vec).unwrap();
-        println!("[FST] fst R size {} bytes", set.as_ref().size());
+        let vec: Vec<EncodedValue> = set.into_iter().collect();
         EncodedData { structure: vec }
     }
     
@@ -268,6 +71,96 @@ impl EncodedData {
         if data.structure.len() > 0 {
             buf.push(data);
         }
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct CentralFST {
+    data: Vec<Vec<u8>>,
+}
+
+impl CentralFST {
+    pub fn new() -> Self {
+        CentralFST {
+            data: Vec::with_capacity(100),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn prepare_sgx_data(&self, index: usize) -> &Vec<u8> {
+        &self.data[index]
+    }
+
+    pub fn from_EncodedData(encoded_data: EncodedData, threashould: usize) -> Self {
+        let mut encoded_value_vec = encoded_data.structure;
+        encoded_value_vec.sort();
+
+        let mut ordered_vec: Vec<EncodedValue> = vec![];
+        let mut this = CentralFST::new();
+
+        for (i, value) in encoded_value_vec.iter().enumerate() {
+            ordered_vec.push(*value);
+            if (i+1) % threashould == 0 {
+                let bytes: Vec<u8> = Set::from_iter(ordered_vec)
+                    .unwrap().as_ref().as_bytes().to_vec();
+                println!("[FSA] r_i size = {} bytes", bytes.len());
+                this.data.push(bytes);
+                ordered_vec = vec![];
+            }
+        }
+        if ordered_vec.len() > 0 {
+            let bytes = Set::from_iter(ordered_vec)
+                .unwrap().as_ref().as_bytes().to_vec();
+            this.data.push(bytes);
+        }
+        this
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct CentralHashSet {
+    data: Vec<Vec<u8>>,
+}
+
+impl CentralHashSet {
+    pub fn new() -> Self {
+        CentralHashSet {
+            data: Vec::with_capacity(100),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn prepare_sgx_data(&self, index: usize) -> &Vec<u8> {
+        &self.data[index]
+    }
+
+    pub fn from_EncodedData(encoded_data: EncodedData, threashould: usize) -> Self {
+        let mut encoded_value_vec = encoded_data.structure;
+        encoded_value_vec.sort();
+
+        let mut hashset: HashSet<EncodedValue> = HashSet::with_capacity(threashould);
+        
+        let mut this = CentralHashSet::new();
+        for (i, value) in encoded_value_vec.iter().enumerate() {
+            hashset.insert(*value);
+            if (i+1) % threashould == 0 {
+                let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
+                println!("[HashSet] r_i size = {} bytes", bytes.len());
+                this.data.push(bytes);
+                hashset = HashSet::with_capacity(threashould);
+            }
+        }
+        if hashset.len() > 0 {
+            let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
+            this.data.push(bytes);
+        }
+        this
     }
 }
 

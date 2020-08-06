@@ -13,7 +13,7 @@ impl EncodedQueryRep {
     pub fn new() -> Self {
         EncodedQueryRep {
             id: 0,
-            parameters: Vec::with_capacity(QUERY_SIZE)
+            parameters: Vec::with_capacity(QUERY_SIZE),
         }
     }
 }

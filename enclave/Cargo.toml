@@ -12,6 +12,7 @@ default = []
 
 [dependencies]
 sgx_fst = { path  = "/root/sgx/samplecode/PCT/sgx_fst" }
+bincode = { git = "https://github.com/mesalock-linux/bincode-sgx.git" }
 
 [target.'cfg(not(target_env = "sgx"))'.dependencies]
 sgx_types = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }

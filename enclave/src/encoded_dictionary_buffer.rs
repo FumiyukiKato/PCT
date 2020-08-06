@@ -9,15 +9,15 @@ use encode_finite_state_transducer::EncodedFiniteStateTransducer;
 
 #[derive(Clone, Debug)]
 pub struct EncodedDictionaryBuffer {
-    // pub data: EncodedFiniteStateTransducer,
-    pub data: EncodedHashTable,
+    pub data: EncodedFiniteStateTransducer,
+    // pub data: EncodedHashTable,
 }
 
 impl EncodedDictionaryBuffer {
     pub fn new() -> Self {
         EncodedDictionaryBuffer {
-            // data: EncodedFiniteStateTransducer::new()            
-            data: EncodedHashTable::new()
+            data: EncodedFiniteStateTransducer::new()            
+            // data: EncodedHashTable::new()
         }
     }
 
@@ -27,10 +27,9 @@ impl EncodedDictionaryBuffer {
 
     pub fn build_dictionary_buffer(
         &mut self,
-        encoded_value_vec: &Vec<u8>,
-        size: usize,
+        encoded_value_vec: Vec<u8>,
     ) {
-        self.data.build_dictionary_buffer(encoded_value_vec, size);
+        self.data.build_dictionary_buffer(encoded_value_vec);
     }
 
     pub fn show_size(&self) {

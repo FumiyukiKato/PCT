@@ -32,8 +32,7 @@ enclave {
 
         public sgx_status_t private_encode_contact_trace(
             [in, count=encoded_value_u8_size] uint8_t* encoded_value_u8,
-            size_t encoded_value_u8_size,
-            size_t epoch_data_size
+            size_t encoded_value_u8_size
         );
         
         public sgx_status_t get_encoded_result(
