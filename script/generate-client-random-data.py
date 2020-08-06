@@ -55,7 +55,7 @@ def main():
         data_list = gen_trajectory(query_size)
         byte = b''.join(data_list)
         value = { "geodata": byte.hex(), "query_size": query_size, "query_id": current_id }
-        total_data_list.append(value)
+        total_data_list.append(value)        
         current_id += 1
 
     json_data["data"] = total_data_list
