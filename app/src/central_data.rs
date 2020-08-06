@@ -114,6 +114,7 @@ impl CentralFST {
         if ordered_vec.len() > 0 {
             let bytes = Set::from_iter(ordered_vec)
                 .unwrap().as_ref().as_bytes().to_vec();
+            println!("[FSA] r_i size = {} bytes", bytes.len());
             this.data.push(bytes);
         }
         this
@@ -158,6 +159,7 @@ impl CentralHashSet {
         }
         if hashset.len() > 0 {
             let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
+            println!("[HashSet] r_i size = {} bytes", bytes.len());
             this.data.push(bytes);
         }
         this
