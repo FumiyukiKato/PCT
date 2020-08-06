@@ -65,48 +65,6 @@ fn _get_options() -> Vec<String> {
 
 fn main() {
     finiteStateTranducer();
-
-    // use fst::raw::{Fst};
-    // use fst::{Set};
-
-    // #[derive(Debug)]
-    // struct U8 { vec: Vec<u8> }
-
-    // impl U8 {
-    //         fn from_vec(value: Vec<u8>) -> Self {
-    //                 U8 { vec: value }
-    //         }
-    // }
-
-    // impl AsRef<[u8]> for U8 {
-    //     #[inline]
-    //     fn as_ref(&self) -> &[u8] {
-    //         &self.vec
-    //     }
-    // }
-
-    // // A convenient way to create sets in memory.
-    // let mut keys = vec![];
-    // keys.push(U8::from_vec([1,2,3,4,5].to_vec()));
-    // keys.push(U8::from_vec([1,2,3,4,5].to_vec()));
-    // keys.push(U8::from_vec([10,2,30,40,60].to_vec()));
-    // keys.push(U8::from_vec([10,15,30,40,60].to_vec()));
-    // keys.push(U8::from_vec([10,21,30,40,60,1,1,5,6,6,4].to_vec()));
-    // keys.push(U8::from_vec([10,21,30,40,60,1,2,3,4,5].to_vec()));
-    // let set = Set::from_iter(keys).unwrap();
-    // println!("set {:?}", set);
-
-    // println!("{}", set.contains([10,21,30,40,60,1,2,3,4,5]));
-    // println!("{}", set.contains([10,21,30,40,60,1,1,5,6,6,4]));
-    // println!("{}", set.contains([10,21,30,40,60,1]));
-
-    // let bytes = set.as_ref().as_bytes().to_vec();
-    // let new_set = Set::from_bytes(bytes);
-    // println!("new_set {:?}", new_set);
-
-    // println!("{}", set.contains([10,21,30,40,60,1,2,3,4,5]));
-    // println!("{}", set.contains([10,21,30,40,60,1,1,5,6,6,4]));
-    // println!("{}", set.contains([10,21,30,40,60,1]));
 }
 
 fn encodedHasing() {
@@ -194,8 +152,7 @@ fn encodedHasing() {
                 enclave.geteid(),
                 &mut retval,
                 chunk.0.as_ptr() as * const u8,
-                chunk.0.len(),
-                chunk.1
+                chunk.0.len()
             )
         };
         match result {
@@ -278,18 +235,7 @@ fn finiteStateTranducer() {
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
-    let mut chunked_buf: Vec<EncodedData> = Vec::with_capacity(threashould);
-    external_data.disribute(&mut chunked_buf, threashould);
-    let mut sgx_data: Vec<(Vec<u8>, usize)> = Vec::with_capacity(100);
-    let mut chunk_curret_index: usize = 0;
-    let chunk_last_index = chunked_buf.len() - 1;
-    while chunk_last_index >= chunk_curret_index {
-        let chunk = &chunked_buf[chunk_curret_index];
-        let mut encoded_value_u8: Vec<u8> = Vec::with_capacity(threashould*14);
-        let epoch_data_size = chunk.prepare_sgx_data(&mut encoded_value_u8);
-        sgx_data.push((encoded_value_u8, epoch_data_size));
-        chunk_curret_index += 1;
-    }
+    let mut R: CentralFST = CentralFST::from_EncodedData(external_data, threashould);
     clocker.stop("Distribute central data");
 
     /* initialize enclave */
@@ -337,18 +283,16 @@ fn finiteStateTranducer() {
 
     /* main logic contact tracing */
     let mut chunk_index: usize = 0;
-    let last = chunked_buf.len() - 1;
+    let last = R.len() - 1;
     clocker.set_and_start("ECALL private_contact_trace");
     while last >= chunk_index {
-
-        let chunk = &sgx_data[chunk_index];
+        let chunk: &Vec<u8> = R.prepare_sgx_data(chunk_index);
         let result = unsafe {
             private_encode_contact_trace(
                 enclave.geteid(),
                 &mut retval,
-                chunk.0.as_ptr() as * const u8,
-                chunk.0.len(),
-                chunk.1
+                chunk.as_ptr() as * const u8,
+                chunk.len()
             )
         };
         match result {
@@ -485,8 +429,7 @@ fn encodedNoChunk() {
             enclave.geteid(),
             &mut retval,
             encoded_value_u8.as_ptr() as * const u8,
-            encoded_value_u8.len(),
-            epoch_data_size
+            encoded_value_u8.len()
         )
     };
     match result {

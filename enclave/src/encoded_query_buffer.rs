@@ -25,7 +25,7 @@ impl EncodedQueryBuffer {
             for j in 0_usize..QUERY_SIZE {
                 let mut encoded_value = [0_u8; ENCODEDVALUE_SIZE];
                 encoded_value.copy_from_slice(&total_query_data_vec[i*QUERY_SIZE+j*ENCODEDVALUE_SIZE..i*QUERY_SIZE+(j+1)*ENCODEDVALUE_SIZE]);
-                query.parameters.push(encoded_value);
+                query.parameters.insert(encoded_value);
             }
             self.queries.push(query);
         }

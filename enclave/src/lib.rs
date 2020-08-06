@@ -171,7 +171,6 @@ fn _init_encoded_buffers() {
 pub extern "C" fn private_encode_contact_trace(
     encoded_value_u8: *const u8,
     encoded_value_u8_size: usize,
-    epoch_data_size: usize,
 ) -> sgx_status_t {
     let mut dictionary_buffer = EncodedDictionaryBuffer::new();
     let encoded_value_vec: Vec<u8> = unsafe {
@@ -180,7 +179,7 @@ pub extern "C" fn private_encode_contact_trace(
     if encoded_value_vec.len() != encoded_value_u8_size {
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
-    dictionary_buffer.build_dictionary_buffer(&encoded_value_vec, epoch_data_size);
+    dictionary_buffer.build_dictionary_buffer(encoded_value_vec);
     let mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
     let mut result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
 

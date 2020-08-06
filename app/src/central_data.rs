@@ -239,10 +239,7 @@ impl EncodedData {
             set.insert(encoded_value_u8);
         }
         println!("[UNTRUSTED] unique data size {}", set.len());
-        let mut vec: Vec<EncodedValue> = set.into_iter().collect();
-        vec.sort();
-        let mut set = Set::from_iter(&vec).unwrap();
-        println!("[FST] fst R size {} bytes", set.as_ref().size());
+        let vec: Vec<EncodedValue> = set.into_iter().collect();
         EncodedData { structure: vec }
     }
     
@@ -268,6 +265,51 @@ impl EncodedData {
         if data.structure.len() > 0 {
             buf.push(data);
         }
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct CentralFST {
+    data: Vec<Vec<u8>>,
+}
+
+impl CentralFST {
+    pub fn new() -> Self {
+        CentralFST {
+            data: Vec::with_capacity(100),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn prepare_sgx_data(&self, index: usize) -> &Vec<u8> {
+        &self.data[index]
+    }
+
+    pub fn from_EncodedData(encoded_data: EncodedData, threashould: usize) -> Self {
+        let mut encoded_value_vec = encoded_data.structure;
+        encoded_value_vec.sort();
+
+        let mut ordered_vec: Vec<EncodedValue> = vec![];
+        let mut this = CentralFST::new();
+
+        for (i, value) in encoded_value_vec.iter().enumerate() {
+            ordered_vec.push(*value);
+            if (i+1) % threashould == 0 {
+                let bytes: Vec<u8> = Set::from_iter(ordered_vec)
+                    .unwrap().as_ref().as_bytes().to_vec();
+                this.data.push(bytes);
+                ordered_vec = vec![];
+            }
+        }
+        if ordered_vec.len() > 0 {
+            let bytes = Set::from_iter(ordered_vec)
+                .unwrap().as_ref().as_bytes().to_vec();
+            this.data.push(bytes);
+        }
+        this
     }
 }
 

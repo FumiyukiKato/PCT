@@ -27,10 +27,9 @@ impl EncodedDictionaryBuffer {
 
     pub fn build_dictionary_buffer(
         &mut self,
-        encoded_value_vec: &Vec<u8>,
-        size: usize,
+        encoded_value_vec: Vec<u8>,
     ) {
-        self.data.build_dictionary_buffer(encoded_value_vec, size);
+        self.data.build_dictionary_buffer(encoded_value_vec);
     }
 
     pub fn show_size(&self) {
