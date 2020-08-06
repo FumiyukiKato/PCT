@@ -1,13 +1,10 @@
 use fst::{Set};
 use std::vec::Vec;
-use std::collections::HashSet;
-use std::collections::BTreeSet;
 
 use primitive::*;
 use constant::*;
-use encoded_dictionary_buffer::EncodedDictionaryBuffer;
+use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
-use encoded_query_buffer::EncodedQueryBuffer;
 
 
 #[derive(Clone, Debug, Default)]
@@ -39,32 +36,22 @@ impl EncodedFiniteStateTransducer {
         }
     }
 
-    pub fn from_vec(encoded_value_vec: &Vec<EncodedValue>) -> Self {
-        EncodedFiniteStateTransducer {
-            map: Set::from_iter(encoded_value_vec).unwrap()
-        }
-    }
-
-    pub fn mapping(&mut self, query_buffer: &EncodedQueryBuffer) {
-        let mut set: BTreeSet<EncodedValue> = BTreeSet::new();
-        for query_rep in query_buffer.queries.iter() {
-            for encoded_value in query_rep.parameters.iter() {
-                set.insert(*encoded_value);
-            }
-        }
-        println!("[SGX] unique query size {}", set.len());
-        self.map = Set::from_iter(set.into_iter().collect::<Vec<EncodedValue>>()).unwrap();
-    }
-
-    pub fn intersect(&self, dictionary_buffer: &EncodedDictionaryBuffer, result: &mut EncodedResultBuffer) {
-        for encoded_value_vec in dictionary_buffer.data.iter() {
+    pub fn intersect(&self, mapped_query_buffer: &MappedEncodedQueryBuffer, result: &mut EncodedResultBuffer) {
+        for encoded_value_vec in mapped_query_buffer.map.iter() {
             if self.map.contains(encoded_value_vec) {
-                result.data.push(*encoded_value_vec);
+                result.data.insert(*encoded_value_vec);
             }
         }
+    }
+
+    pub fn build_dictionary_buffer(
+        &mut self,
+        bytes: Vec<u8>,
+    ) {
+        self.map = Set::from_bytes(bytes);
     }
 
     pub fn calc_memory(&self) {
-        println!("[FSA] Q size = {} bytes", self.map.as_ref().size());
+        println!("[FSA] r_i size = {} bytes", self.map.as_ref().size());
     }
 }

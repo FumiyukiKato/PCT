@@ -1,37 +1,29 @@
 use std::vec::Vec;
 use std::collections::HashSet;
-
+use constant::*;
 use primitive::*;
 use encoded_query_buffer::EncodedQueryBuffer;
-use encode_finite_state_transducer::EncodedFiniteStateTransducer;
-use encoded_dictionary_buffer::EncodedDictionaryBuffer;
-use encoded_result_buffer::EncodedResultBuffer;
-use encoded_hash_table::EncodedHashTable;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct MappedEncodedQueryBuffer {
-    pub map: EncodedFiniteStateTransducer,
-    // pub map: EncodedHashTable,
+    pub map: Vec<EncodedValue>,
 }
 
 impl MappedEncodedQueryBuffer {
     pub fn new() -> Self {
-        MappedEncodedQueryBuffer {
-            map: EncodedFiniteStateTransducer::new()
-            // map: EncodedHashTable::new()
-        }
+        MappedEncodedQueryBuffer::default()
     }
 
     // !!このメソッドでは全くerror処理していない
     pub fn mapping(&mut self, query_buffer: &EncodedQueryBuffer) {
-        self.map.mapping(query_buffer);
-    }
+        let mut set: HashSet<EncodedValue> = HashSet::new();
+        for query_rep in query_buffer.queries.iter() {
+            for encoded_value in query_rep.parameters.iter() {
+                set.insert(*encoded_value);
+            }
+        }
+        self.map = set.into_iter().collect();
 
-    pub fn intersect(&self, dictionary_buffer: &EncodedDictionaryBuffer, result: &mut EncodedResultBuffer) {
-        self.map.intersect(dictionary_buffer, result);
-    }
-
-    pub fn show_size(&self) {
-        self.map.calc_memory();
+        println!("[SGX] unique query size {}", self.map.len());
     }
 }

@@ -4,6 +4,7 @@
 name = "PCTenclave"
 version = "1.0.0"
 dependencies = [
+ "bincode",
  "sgx_fst",
  "sgx_trts",
  "sgx_tstd",
@@ -17,6 +18,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 
 [[package]]
+name = "bincode"
+version = "1.2.1"
+source = "git+https://github.com/mesalock-linux/bincode-sgx.git#44127da90b1626f77017552b0231f888ccc3fcdd"
+dependencies = [
+ "byteorder",
+ "serde",
+ "sgx_tstd",
+]
+
+[[package]]
+name = "byteorder"
+version = "1.3.4"
+source = "git+https://github.com/mesalock-linux/byteorder-sgx.git#46ab71b0753dd29ec4f1b3834f78ae26cf47422e"
+dependencies = [
+ "sgx_tstd",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -27,6 +46,14 @@ name = "hashbrown_tstd"
 version = "0.7.1"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "serde"
+version = "1.0.106"
+source = "git+https://github.com/mesalock-linux/serde-sgx.git#58ff0793d46f96124132110880d0f4d44050d6ee"
+dependencies = [
+ "sgx_tstd",
 ]
 
 [[package]]

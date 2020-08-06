@@ -39,7 +39,6 @@ typedef struct ms_private_encode_contact_trace_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_encoded_value_u8;
 	size_t ms_encoded_value_u8_size;
-	size_t ms_epoch_data_size;
 } ms_private_encode_contact_trace_t;
 
 typedef struct ms_get_encoded_result_t {
@@ -606,7 +605,7 @@ static sgx_status_t SGX_CDECL sgx_private_encode_contact_trace(void* pms)
 
 	}
 
-	ms->ms_retval = private_encode_contact_trace(_in_encoded_value_u8, _tmp_encoded_value_u8_size, ms->ms_epoch_data_size);
+	ms->ms_retval = private_encode_contact_trace(_in_encoded_value_u8, _tmp_encoded_value_u8_size);
 
 err:
 	if (_in_encoded_value_u8) free(_in_encoded_value_u8);

@@ -16,7 +16,6 @@ extern {
         retval: *mut sgx_status_t,
         encoded_value_u8: * const u8,
         encoded_value_u8_size: usize,
-        epoch_data_size: usize,
     ) -> sgx_status_t;
 
     pub fn get_encoded_result(

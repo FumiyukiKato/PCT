@@ -20,3 +20,6 @@ pub const ENCODE_TIME_U8_SIZE: usize = 4;
 pub const ENCODEDVALUE_SIZE: usize = ENCODE_GEOHASH_U8_SIZE + ENCODE_TIME_U8_SIZE;
 
 pub const QUERY_SIZE: usize = 1440;
+
+// for optimization
+pub const CLIENT_SIZE: usize = 4500;

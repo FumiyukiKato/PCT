@@ -13,7 +13,6 @@ typedef struct ms_private_encode_contact_trace_t {
 	sgx_status_t ms_retval;
 	uint8_t* ms_encoded_value_u8;
 	size_t ms_encoded_value_u8_size;
-	size_t ms_epoch_data_size;
 } ms_private_encode_contact_trace_t;
 
 typedef struct ms_get_encoded_result_t {
@@ -1015,13 +1014,12 @@ sgx_status_t upload_encoded_query_data(sgx_enclave_id_t eid, sgx_status_t* retva
 	return status;
 }
 
-sgx_status_t private_encode_contact_trace(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* encoded_value_u8, size_t encoded_value_u8_size, size_t epoch_data_size)
+sgx_status_t private_encode_contact_trace(sgx_enclave_id_t eid, sgx_status_t* retval, uint8_t* encoded_value_u8, size_t encoded_value_u8_size)
 {
 	sgx_status_t status;
 	ms_private_encode_contact_trace_t ms;
 	ms.ms_encoded_value_u8 = encoded_value_u8;
 	ms.ms_encoded_value_u8_size = encoded_value_u8_size;
-	ms.ms_epoch_data_size = epoch_data_size;
 	status = sgx_ecall(eid, 1, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;
 	return status;
