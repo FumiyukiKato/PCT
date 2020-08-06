@@ -21,6 +21,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate fst;
 extern crate bincode;
+extern crate hex;
 
 use std::env;
 
