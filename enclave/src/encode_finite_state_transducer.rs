@@ -59,7 +59,7 @@ impl EncodedFiniteStateTransducer {
     pub fn intersect(&self, dictionary_buffer: &EncodedDictionaryBuffer, result: &mut EncodedResultBuffer) {
         for encoded_value_vec in dictionary_buffer.data.iter() {
             if self.map.contains(encoded_value_vec) {
-                result.data.push(*encoded_value_vec);
+                result.data.insert(*encoded_value_vec);
             }
         }
     }

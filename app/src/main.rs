@@ -64,7 +64,8 @@ fn _get_options() -> Vec<String> {
 }
 
 fn main() {
-    encodedHasing();
+    // encodedHasing();
+    finiteStateTranducer();
 }
 
 // ハッシュテーブル

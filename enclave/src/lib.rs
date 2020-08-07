@@ -223,7 +223,7 @@ pub extern "C" fn upload_encoded_query_data(
 
     let start = Instant::now();
     let mut query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
-    query_buffer.build_query_buffer(&total_query_data_vec, &query_id_list_vec);
+    query_buffer.build_query_buffer(total_query_data_vec, query_id_list_vec);
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "build_query_buffer", end.as_secs(), end.subsec_nanos() / 1_000);
 
