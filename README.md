@@ -48,6 +48,8 @@ $ bin/in
 $ python script/generator-script-name
 ```
 
-#### materials
-
-- https://github.com/apache/incubator-teaclave-sgx-sdk
+#### Other materials
+- SDK
+  - https://github.com/apache/incubator-teaclave-sgx-sdk
+- Experimental dataset source 
+  - http://www.csis.u-tokyo.ac.jp/blog/research/joint-research/
