@@ -1,5 +1,8 @@
 # PCT
-The experimental code of Private Contact Tracing using SGX.
+The experimental code of Private Contact Tracing using SGX.  
+Overview of the components.
+
+<img width="500" alt="carousel" src="https://user-images.githubusercontent.com/27177602/91183605-a3236200-e726-11ea-894b-ae7f419ca0b8.png">
 
 ## Setup
 
@@ -37,15 +40,14 @@ $ bin/in
 
 #### run
 ```
-[docker-inside]$ bin/app 100000 data/sample/client.json data/sample/central.json true
+[docker-inside]$ bin/app 1000000 data/sample/client.json data/sample/central.json true
 ```
 
-#### data generator (python3)
+#### random data generator (python3)
 ```
 $ python script/generator-script-name
 ```
 
 #### materials
 
-- Tamrakar, Sandeep, et al. "The circle game: Scalable private membership test using trusted hardware." Proceedings of the 2017 ACM on Asia Conference on Computer and Communications Security. 2017. [[pdf]](https://dl.acm.org/doi/pdf/10.1145/3052973.3053006)
 - https://github.com/apache/incubator-teaclave-sgx-sdk
