@@ -1,3 +1,8 @@
+## Preliminary experiment
+
+Trusted hardware based approach vs software-based approach
+
+
 #### SGX-based approach
 ```
 $ docker run 
