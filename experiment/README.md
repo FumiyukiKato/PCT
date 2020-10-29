@@ -1,6 +1,6 @@
 #### SGX-based approach
 ```
-$ docker run
+$ docker run 
 ```
 
 #### Fastest OT-based approach
