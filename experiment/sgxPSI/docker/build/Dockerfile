@@ -47,11 +47,14 @@ RUN apt-get update && apt-get install  -y \
     ocamlbuild \
     protobuf-compiler \
     python \
-    wget
+    wget \ 
+    reprepro \
+    unzip
 
 # We assume this docker file is invoked with root at the top of linux-sgx repo, see shell scripts for example.
+RUN git clone https://github.com/intel/linux-sgx.git /linux-sgx
 WORKDIR /linux-sgx
-COPY . .
+RUN make preparation
 
 RUN make sdk_install_pkg_no_mitigation
 
@@ -76,7 +79,7 @@ COPY --from=builder /linux-sgx/linux/installer/bin/*.bin ./
 RUN ./sgx_linux_x64_psw*.bin --no-start-aesm
 RUN sh -c 'echo yes | ./sgx_linux_x64_sdk_*.bin'
 
-ADD https://github.com/ylab-public/PCT/tree/experiment/experiment/sgxPSI/src /opt/intel/sgxsdk/SampleCode/sgxPSI
+COPY src/ /opt/intel/sgxsdk/SampleCode/sgxPSI/
 WORKDIR /opt/intel/sgxsdk/SampleCode/sgxPSI
 RUN SGX_DEBUG=0 SGX_MODE=HW SGX_PRERELEASE=1 make
 

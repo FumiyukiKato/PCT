@@ -30,9 +30,9 @@
 #
 
 set -e
-# $LINUX_SGX_ROOT=root/path/tolinux-sgx(https://github.com/intel/linux-sgx.git)
+
 docker build --target psi --build-arg https_proxy=$https_proxy \
-             --build-arg http_proxy=$http_proxy -t sgx_psi -f ./Dockerfile $LINUX_SGX_ROOT
+             --build-arg http_proxy=$http_proxy -t sgx_psi -f ./Dockerfile $PCT_DIR/experiment/sgxPSI
 
 # おそらくドライバのバージョンが古いという理由で/dev/sgx/enclaveではなく/dev/isgxを指定する
 # aesmd-socketによる名前解決は特にされていないので/var/run/aesmdのままで
