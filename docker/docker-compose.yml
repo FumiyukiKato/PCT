@@ -8,8 +8,10 @@ services:
     volumes:
       - ${RUST_SDK_ROOT}:/root/sgx
       - ${PCT_DIR}:/root/sgx/samplecode/PCT
+      - ../../obliv-join-impl:/root/sgx/samplecode/obliv-join-impl
       - ${PCT_DIR}/docker/script/init.sh:/root/sgx/init.sh
     tty: true
+    privileged: true
     env_file: ${PCT_DIR}/.env
     command: /root/sgx/init.sh
     working_dir: /root/sgx/samplecode/PCT
