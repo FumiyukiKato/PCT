@@ -4,8 +4,12 @@ Trusted hardware based approach vs software-based approach
 
 
 #### SGX-based approach
+- You need to prepare machine with Intel SGX.
+  - set up driver and linux-sgx sdk (rf. https://github.com/intel/linux-sgx)
 ```
-$ docker run 
+$ export LINUX_SGX_ROOT=/pre-built-linux-sgx-root-path
+$ cd docker/build
+$ ./build_and_run.sh
 ```
 
 #### Fastest OT-based approach
