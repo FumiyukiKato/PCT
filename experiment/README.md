@@ -6,7 +6,7 @@ Trusted hardware based approach vs software-based approach
 #### SGX-based approach
 - You need to prepare machine with Intel SGX and setup sdk.
 ```
-$ cd sgxPSI
+$ cd sgxPSI/psi
 $ make
 $ ./app 1000000
 ```
