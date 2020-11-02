@@ -18,5 +18,5 @@ $ ./app 1000000
 
 ```
 $ cd libPSI
-$ bin/frontend.exe -rr17a -n 1000000 -trials 10 
+$ bin/frontend.exe -rr17a -n 1000000
 ```
