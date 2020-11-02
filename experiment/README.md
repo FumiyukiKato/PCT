@@ -2,6 +2,8 @@
 
 Trusted hardware based approach vs software-based approach
 
+end-to-end setting
+
 
 #### SGX-based approach
 - You need to prepare machine with Intel SGX and setup sdk.
