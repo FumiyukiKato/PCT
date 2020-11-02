@@ -79,7 +79,7 @@ COPY --from=builder /linux-sgx/linux/installer/bin/*.bin ./
 RUN ./sgx_linux_x64_psw*.bin --no-start-aesm
 RUN sh -c 'echo yes | ./sgx_linux_x64_sdk_*.bin'
 
-COPY src/ /opt/intel/sgxsdk/SampleCode/sgxPSI/
+COPY psi/ /opt/intel/sgxsdk/SampleCode/sgxPSI/
 WORKDIR /opt/intel/sgxsdk/SampleCode/sgxPSI
 RUN SGX_DEBUG=0 SGX_MODE=HW SGX_PRERELEASE=1 make
 

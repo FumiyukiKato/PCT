@@ -4,11 +4,11 @@ Trusted hardware based approach vs software-based approach
 
 
 #### SGX-based approach
-- You need to prepare machine with Intel SGX and driver.
+- You need to prepare machine with Intel SGX and setup sdk.
 ```
-$ export PCT_DIR=/root-of-this-repo
-$ cd docker/build
-$ ./build_and_run.sh
+$ cd sgxPSI
+$ make
+$ ./app 1000000
 ```
 
 #### Fastest OT-based approach

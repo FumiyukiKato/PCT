@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2019 Intel Corporation. All rights reserved.
+ * Copyright (C) 2011-2020 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,40 +29,29 @@
  *
  */
 
+/* Enclave.edl - Top EDL file. */
 
-#include "../App.h"
-#include "Enclave_u.h"
+enclave {
+    from "sgx_tstdc.edl" import *;
+    from "sgx_tswitchless.edl" import *;
 
-/* No need to implement memccpy here! */
+    trusted {
+        public sgx_status_t upload_server_data(
+            [in, count=server_data_size] const uint64_t *server_data,
+            size_t server_data_size
+        );
 
-/* edger8r_function_attributes:
- *   Invokes ECALL declared with calling convention attributes.
- *   Invokes ECALL declared with [public].
- */
-void edger8r_function_attributes(void)
-{
-    sgx_status_t ret = SGX_ERROR_UNEXPECTED;
+        public sgx_status_t upload_and_psi(
+            [in, count=client_data_buf_size] const uint8_t *client_data_buf,
+            size_t client_data_buf_size,
+            [out, count=client_data_size] uint8_t *result,
+            size_t client_data_size
+        );
+    };
 
-    ret = ecall_function_public(global_eid);
-    if (ret != SGX_SUCCESS)
-        abort();
-    
-    /* user shall not invoke private function here */
-    int runned = 0;
-    ret = ecall_function_private(global_eid, &runned);
-    if (ret != SGX_ERROR_ECALL_NOT_ALLOWED || runned != 0)
-        abort();
-}
+    untrusted {
+		void print([in, string] const char *string);
+        void printUint([in, count=size] const uint64_t *i, size_t size);
+    };
 
-/* ocall_function_allow:
- *   The OCALL invokes the [allow]ed ECALL 'edger8r_private'.
- */
-void ocall_function_allow(void)
-{
-    int runned = 0;
-    sgx_status_t ret = SGX_ERROR_UNEXPECTED;
-    
-    ret = ecall_function_private(global_eid, &runned);
-    if (ret != SGX_SUCCESS || runned != 1)
-        abort();
-}
+};
