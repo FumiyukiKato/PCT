@@ -40,6 +40,7 @@
 #include <unordered_set>
 #include <string>
 #include "sgx_tcrypto.h"
+#include "BloomFilter.h"
 
 #define SGXSSL_CTR_BITS	128
 
@@ -79,6 +80,7 @@ void printInt(const int i) {
 
 std::unordered_set<Data, Hasher> server_data_map = {};
 
+BloomFilter *bf = NULL;
 
 /* Suppose Remote Attestation is done, any untrusted applications cannot see this shared key. */
 sgx_aes_ctr_128bit_key_t SHARED_KEY = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};

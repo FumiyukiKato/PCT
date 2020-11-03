@@ -1,6 +1,8 @@
 #include <vector>
  
-struct BloomFilter {
+
+class BloomFilter {
+public:
   BloomFilter(uint64_t size, uint8_t numHashes);
  
   void add(const uint8_t *data, std::size_t len);

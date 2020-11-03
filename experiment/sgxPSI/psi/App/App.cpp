@@ -429,7 +429,7 @@ int serverProcess(int setSize) {
         server_data[i*2] = set[i].value1;
         server_data[i*2+1] = set[i].value2;
     }
-    std::cout << "hoge0" << std::endl;
+
     sgx_status_t retval;
     sgx_status_t ret = upload_server_data(global_eid, &retval, server_data, server_data_size);
     if (ret != SGX_SUCCESS)
@@ -441,7 +441,7 @@ int serverProcess(int setSize) {
         return -1;
     }
     free(server_data);
-    std::cout << "hoge1" << std::endl;
+
 
     /* listen socket */
     bool isClosed = false;
@@ -467,7 +467,7 @@ int serverProcess(int setSize) {
         std::cout << errno << " : " << "Error: Server can't listen the socket." << std::endl;
         return -1;
     }
-    std::cout << "hoge3" << std::endl;
+    
 
     /* receive data from client */
     std::vector<uint8_t> client_data_u8_vec;
@@ -515,7 +515,7 @@ int serverProcess(int setSize) {
         }
     });
     acceptThread.join();
-    std::cout << "hoge4" << std::endl;
+    
 
     /* upload client data to sgx and do PSI*/
     size_t client_data_size = client_data_u8_vec.size() / 16;
@@ -532,7 +532,7 @@ int serverProcess(int setSize) {
         sgx_destroy_enclave(global_eid);
         return -1;
     }
-    std::cout << "hoge5" << std::endl;
+    
 
     /* send result to client */
     int send_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -557,7 +557,7 @@ int serverProcess(int setSize) {
         }
     }
     freeaddrinfo(res);
-    std::cout << "hoge6" << std::endl;
+    
     send_address.sin_family = AF_INET;
     send_address.sin_port = htons(port2);
 
@@ -610,7 +610,7 @@ int clientProcess(int setSize) {
     uint8_t counter_block[16] = {0};
     uint32_t ctr_inc_bits = SGXSSL_CTR_BITS;
     uint8_t *encrypted_buf = (uint8_t*)malloc(sizeof(uint8_t)* input_len);
-    std::cout << "fuga1" << std::endl;
+    
     sgx_status_t ret = sgx_aes_ctr_encrypt(&SHARED_KEY, input_buf, input_len, counter_block, ctr_inc_bits, encrypted_buf);
     if (ret != SGX_SUCCESS)
     {
@@ -637,7 +637,7 @@ int clientProcess(int setSize) {
         std::cout << errno << " : " << "Invalid Address." << std::string(gai_strerror(status)) << std::endl;
         return -1;
     }
-    std::cout << "fuga2" << std::endl;
+    
     for(it = res; it != NULL; it = it->ai_next)
     {
         if (it->ai_family == AF_INET) {
@@ -668,7 +668,7 @@ int clientProcess(int setSize) {
     isClosed = true;
     close(sock);
     free(encrypted_buf);
-    std::cout << "fuga3" << std::endl;
+    
 
     /* receive results from server */
     /* listen socket */
@@ -743,7 +743,7 @@ int clientProcess(int setSize) {
         }
     });
     acceptThread.join();
-    std::cout << "fuga4" << std::endl;
+    
 
     /* decrypt results and show result indices */
     uint8_t new_counter_block[16] = {0};
@@ -762,12 +762,12 @@ int clientProcess(int setSize) {
     double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
     std::cout << "time: " << elapsed << "[ms]" << std::endl;
 
-    // std::cout << "set intersection result: ";
-    // for (int i=0; i<setSize; i++) {
-    //     if (decrypted_buf[i] == 1) {
-    //         std::cout << i << ", ";
-    //     }
-    // }
+    std::cout << "set intersection result: ";
+    for (int i=0; i<setSize; i++) {
+        if (decrypted_buf[i] == 1) {
+            std::cout << i << ", ";
+        }
+    }
     
     free(decrypted_buf);
 

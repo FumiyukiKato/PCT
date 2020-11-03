@@ -1,13 +1,14 @@
 #include "BloomFilter.h"
 #include "MurmurHash3.h"
+
+#include <array>
  
 BloomFilter::BloomFilter(uint64_t size, uint8_t numHashes)
       : m_bits(size),
         m_numHashes(numHashes) {}
 
 
-std::array<uint64_t, 2> hash(const uint8_t *data,
-                             std::size_t len) {
+std::array<uint64_t, 2> hash(const uint8_t *data, std::size_t len) {
   std::array<uint64_t, 2> hashValue;
   MurmurHash3_x64_128(data, len, 0, hashValue.data());
  
