@@ -71,7 +71,14 @@ void printByteArray(const uint8_t *arr, size_t size) {
     print("\n");
 }
 
+void printInt(const int i) {
+    char string_buf[BUFSIZ] = {'\0'};
+    snprintf(string_buf, BUFSIZ, "%u\n", i);
+    print(string_buf);
+}
+
 std::unordered_set<Data, Hasher> server_data_map = {};
+
 
 /* Suppose Remote Attestation is done, any untrusted applications cannot see this shared key. */
 sgx_aes_ctr_128bit_key_t SHARED_KEY = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -83,7 +90,7 @@ sgx_aes_ctr_128bit_key_t SHARED_KEY = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 sgx_status_t upload_server_data(const uint64_t *server_data, size_t server_data_size)
 {
     sgx_status_t ret;
-    print("[SGX] upload_server_data\n");
+    // print("[SGX] upload_server_data\n");
 
     for (int i=0; i<server_data_size/2; i++) {
         Data data { server_data[2*i], server_data[2*i+1] };
@@ -94,6 +101,9 @@ sgx_status_t upload_server_data(const uint64_t *server_data, size_t server_data_
         // print(std::to_string(i).c_str());
         // print("\n");
     }
+
+    print("[SGX] server_data_map length: ");
+    printInt(server_data_map.size());
 
     return ret;
 }
@@ -107,9 +117,17 @@ sgx_status_t upload_and_psi(const uint8_t *client_data_buf, size_t client_data_b
     uint8_t counter_block[16] = {0};
     uint32_t ctr_inc_bits = SGXSSL_CTR_BITS;
     uint8_t *decrypted_buf = (uint8_t*)malloc(sizeof(uint8_t)* client_data_buf_size);
+
+    if ((decrypted_buf == NULL))
+	{
+        print("This is invalid");
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
     ret = sgx_aes_ctr_decrypt(&SHARED_KEY, client_data_buf, client_data_buf_size, counter_block, ctr_inc_bits, decrypted_buf);
     if (ret != SGX_SUCCESS) {
         free(decrypted_buf);
+        print("[SGX] error sgx_aes_ctr_decrypt: ");
+        printInt(ret);
         return ret;
     }
     // print("[SGX] decrypted buf\n");
@@ -134,6 +152,8 @@ sgx_status_t upload_and_psi(const uint8_t *client_data_buf, size_t client_data_b
             memcpy(result_buf +i, &f, sizeof(f));
         }
     }
+    print("[SGX] client_data_size length: ");
+    printInt(client_data_size);
     free(decrypted_buf);
 
     /* encryption */
