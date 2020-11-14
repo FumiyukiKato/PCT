@@ -56,8 +56,7 @@ def main():
     for i in range(client_size):
         print("\r" + "generate process (%d/%d)" % (i+1, client_size), end="")
         data_list = gen_soreppoi_trajectory(query_size)
-        byte = b''.join(data_list)
-        value = { "geodata": byte.hex(), "query_size": query_size, "query_id": current_id }
+        value = { "geodata": data_list, "query_size": query_size, "query_id": current_id }
         total_data_list.append(value)
         current_id = current_id + 1
 
