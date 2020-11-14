@@ -44,7 +44,7 @@ impl EncodedData {
             encoded_value_u8.copy_from_slice(v.as_bytes());
             set.insert(encoded_value_u8);
         }
-        println!("[UNTRUSTED] unique data size {}", set.len());
+        println!("Central data unique size {}", set.len());
         let vec: Vec<EncodedValue> = set.into_iter().collect();
         EncodedData { structure: vec }
     }
@@ -106,7 +106,7 @@ impl CentralFST {
             if (i+1) % threashould == 0 {
                 let bytes: Vec<u8> = Set::from_iter(ordered_vec)
                     .unwrap().as_ref().as_bytes().to_vec();
-                println!("[FSA] r_i size = {} bytes", bytes.len());
+                println!(" r_i (server side chunk data) size = {} bytes", bytes.len());
                 this.data.push(bytes);
                 ordered_vec = vec![];
             }
@@ -114,7 +114,7 @@ impl CentralFST {
         if ordered_vec.len() > 0 {
             let bytes = Set::from_iter(ordered_vec)
                 .unwrap().as_ref().as_bytes().to_vec();
-            println!("[FSA] r_i size = {} bytes", bytes.len());
+            println!(" r_i (server side chunk data) size = {} bytes", bytes.len());
             this.data.push(bytes);
         }
         this
@@ -217,11 +217,6 @@ pub struct ExternalDataJson {
 pub struct ExternalDataDetail {
     geohash: String,
     unixepoch: u64,
-}
-
-fn hex_string_to_u8(hex_string: &String) -> Vec<u8> {
-    let decoded = hex::decode(hex_string).expect("Decoding failed: Expect hex string!");
-    decoded
 }
 
 // 昇順ソート+ユニーク性，O(n^2)だけどサイズは小さいので気にしない

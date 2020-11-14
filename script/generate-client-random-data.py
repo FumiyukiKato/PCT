@@ -11,11 +11,6 @@ ACCURACY = 32
 GEOHASH_LEN = 10
 DISTRIBUTED = 60
 
-def generateMergeByteData(timestamp, geohash):
-    timestamp = timestamp.encode()
-    geohash = geohash.encode()
-    return timestamp + geohash
-
 def gen_from_uniform_distribution(length):
     geohash = [''] * (length)
     base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
@@ -27,7 +22,7 @@ def gen_from_uniform_distribution(length):
 
 def encode(geohash, start_unixepoch, unixepoch):
     diff = unixepoch - start_unixepoch
-    return (geohash + str(diff // DISTRIBUTED).zfill(4)).encode()
+    return (geohash + str(diff // DISTRIBUTED).zfill(4))
 
 def gen_trajectory(query_size):
     trajectory_data = []
@@ -46,15 +41,14 @@ def gen_trajectory(query_size):
 def main():
     current_id = 0
     query_size = 1440
-    client_size = 10000
+    client_size = 10
     
     json_data = cl.OrderedDict()
     total_data_list = []
     for i in range(client_size):
         print("\r" + "generate process (%d/%d)" % (i+1, client_size), end="")
         data_list = gen_trajectory(query_size)
-        byte = b''.join(data_list)
-        value = { "geodata": byte.hex(), "query_size": query_size, "query_id": current_id }
+        value = { "geodata": data_list, "query_size": query_size, "query_id": current_id }
         total_data_list.append(value)        
         current_id += 1
 

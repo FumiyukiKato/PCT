@@ -11,11 +11,6 @@ ACCURACY = 20
 GEOHASH_LEN = 9
 DISTRIBUTED = 600
 
-def generateMergeByteData(timestamp, geohash):
-    timestamp = timestamp.encode()
-    geohash = geohash.encode()
-    return timestamp + geohash
-
 # 少しそれっぽいデータを生成する
 def gen_soreppoi_geohash(length):
     geohash = [''] * (length-1)

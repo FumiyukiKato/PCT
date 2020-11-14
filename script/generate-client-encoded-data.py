@@ -11,11 +11,6 @@ ACCURACY = 20
 GEOHASH_LEN = 9
 DISTRIBUTED = 600
 
-def generateMergeByteData(timestamp, geohash):
-    timestamp = timestamp.encode()
-    geohash = geohash.encode()
-    return timestamp + geohash
-
 # 少しそれっぽいデータを生成する
 def gen_soreppoi_geohash(length):
     geohash = [''] * (length-1)
@@ -48,7 +43,7 @@ def gen_soreppoi_trajectory(query_size):
         # 10分ごとに30%の確率でランダムに移動
         if random.random() < 0.3:
             soreppoi_geohash = gen_soreppoi_geohash(GEOHASH_LEN)
-        soreppoi_query.append(encode(soreppoi_geohash, start_int, int(dt.timestamp())).encode())
+        soreppoi_query.append(encode(soreppoi_geohash, start_int, int(dt.timestamp())))
     
     return soreppoi_query
 

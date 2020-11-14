@@ -11,11 +11,6 @@ ACCURACY = 32
 GEOHASH_LEN = 10
 DISTRIBUTED = 60
 
-def generateMergeByteData(timestamp, geohash):
-    timestamp = timestamp.encode()
-    geohash = geohash.encode()
-    return timestamp + geohash
-
 def gen_from_uniform_distribution(length):
     geohash = [''] * (length)
     base32 = '0123456789bcdefghjkmnpqrstuvwxyz'

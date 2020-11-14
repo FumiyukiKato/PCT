@@ -104,7 +104,7 @@ pub extern "C" fn upload_encoded_query_data(
     let start = Instant::now();
     _init_encoded_buffers();
     let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "init_buffers", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "buffers initialize", end.as_secs(), end.subsec_nanos() / 1_000);
 
     let start = Instant::now();
     let total_query_data_vec: Vec<u8> = unsafe {
@@ -121,22 +121,22 @@ pub extern "C" fn upload_encoded_query_data(
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
     let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "reading?", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "reading", end.as_secs(), end.subsec_nanos() / 1_000);
 
     let start = Instant::now();
     let mut query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
     query_buffer.build_query_buffer(total_query_data_vec, query_id_list_vec);
     let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "build_query_buffer", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "load queies in enclave", end.as_secs(), end.subsec_nanos() / 1_000);
 
     let start = Instant::now();
     let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
     mapped_query_buffer.mapping(&query_buffer);
     let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "mapping to Q", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "merge queries to Q", end.as_secs(), end.subsec_nanos() / 1_000);
 
     let end = whole_start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
+    // println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
     
     sgx_status_t::SGX_SUCCESS
 }

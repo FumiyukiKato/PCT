@@ -3,10 +3,6 @@ use std::fs::File;
 use std::io::BufReader;
 use hex;
 
-pub const UNIXEPOCH_U8_SIZE: usize = 10;
-pub const GEOHASH_U8_SIZE: usize = 10;
-pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
-
 pub const ENCODED_QUERY_SIZE: usize = 14;
 
 // バファリングするクエリはせいぜい10000なので64bitで余裕
@@ -52,8 +48,13 @@ impl EncodedQueryData {
     }
 
     pub fn total_data_to_u8(&self) -> Vec<u8> {
-        let str_list: Vec<String> = self.data.iter().map(|detail| detail.geodata.clone()).collect();
-        hex_string_to_u8(&str_list.join(""))
+        let mut str_list: Vec<String> = Vec::with_capacity(self.client_size*1000);
+        self.data.iter().for_each(|detail| {
+            for v in detail.geodata.iter() {
+                str_list.push(v.clone());
+            }
+        });
+        return Vec::<u8>::from(str_list.join("").as_bytes());
     }
 
     pub fn query_id_list(&self) -> Vec<u64> {
@@ -64,6 +65,6 @@ impl EncodedQueryData {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EncodedQueryDataDetail {
     query_id: QueryId,
-    geodata: String,
+    geodata: Vec<String>,
     query_size: usize,
 }

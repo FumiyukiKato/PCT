@@ -56,7 +56,7 @@ const RESPONSE_DATA_SIZE_U8: usize = 9;
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 4 {
-        println!("[UNTRUSTED] ERROR bin/app needs 4 arguments!");
+        println!(" ERROR bin/app needs 4 arguments!");
         println!("    args[0] = threashold");
         println!("    args[1] = query data file path");
         println!("    args[2] = central data file path");
@@ -90,14 +90,15 @@ fn encodedHasing() {
     clocker.stop("Distribute central data");
 
     /* initialize enclave */
+    println!("init_enclave...");
     clocker.set_and_start("ECALL init_enclave");
     let enclave = match init_enclave() {
         Ok(r) => {
-            println!("[UNTRUSTED] Init Enclave Successful {}!", r.geteid());
+            // println!(" Init Enclave Successful {}!", r.geteid());
             r
         },
         Err(x) => {
-            println!("[UNTRUSTED] Init Enclave Failed {}!", x.as_str());
+            println!(" Init Enclave Failed {}!", x.as_str());
             return;
         },
     };
@@ -123,7 +124,7 @@ fn encodedHasing() {
     };
     match result {
         sgx_status_t::SGX_SUCCESS => {
-            println!("[UNTRUSTED] upload_query_data Succes!");
+            // println!("[UNTRUSTED] upload_query_data Succes!");
         },
         _ => {
             println!("[UNTRUSTED] upload_query_data Failed {}!", result.as_str());
@@ -190,7 +191,7 @@ fn encodedHasing() {
             positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
-    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
+    println!("positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
@@ -230,10 +231,11 @@ fn finiteStateTranducer() {
     clocker.stop("Distribute central data");
 
     /* initialize enclave */
+    println!("init_enclave...");
     clocker.set_and_start("ECALL init_enclave");
     let enclave = match init_enclave() {
         Ok(r) => {
-            println!("[UNTRUSTED] Init Enclave Successful {}!", r.geteid());
+            // println!("[UNTRUSTED] Init Enclave Successful {}!", r.geteid());
             r
         },
         Err(x) => {
@@ -263,7 +265,7 @@ fn finiteStateTranducer() {
     };
     match result {
         sgx_status_t::SGX_SUCCESS => {
-            println!("[UNTRUSTED] upload_query_data Succes!");
+            // println!("[UNTRUSTED] upload_query_data Succes!");
         },
         _ => {
             println!("[UNTRUSTED] upload_query_data Failed {}!", result.as_str());
@@ -330,7 +332,7 @@ fn finiteStateTranducer() {
             positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
         }
     }
-    println!("[UNTRUSTED] positive result queryIds: {:?}", positive_queries);
+    println!("positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
