@@ -44,25 +44,6 @@
 
 #define SGXSSL_CTR_BITS	128
 
-
-struct Data {
-    uint64_t value1;
-    uint64_t value2;
-
-    bool operator==(const Data& d) const
-    {
-        return value1 == d.value1 && value2 == d.value2;
-    }
-};
-
-struct Hasher {
-    size_t operator()(const Data& k) const {
-        std::string str = std::to_string(k.value1) + "_" + std::to_string(k.value2);
-        std::hash<std::string> h;
-        return h(str);
-    }
-};
-
 void printByteArray(const uint8_t *arr, size_t size) {
     for (int i = 0; i < size; ++i) {
         char string_buf[8192] = {'\0'};
@@ -102,6 +83,8 @@ sgx_status_t upload_server_data(const uint64_t *server_data, size_t server_data_
         // print(string_buf);
         // print(std::to_string(i).c_str());
         // print("\n");
+
+
     }
 
     print("[SGX] server_data_map length: ");

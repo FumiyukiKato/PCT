@@ -1,12 +1,13 @@
 #include <vector>
- 
+#include "Data.cpp"
 
 class BloomFilter {
 public:
   BloomFilter(uint64_t size, uint8_t numHashes);
  
-  void add(const uint8_t *data, std::size_t len);
-  bool possiblyContains(const uint8_t *data, std::size_t len) const;
+  void add(const Data *data);
+  bool possiblyContains(const Data *data) const;
+  float prob(float num);
  
 private:
   uint8_t m_numHashes;

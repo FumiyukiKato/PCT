@@ -406,7 +406,7 @@ int serverProcess(int setSize) {
     std::random_device rd;
     std::mt19937 mt(rd());
     for (uint64_t i = 0; i < setSize; i++)  {
-        set[i] = Data { mt(), mt() };
+        set[i] = Data { 0, i };
         // set[i] = Data { 0, mt() };
         // std::cout << "server data: " << set[i].value1 << " " << set[i].value2 << std::endl;
     }
@@ -420,7 +420,7 @@ int serverProcess(int setSize) {
         getchar();
         return -1; 
     }
-
+    std::cout << "initilize enclave done" << std::endl;
 
     /* upload server data to sgx */
     size_t server_data_size = setSize*2;
@@ -441,6 +441,7 @@ int serverProcess(int setSize) {
         return -1;
     }
     free(server_data);
+    std::cout << "server data uploaded" << std::endl;
 
 
     /* listen socket */
@@ -582,14 +583,14 @@ int serverProcess(int setSize) {
 }
 
 int clientProcess(int setSize) {
-    usleep(200000000);
+    usleep(1000000000);
     
     /* generate_data */
     std::vector<Data> set(setSize);
     std::random_device rd;
     std::mt19937 mt(rd());
     for (uint64_t i = 0; i < setSize; ++i) {
-        set[i] = Data { mt(), mt() };
+        set[i] = Data { 0, mt() };
         // set[i] = Data { 0, i };
         // std::cout << "client data: " << set[i].value1 << " " << set[i].value2 << std::endl;
     }
@@ -778,12 +779,14 @@ int clientProcess(int setSize) {
 int main(int argc, char *argv[])
 {
     size_t setSize = 0;
-    if (argc < 1) {
+    if (argc <= 1) {
         std::cout << "Usage: ./app server_size client_size" << std::endl;
+        exit(0);
     }
-    if (argc == 2) {
+    if (argc >= 2) {
         setSize = atoi(argv[1]);
     }
+    size_t client_size = setSize;
     
     auto thrd = std::thread([&]()
     {
@@ -793,11 +796,11 @@ int main(int argc, char *argv[])
             exit(0);
         }
     });
-
+    
     if (argc == 3) {
-        setSize = atoi(argv[2]);
+        client_size = atoi(argv[2]);
     }
-
-    clientProcess(setSize);
+    
+    clientProcess(client_size);
     thrd.join();
 }
