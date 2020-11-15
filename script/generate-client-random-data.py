@@ -41,7 +41,7 @@ def gen_trajectory(query_size):
 def main():
     current_id = 0
     query_size = 1440
-    client_size = 10
+    client_size = 1
     
     json_data = cl.OrderedDict()
     total_data_list = []

@@ -27,9 +27,11 @@ extern crate sgx_trts;
 #[macro_use]
 extern crate sgx_tstd as std;
 extern crate sgx_fst as fst;
+extern crate sgx_tcrypto;
 extern crate bincode;
 
 use sgx_types::*;
+use sgx_tcrypto::*;
 use std::vec::Vec;
 use std::cell::RefCell;
 use std::slice;
@@ -123,9 +125,39 @@ pub extern "C" fn upload_encoded_query_data(
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "reading", end.as_secs(), end.subsec_nanos() / 1_000);
 
+    /* decryption */
+    let start = Instant::now();
+    pub const COUNTER_BLOCK: [u8; 16] = [0; 16];
+    pub const SGXSSL_CTR_BITS: u32 = 128;
+    pub const QUERY_BYTES: usize = QUERY_SIZE*ENCODEDVALUE_SIZE;
+
+    let mut decrypted_query_data_vec: Vec<u8> = vec![0; total_query_data_vec.len()];
+    
+    for (i, query_id) in query_id_list_vec.iter().enumerate() {
+        let counter_block: [u8; 16] = COUNTER_BLOCK;
+        let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
+
+        // Originally shared_key is derived by following Remote Attestation protocol.
+        // This is mock of shared key-based encryption.
+        let mut shared_key: [u8; 16] = [0; 16];
+        shared_key[..8].copy_from_slice(&query_id.to_be_bytes());
+        let current_cursor = i*QUERY_BYTES;
+        let ret = rsgx_aes_ctr_decrypt(
+            &shared_key,
+            &total_query_data_vec[current_cursor..current_cursor+QUERY_BYTES],
+            &counter_block,
+            ctr_inc_bits,
+            &mut decrypted_query_data_vec[current_cursor..current_cursor+QUERY_BYTES]
+        );
+        match ret { Ok(()) => {}, Err(_) => { return sgx_status_t::SGX_ERROR_UNEXPECTED; } }    
+    }
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "decryption", end.as_secs(), end.subsec_nanos() / 1_000);
+
+
     let start = Instant::now();
     let mut query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
-    query_buffer.build_query_buffer(total_query_data_vec, query_id_list_vec);
+    query_buffer.build_query_buffer(decrypted_query_data_vec, query_id_list_vec);
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "load queies in enclave", end.as_secs(), end.subsec_nanos() / 1_000);
 

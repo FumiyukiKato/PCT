@@ -41,6 +41,7 @@ impl EncodedData {
         let mut set: HashSet<EncodedValue> = HashSet::with_capacity(100000);
         for v in data.data.iter() {
             let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+            // ascii-code
             encoded_value_u8.copy_from_slice(v.as_bytes());
             set.insert(encoded_value_u8);
         }

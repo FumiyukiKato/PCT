@@ -18,6 +18,7 @@ bincode = { git = "https://github.com/mesalock-linux/bincode-sgx.git" }
 sgx_types = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_tstd = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_trts = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
+sgx_tcrypto = { git = "https://github.com/apache/rust-sgx-sdk.git" }
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
 sgx_alloc = { path = "../../../sgx_alloc" }
 sgx_build_helper = { path = "../../../sgx_build_helper" }

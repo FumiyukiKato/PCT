@@ -17,7 +17,15 @@
 
 use std::env;
 
+extern crate cc;
+
 fn main () {
+    cc::Build::new()
+        .cpp(true)
+        .warnings(true)
+        .file("src/cpp/encryption.cpp")
+        .cpp_link_stdlib("crypto")
+        .compile("encryption");
 
     let sdk_dir = env::var("SGX_SDK")
                     .unwrap_or_else(|_| "/opt/intel/sgxsdk".to_string());
