@@ -6,6 +6,14 @@ use sgx_types::*;
 
 pub type sgx_aes_ctr_128bit_key_t = [uint8_t; 16];
 extern "C" {
+    pub fn sgx_aes_ctr_decrypt(
+        p_key: *const sgx_aes_ctr_128bit_key_t,
+        p_src: *const uint8_t,
+        src_len: uint32_t,
+        p_ctr: *const uint8_t,
+        ctr_inc_bits: uint32_t,
+        p_dst: *mut uint8_t) -> u32;
+        
     pub fn sgx_aes_ctr_encrypt(
         p_key: *const sgx_aes_ctr_128bit_key_t,
         p_src: *const uint8_t,
@@ -94,7 +102,7 @@ fn encryptAsSecureChannel(detail: &EncodedQueryDataDetail) -> Vec<u8> {
         )
     };
     if ret < 0 {
-        println!("Error in CTR ecryption.");
+        println!("Error in CTR encryption.");
         std::process::exit(-1);
     }
     encrypted_buf

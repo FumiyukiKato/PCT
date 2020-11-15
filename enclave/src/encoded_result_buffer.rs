@@ -14,8 +14,8 @@ impl EncodedResultBuffer {
         EncodedResultBuffer::default()
     }
 
-    // matchがネストして読みにくくなってしまっている
-    // メソッドチェーンでもっと関数型っぽく書けば読みやすくなりそうではある
+    // reposne format
+    // query.id(8byte) + reuslt(0or1 1byte)
     pub fn build_query_response(
         &self,
         query_buffer: &EncodedQueryBuffer,

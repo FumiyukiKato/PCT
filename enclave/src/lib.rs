@@ -127,9 +127,6 @@ pub extern "C" fn upload_encoded_query_data(
 
     /* decryption */
     let start = Instant::now();
-    pub const COUNTER_BLOCK: [u8; 16] = [0; 16];
-    pub const SGXSSL_CTR_BITS: u32 = 128;
-    pub const QUERY_BYTES: usize = QUERY_SIZE*ENCODEDVALUE_SIZE;
 
     let mut decrypted_query_data_vec: Vec<u8> = vec![0; total_query_data_vec.len()];
     
@@ -152,14 +149,15 @@ pub extern "C" fn upload_encoded_query_data(
         match ret { Ok(()) => {}, Err(_) => { return sgx_status_t::SGX_ERROR_UNEXPECTED; } }    
     }
     let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "decryption", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "decrypt each queries", end.as_secs(), end.subsec_nanos() / 1_000);
 
 
+    /* for more optiizaton this part can be conducted in decryption phase together, but to measure each part */
     let start = Instant::now();
     let mut query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
     query_buffer.build_query_buffer(decrypted_query_data_vec, query_id_list_vec);
     let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "load queies in enclave", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "store queies", end.as_secs(), end.subsec_nanos() / 1_000);
 
     let start = Instant::now();
     let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
@@ -195,9 +193,7 @@ fn _init_encoded_buffers() {
 }
 
 /*
-ロジック部分
-    chunk分割は呼び出し側に任せる
-    ResultBufferを作るところまでが責務
+    Private set intersectino
 */
 #[no_mangle]
 pub extern "C" fn private_encode_contact_trace(
@@ -220,26 +216,47 @@ pub extern "C" fn private_encode_contact_trace(
     sgx_status_t::SGX_SUCCESS
 }
 
-// ResultBufferからQueryResultを組み立てて返す
+// Response construction
 #[no_mangle]
 pub extern "C" fn get_encoded_result(
     response: *mut u8,
     response_size: usize,
 ) -> sgx_status_t {
-    // println!("[SGX] get_result start");
-
     let result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
     let query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
     let mut response_vec: Vec<u8> = Vec::with_capacity(response_size);
 
     result_buffer.build_query_response(&query_buffer, &mut response_vec);
-    let slice = response_vec.as_mut_slice();
+
+    /* encryption */
+    let mut encrypted_response_vec: Vec<u8> = response_vec.clone();
+    for (i, query_rep) in query_buffer.queries.iter().enumerate() {
+        let counter_block: [u8; 16] = COUNTER_BLOCK;
+        let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
+
+        // Originally shared_key is derived by following Remote Attestation protocol.
+        // This is mock of shared key-based encryption.
+        let mut shared_key: [u8; 16] = [0; 16];
+        shared_key[..8].copy_from_slice(&query_rep.id.to_be_bytes());
+        let current_cursor = i*RESPONSE_DATA_SIZE_U8;
+        
+        // Encrypt only sensitive part, result. query_id should not be encrypted.
+        let ret = rsgx_aes_ctr_encrypt(
+            &shared_key,
+            &response_vec[current_cursor+QUERY_ID_SIZE_U8..current_cursor+RESPONSE_DATA_SIZE_U8],
+            &counter_block,
+            ctr_inc_bits,
+            &mut encrypted_response_vec[current_cursor+QUERY_ID_SIZE_U8..current_cursor+RESPONSE_DATA_SIZE_U8]
+        );
+        match ret { Ok(()) => {}, Err(_) => { return sgx_status_t::SGX_ERROR_UNEXPECTED; } }    
+    }
+
+    let slice = encrypted_response_vec.as_mut_slice();
     unsafe {
         for i in 0..response_size {
             *response.offset(i as isize) = slice[i];
         }
     }
-    
-    // println!("[SGX] get_result succes!");
+
     sgx_status_t::SGX_SUCCESS
 }

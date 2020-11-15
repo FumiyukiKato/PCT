@@ -23,3 +23,9 @@ pub const QUERY_SIZE: usize = 1440;
 
 // for optimization
 pub const CLIENT_SIZE: usize = 4500;
+
+
+// for secure channel encryption
+pub const COUNTER_BLOCK: [u8; 16] = [0; 16];
+pub const SGXSSL_CTR_BITS: u32 = 128;
+pub const QUERY_BYTES: usize = QUERY_SIZE*ENCODEDVALUE_SIZE;

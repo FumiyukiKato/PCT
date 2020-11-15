@@ -44,8 +44,9 @@ use central_data::*;
 mod util;
 use util::*;
 
-const RESPONSE_DATA_SIZE_U8: usize = 9;
-
+pub const QUERY_ID_SIZE_U8: usize = 8;
+pub const QUERY_RESULT_U8: usize = 1;
+pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 
 /*
     args[0] = threashold
@@ -187,8 +188,8 @@ fn encodedHasing() {
     
     let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
-        if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
+        if response[i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8] == 1 {
+            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8]));
         }
     }
     println!("positive result queryIds: {:?}", positive_queries);
@@ -328,8 +329,27 @@ fn finiteStateTranducer() {
     
     let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
-        if response[i*RESPONSE_DATA_SIZE_U8+8] == 1 {
-            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+8]));
+        /* decryption for each clients using their keys */ 
+        let query_id: QueryId = query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8]);
+        let mut shared_key: [u8; 16] = [0; 16];
+        shared_key[..8].copy_from_slice(&query_id.to_be_bytes());
+        let counter_block: [u8; 16] = COUNTER_BLOCK;
+        let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
+        let src_len: usize = QUERY_RESULT_U8;
+        let mut result: Vec<u8> = vec![0; src_len];
+        let ret = unsafe {
+            query_data::sgx_aes_ctr_decrypt(
+                &shared_key,
+                response[i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+RESPONSE_DATA_SIZE_U8].as_ptr() as *const u8,
+                src_len as u32,
+                &counter_block as * const u8,
+                ctr_inc_bits,
+                result.as_mut_ptr()
+            )
+        };
+        if ret < 0 { println!("Error in CTR decryption."); std::process::exit(-1); }
+        if result[0] > 0 {
+            positive_queries.push(query_id);
         }
     }
     println!("positive result queryIds: {:?}", positive_queries);
