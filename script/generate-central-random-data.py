@@ -17,6 +17,20 @@ SIZE = 10000
 # method = "gp"
 method = "th"
 
+BASE8 = {
+    '000': '0',
+    '001': '1',
+    '010': '2',
+    '011': '3',
+    '100': '4',
+    '101': '5',
+    '110': '6',
+    '111': '7',
+} 
+def base8Encoding(binary):
+    return ''.join([ BASE8.get("".join(binary[i:i+3])) for i in range(0, len(binary), 3)])
+
+
 def gen_from_uniform_distribution(length):
     geohash = [''] * (length)
     base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
@@ -52,7 +66,8 @@ def get_trajectory_by_th(query_size):
         r1 = random.randint(0, max_int)
         r2 = random.randint(0, max_int)
         r3 = random.randint(0, max_int)
-        trajectory_data.append(zeroPadding(bin(r1)[2:], max_len) + zeroPadding(bin(r2)[2:], max_len) + zeroPadding(bin(r3)[2:], max_len))
+        binary = zeroPadding(bin(r1)[2:], max_len) + zeroPadding(bin(r2)[2:], max_len) + zeroPadding(bin(r3)[2:], max_len)        
+        trajectory_data.append(base8Encoding(binary))
     return trajectory_data
 
 def zeroPadding(binaryStr, maxlength):

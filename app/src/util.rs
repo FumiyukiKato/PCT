@@ -1,7 +1,34 @@
 use std::fs::File;
 use std::io::{Write};
+use sgx_types::*;
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
+
+// pub const ENCODEDVALUE_SIZE: usize = 14;
+pub const ENCODEDVALUE_SIZE: usize = 6;
+
+pub const SGXSSL_CTR_BITS: u32 = 128;
+pub const COUNTER_BLOCK: [u8; 16] = [0; 16];
+
+
+pub type sgx_aes_ctr_128bit_key_t = [uint8_t; 16];
+extern "C" {
+    pub fn sgx_aes_ctr_decrypt(
+        p_key: *const sgx_aes_ctr_128bit_key_t,
+        p_src: *const uint8_t,
+        src_len: uint32_t,
+        p_ctr: *const uint8_t,
+        ctr_inc_bits: uint32_t,
+        p_dst: *mut uint8_t) -> u32;
+        
+    pub fn sgx_aes_ctr_encrypt(
+        p_key: *const sgx_aes_ctr_128bit_key_t,
+        p_src: *const uint8_t,
+        src_len: uint32_t,
+        p_ctr: *const uint8_t,
+        ctr_inc_bits: uint32_t,
+        p_dst: *mut uint8_t) -> u32;
+}
 
 #[derive(Clone, Default, Debug)]
 pub struct Clocker<'a> {
@@ -95,3 +122,52 @@ pub fn query_id_from_u8(query_id: &[u8]) -> u64 {
     array.copy_from_slice(query_id);
     u64::from_be_bytes(array)
 }
+
+
+pub fn base8decode(base8: String) -> Vec<u8> {
+    let mut bitvec: Vec<u8> = vec![];
+    let mut vec: Vec<u8> = vec![];
+    for i in base8.as_bytes().iter() {
+        bitvec.extend(base8map(*i));
+    }
+    // padding
+    if bitvec.len() % 8 > 0 { 
+        for i in 0..(8 - bitvec.len() % 8) {
+            bitvec.push(0b0)
+        }
+    }
+    assert_eq!(bitvec.len() % 8, 0);
+    for i in 0..(bitvec.len() / 8) {
+        vec.push(bitVecToByte(&bitvec[i*8..(i+1)*8]));
+    }
+    vec
+}
+
+fn bitVecToByte(bitvec: &[u8]) -> u8 {
+    assert_eq!(bitvec.len() % 8, 0);
+    let byte: u8 = 
+        bitvec[7] * 128 +
+        bitvec[6] * 64  +
+        bitvec[5] * 32  +
+        bitvec[4] * 16  +
+        bitvec[3] * 8   +
+        bitvec[2] * 4   +
+        bitvec[1] * 2   +
+        bitvec[0] * 1   ;
+    byte
+}
+
+fn base8map(byte: u8) -> Vec<u8> {
+    return match byte {
+        48 => vec![ 0b0, 0b0, 0b0 ], // 0
+        49 => vec![ 0b0, 0b0, 0b1 ], // 1
+        50 => vec![ 0b0, 0b1, 0b0 ], // 2
+        51 => vec![ 0b0, 0b1, 0b1 ], // 3
+        52 => vec![ 0b1, 0b0, 0b0 ], // 4
+        53 => vec![ 0b1, 0b0, 0b1 ], // 5
+        54 => vec![ 0b1, 0b1, 0b0 ], // 6
+        55 => vec![ 0b1, 0b1, 0b1 ], // 7
+        _ => panic!("decode error!"),
+    }
+}
+

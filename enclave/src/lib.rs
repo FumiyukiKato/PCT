@@ -128,8 +128,7 @@ pub extern "C" fn upload_encoded_query_data(
     /* decryption */
     let start = Instant::now();
 
-    let mut decrypted_query_data_vec: Vec<u8> = vec![0; total_query_data_vec.len()];
-    
+    let mut decrypted_query_data_vec: Vec<u8> = vec![1; total_query_data_vec.len()];
     for (i, query_id) in query_id_list_vec.iter().enumerate() {
         let counter_block: [u8; 16] = COUNTER_BLOCK;
         let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;

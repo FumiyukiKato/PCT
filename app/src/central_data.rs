@@ -6,15 +6,13 @@ use std::vec::Vec;
 use std::collections::HashSet;
 use fst::{Set};
 use bincode;
+use util::*;
 
 
 /* Type Period */
 pub type UnixEpoch = u64;
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
-const GEOHASH_U8_SIZE: usize = 10;
-const TIMEHASH_U8_SIZE: usize = 4;
-const ENCODEDVALUE_SIZE: usize = GEOHASH_U8_SIZE + TIMEHASH_U8_SIZE;
 
 /* TrajectoryTrie
     チャンク化しない
@@ -33,17 +31,27 @@ impl EncodedData {
         }
     }
 
-    pub fn read_raw_from_file(filename: &str) -> Self {
+    pub fn read_raw_from_file(filename: &str, method: &str) -> Self {
         let file = File::open(filename).unwrap();
         let reader = BufReader::new(file);
         let data: ExternalEncodedDataJson = serde_json::from_reader(reader).unwrap();
         
         let mut set: HashSet<EncodedValue> = HashSet::with_capacity(100000);
-        for v in data.data.iter() {
-            let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
-            // ascii-code
-            encoded_value_u8.copy_from_slice(v.as_bytes());
-            set.insert(encoded_value_u8);
+        if method == "th" {
+            for v in data.data.iter() {
+                let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+                encoded_value_u8.copy_from_slice(base8decode(v.to_string()).as_slice());
+                set.insert(encoded_value_u8);
+            }
+        } else if method == "gp" {
+            for v in data.data.iter() {
+                let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+                // ascii-code
+                encoded_value_u8.copy_from_slice(v.as_bytes());
+                set.insert(encoded_value_u8);
+            }    
+        } else {
+            panic!("method is nothing.")
         }
         println!("Central data unique size {}", set.len());
         let vec: Vec<EncodedValue> = set.into_iter().collect();

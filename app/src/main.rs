@@ -56,18 +56,20 @@ pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 */
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
-    if args.len() != 4 {
+    if args.len() != 5 {
         println!(" ERROR bin/app needs 4 arguments!");
         println!("    args[0] = threashold");
         println!("    args[1] = query data file path");
         println!("    args[2] = central data file path");
-        println!("    args[3] = result file output (false or true)");
+        println!("    args[3] = encoding method (gp or th)");
+        println!("    args[4] = result file output (false or true)");
         std::process::exit(-1);
     }
     args
 }
 
 fn main() {
+    // encodedHasing();
     finiteStateTranducer();
 }
 
@@ -77,12 +79,13 @@ fn encodedHasing() {
     let threashould: usize = args[0].parse().unwrap();
     let q_filename = &args[1];
     let c_filename = &args[2];
+    let method = &args[3];
 
     let mut clocker = Clocker::new();
 
     /* read central data */
     clocker.set_and_start("Read Central Data");
-    let external_data = EncodedData::read_raw_from_file(c_filename);
+    let external_data = EncodedData::read_raw_from_file(c_filename, method);
     clocker.stop("Read Central Data");
 
     /* preprocess central data */
@@ -110,15 +113,16 @@ fn encodedHasing() {
     let query_data = EncodedQueryData::read_raw_from_file(q_filename);
     clocker.stop("Read Query Data");
 
-    /* upload query data */
+    /* encrypt and upload query data */
+    let total_data_vec = query_data.total_data_to_u8();
     clocker.set_and_start("ECALL upload_query_data");
     let mut retval = sgx_status_t::SGX_SUCCESS;
     let result = unsafe {
         upload_encoded_query_data(
             enclave.geteid(),
             &mut retval,
-            query_data.total_data_to_u8().as_ptr() as * const u8,
-            query_data.total_size(),
+            total_data_vec.as_ptr() as * const u8,
+            total_data_vec.len(),
             query_data.client_size,
             query_data.query_id_list().as_ptr() as * const u64
         )
@@ -188,8 +192,27 @@ fn encodedHasing() {
     
     let mut positive_queries = vec![];
     for i in 0..query_data.client_size {
-        if response[i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8] == 1 {
-            positive_queries.push(query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8]));
+        /* decryption for each clients using their keys */ 
+        let query_id: QueryId = query_id_from_u8(&response[i*RESPONSE_DATA_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8]);
+        let mut shared_key: [u8; 16] = [0; 16];
+        shared_key[..8].copy_from_slice(&query_id.to_be_bytes());
+        let counter_block: [u8; 16] = COUNTER_BLOCK;
+        let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
+        let src_len: usize = QUERY_RESULT_U8;
+        let mut result: Vec<u8> = vec![0; src_len];
+        let ret = unsafe {
+            util::sgx_aes_ctr_decrypt(
+                &shared_key,
+                response[i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+RESPONSE_DATA_SIZE_U8].as_ptr() as *const u8,
+                src_len as u32,
+                &counter_block as * const u8,
+                ctr_inc_bits,
+                result.as_mut_ptr()
+            )
+        };
+        if ret < 0 { println!("Error in CTR decryption."); std::process::exit(-1); }
+        if result[0] > 0 {
+            positive_queries.push(query_id);
         }
     }
     println!("positive result queryIds: {:?}", positive_queries);
@@ -198,7 +221,7 @@ fn encodedHasing() {
     enclave.destroy();
     // println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
-    if args[3] == "true".to_string() {
+    if args[4] == "true".to_string() {
         let now: String = get_timestamp();
         write_to_file(
             format!("data/result/result-{}-encodedHasing.txt", now),
@@ -218,12 +241,13 @@ fn finiteStateTranducer() {
     let threashould: usize = args[0].parse().unwrap();
     let q_filename = &args[1];
     let c_filename = &args[2];
+    let method = &args[3];
 
     let mut clocker = Clocker::new();
 
     /* read central data */
     clocker.set_and_start("Read Central Data");
-    let external_data = EncodedData::read_raw_from_file(c_filename);
+    let external_data = EncodedData::read_raw_from_file(c_filename, method);
     clocker.stop("Read Central Data");
 
     /* preprocess central data */
@@ -251,15 +275,16 @@ fn finiteStateTranducer() {
     let query_data = EncodedQueryData::read_raw_from_file(q_filename);
     clocker.stop("Read Query Data");
 
-    /* upload query data */
+    /* encrypt and upload query data */
+    let total_data_vec = query_data.total_data_to_u8();
     clocker.set_and_start("ECALL upload_query_data");
     let mut retval = sgx_status_t::SGX_SUCCESS;
     let result = unsafe {
         upload_encoded_query_data(
             enclave.geteid(),
             &mut retval,
-            query_data.total_data_to_u8().as_ptr() as * const u8,
-            query_data.total_size(),
+            total_data_vec.as_ptr() as * const u8,
+            total_data_vec.len(),
             query_data.client_size,
             query_data.query_id_list().as_ptr() as * const u64
         )
@@ -338,7 +363,7 @@ fn finiteStateTranducer() {
         let src_len: usize = QUERY_RESULT_U8;
         let mut result: Vec<u8> = vec![0; src_len];
         let ret = unsafe {
-            query_data::sgx_aes_ctr_decrypt(
+            util::sgx_aes_ctr_decrypt(
                 &shared_key,
                 response[i*RESPONSE_DATA_SIZE_U8+QUERY_ID_SIZE_U8..i*RESPONSE_DATA_SIZE_U8+RESPONSE_DATA_SIZE_U8].as_ptr() as *const u8,
                 src_len as u32,
@@ -358,7 +383,7 @@ fn finiteStateTranducer() {
     enclave.destroy();
     // println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
-    if args[3] == "true".to_string() {
+    if args[4] == "true".to_string() {
         let now: String = get_timestamp();
         write_to_file(
             format!("data/result/result-{}-finiteStateTranducer.txt", now),
