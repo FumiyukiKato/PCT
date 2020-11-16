@@ -43,9 +43,9 @@ impl EncodedQueryData {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EncodedQueryDataDetail {
-    query_id: QueryId,
-    geodata: Vec<String>,
-    query_size: usize,
+    pub query_id: QueryId,
+    pub geodata: Vec<String>,
+    pub query_size: usize,
 }
 
 fn encryptAsSecureChannel(detail: &EncodedQueryDataDetail) -> Vec<u8> {

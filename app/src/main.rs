@@ -24,12 +24,10 @@ extern crate bincode;
 extern crate hex;
 
 use std::env;
-
+use std::collections::HashSet;
 use sgx_types::*;
-
 mod query_data;
 use query_data::*;
-
 // ecallsはnamedで呼び出す
 mod ecalls;
 use ecalls::{ 
@@ -37,13 +35,10 @@ use ecalls::{
     init_enclave,
     private_encode_contact_trace, get_encoded_result
 };
-
 mod central_data;
 use central_data::*;
-
 mod util;
 use util::*;
-
 pub const QUERY_ID_SIZE_U8: usize = 8;
 pub const QUERY_RESULT_U8: usize = 1;
 pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
@@ -248,6 +243,106 @@ fn private_set_intersection() {
     );
 }
 
+fn non_private_set_intersection() {
+    let args = _get_options();
+    /* parameters */
+    let threashould: usize = args[0].parse().unwrap();
+    let q_filename = &args[1];
+    let c_filename = &args[2];
+
+    let mut clocker = Clocker::new();
+
+    /* read central data */
+    clocker.set_and_start("Read Central Data");
+    let external_data = EncodedData::read_raw_from_file(c_filename);
+    clocker.stop("Read Central Data");
+    let central_data_size = external_data.size();
+
+    /* preprocess central data */
+    clocker.set_and_start("Distribute central data");
+    #[cfg(feature = "hashtable")]
+    let mut R: NonPrivateHashSet = NonPrivateHashSet::from_EncodedData(external_data);
+    #[cfg(feature = "fsa")]
+    let mut R: NonPrivateFSA = NonPrivateFSA::from_EncodedData(external_data);
+    clocker.stop("Distribute central data");
+
+    R.calc_memory();
+
+    /* read query data */
+    clocker.set_and_start("Read Query Data");
+    let query_data = EncodedQueryData::read_raw_from_file(q_filename);
+    clocker.stop("Read Query Data");
+
+    let mut query_set: HashSet<EncodedValue> = HashSet::with_capacity(query_data.client_size*1440);
+    for detail in query_data.data.iter() {
+        for hash in detail.geodata.iter() {
+            let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+            #[cfg(any(feature = "th64", feature = "th48", feature = "th42", feature = "th36"))]
+            encoded_value_u8.copy_from_slice(base8decode(hash.to_string()).as_slice());
+            #[cfg(any(feature = "gp10"))]
+            encoded_value_u8.copy_from_slice(hash.as_bytes());
+            query_set.insert(encoded_value_u8);
+        }
+    }
+
+    /* main logic contact tracing */
+    clocker.set_and_start("Contact trace");
+    let mut reuslt: Vec<EncodedValue> = Vec::default();
+    for data in query_set.iter() {
+        if R.set.contains(data) {
+            reuslt.push(*data);
+        }
+    }
+    clocker.stop("Contact trace");
+
+    let mut positive_queries: HashSet<QueryId> = HashSet::default();
+    query_data.data.iter().for_each( |query| {
+        let query_id: QueryId = query.query_id;
+        let contact = query.geodata.iter().any(|hash| {
+            let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
+            #[cfg(any(feature = "th64", feature = "th48", feature = "th42", feature = "th36"))]
+            encoded_value_u8.copy_from_slice(base8decode(hash.to_string()).as_slice());
+            #[cfg(any(feature = "gp10"))]
+            encoded_value_u8.copy_from_slice(hash.as_bytes());
+            R.set.contains(&encoded_value_u8)
+        });
+        if contact {
+            positive_queries.insert(query_id);
+        }
+    });
+    println!("positive result queryIds: {:?}", positive_queries);
+    
+    clocker.show_all();
+    let now: String = get_timestamp();
+
+    #[cfg(feature = "th64")]
+    let method = "th64";
+    #[cfg(feature = "th48")]
+    let method = "th48";
+    #[cfg(feature = "th42")]
+    let method = "th42";
+    #[cfg(feature = "th36")]
+    let method = "th36";
+    #[cfg(feature = "gp10")]
+    let method = "gp10";
+    
+    let data_st = "non private hashtable";
+
+    write_to_file(
+        format!("data/result/result-{}.txt", now),
+        data_st.to_string(),
+        method.to_string(),
+        c_filename.to_string(),
+        central_data_size,
+        q_filename.to_string(),
+        query_data.client_size,
+        1440,
+        threashould,
+        clocker
+    );
+}
+
 fn main() {
-    private_set_intersection()
+    // private_set_intersection()
+    non_private_set_intersection()
 }

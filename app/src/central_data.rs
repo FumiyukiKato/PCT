@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use fst::{Set};
 use bincode;
 use util::*;
+use std::mem;
 
 
 /* Type Period */
@@ -17,7 +18,7 @@ pub const TIME_INTERVAL: u64 = 600;
 /* TrajectoryTrie
     チャンク化しない
 */
-type EncodedValue = [u8; ENCODEDVALUE_SIZE];
+pub type EncodedValue = [u8; ENCODEDVALUE_SIZE];
 
 #[derive(Clone, Default, Debug)]
 pub struct EncodedData {
@@ -176,6 +177,75 @@ impl CentralHashSet {
             this.data.push(bytes);
         }
         this
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct NonPrivateHashSet {
+    pub set: HashSet<EncodedValue>,
+}
+
+impl NonPrivateHashSet {
+    pub fn new() -> Self {
+        NonPrivateHashSet {
+            set: HashSet::default(),
+        }
+    }
+
+    pub fn from_EncodedData(encoded_data: EncodedData) -> Self {
+        let mut this = NonPrivateHashSet::new();
+        let mut encoded_value_vec = encoded_data.structure;
+
+        for (i, value) in encoded_value_vec.iter().enumerate() {
+            this.set.insert(*value);
+        }
+        this
+    }
+
+    pub fn calc_memory(&self) {
+        println!("HashTable size = {} bytes", (self.set.capacity() * 11 / 10) * (mem::size_of::<EncodedValue>() + mem::size_of::<()>() + mem::size_of::<u64>()));
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct FstValue { pub value: EncodedValue }
+
+impl FstValue {
+    pub fn new(vec: EncodedValue) -> Self {
+        FstValue { value: vec }
+    }
+}
+
+impl AsRef<[u8]> for FstValue {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        &self.value
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NonPrivateFSA {
+    pub set: Set<Vec<u8>>,
+}
+
+impl NonPrivateFSA {
+    pub fn new() -> Self {
+        NonPrivateFSA {
+            set: Set::from_iter(Vec::<FstValue>::new()).unwrap()
+        }
+    }
+
+    pub fn from_EncodedData(encoded_data: EncodedData) -> Self {
+        let mut this = NonPrivateHashSet::new();
+        let mut encoded_value_vec = encoded_data.structure;
+        encoded_value_vec.sort();
+        let mut this = NonPrivateFSA::new();
+        this.set = Set::from_iter(encoded_value_vec).unwrap();
+        this
+    }
+
+    pub fn calc_memory(&self) {
+        println!("FSA size = {} bytes", self.set.as_ref().size());
     }
 }
 
