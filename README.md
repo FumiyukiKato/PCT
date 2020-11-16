@@ -41,7 +41,7 @@ $ bin/up
 #### build
 ```
 $ bin/in
-[docker-inside]$ make
+[docker-inside]$ make clean && FEATURE="fsa gp10" make
 ```
 
 #### run

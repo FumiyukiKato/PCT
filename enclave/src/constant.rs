@@ -18,8 +18,17 @@ pub const TIME_INTERVAL: u64 = 600;
 #[cfg(feature = "gp10")]
 pub const ENCODEDVALUE_SIZE: usize = 14;
 
+#[cfg(feature = "th64")]
+pub const ENCODEDVALUE_SIZE: usize = 8;
+
 #[cfg(feature = "th48")]
 pub const ENCODEDVALUE_SIZE: usize = 6;
+
+#[cfg(feature = "th42")]
+pub const ENCODEDVALUE_SIZE: usize = 6;
+
+#[cfg(feature = "th36")]
+pub const ENCODEDVALUE_SIZE: usize = 5;
 
 pub const QUERY_SIZE: usize = 1440;
 

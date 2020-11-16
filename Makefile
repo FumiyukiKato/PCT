@@ -20,7 +20,6 @@
 SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
-FEATURE ?= fsa th48
 
 TOP_DIR := ../..
 include $(TOP_DIR)/buildenv.mk
@@ -70,11 +69,7 @@ Enclave_EDL_Files := enclave/Enclave_t.c enclave/Enclave_t.h app/Enclave_u.c app
 
 ######## APP Settings ########
 
-ifeq ($(FEATURE), "")
-$(error PLEASE SET FEATURE like 'fsa th48'!!)
-endif
-
-App_Rust_Flags := --release --features "$(FEATURE)"
+App_Rust_Flags = --release --features "$(FEATURE)"
 App_SRC_Files := $(shell find app/ -type f -name '*.rs') $(shell find app/ -type f -name 'Cargo.toml')
 App_Include_Paths := -I ./app -I./include -I$(SGX_SDK)/include -I$(CUSTOM_EDL_PATH)
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
@@ -160,5 +155,5 @@ enclave:
 .PHONY: clean
 clean:
 	@rm -f $(App_Name) $(RustEnclave_Name) $(Signed_RustEnclave_Name) enclave/*_t.* app/*_u.* lib/*.a
-	@cd enclave && cargo clean && rm -f Cargo.lock
-	@cd app && cargo clean && rm -f Cargo.lock
+	@cd enclave && cargo clean
+	@cd app && cargo clean

@@ -41,13 +41,13 @@ impl EncodedData {
         let data: ExternalEncodedDataJson = serde_json::from_reader(reader).unwrap();
         
         let mut set: HashSet<EncodedValue> = HashSet::with_capacity(100000);
-        if cfg!(feature = "th48") {
+        if cfg!(any(feature = "th64", feature = "th48", feature = "th42", feature = "th36")) {
             for v in data.data.iter() {
                 let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
                 encoded_value_u8.copy_from_slice(base8decode(v.to_string()).as_slice());
                 set.insert(encoded_value_u8);
             }
-        } else if cfg!(any(feature = "gp10")) {
+        } else if cfg!(feature = "gp10") {
             for v in data.data.iter() {
                 let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
                 // ascii-code

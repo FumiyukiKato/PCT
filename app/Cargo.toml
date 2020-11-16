@@ -28,7 +28,10 @@ opt-level = 3
 
 [features]
 default = []
+th64 = []
 th48 = []
+th42 = []
+th36 = []
 gp10 = []
 fsa = []
 hashtable = []

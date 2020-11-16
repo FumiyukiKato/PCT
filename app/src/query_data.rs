@@ -53,9 +53,9 @@ fn encryptAsSecureChannel(detail: &EncodedQueryDataDetail) -> Vec<u8> {
     // Remote attestation is done and session (shared) key has been exchanged.
     // Here, suppose that shared key is simply derived from their query_id.
    
-    #[cfg(feature = "th48")]
+    #[cfg(any(feature = "th64", feature = "th48", feature = "th42", feature = "th36"))]
     let mut u8_vec: Vec<u8> = Vec::with_capacity(detail.query_size);
-    #[cfg(feature = "th48")]
+    #[cfg(any(feature = "th48", feature = "th42", feature = "th36"))]
     for base8 in detail.geodata.iter() {
         u8_vec.extend_from_slice(base8decode(base8.to_string()).as_slice());
     }
@@ -67,7 +67,7 @@ fn encryptAsSecureChannel(detail: &EncodedQueryDataDetail) -> Vec<u8> {
     let src_len: usize = detail.query_size*ENCODEDVALUE_SIZE;
     let mut encrypted_buf: Vec<u8> = vec![0; src_len];
 
-    #[cfg(feature = "th48")]
+    #[cfg(any(feature = "th64", feature = "th48", feature = "th42", feature = "th36"))]
     let ret = unsafe { 
         sgx_aes_ctr_encrypt(
             &shared_key,
