@@ -49,27 +49,26 @@ pub const QUERY_RESULT_U8: usize = 1;
 pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 
 /*
-    args[0] = threashold
+    args[0] = threashold of each chunk block size
     args[1] = query data file path
     args[2] = central data file path
-    args[3] = result file output (false or true)
 */
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
-    if args.len() != 5 {
+    if args.len() != 3 {
         println!(" ERROR bin/app needs 4 arguments!");
-        println!("    args[0] = threashold");
+        println!("    args[0] = threashold of each chunk block size");
         println!("    args[1] = query data file path");
         println!("    args[2] = central data file path");
-        println!("    args[3] = encoding method (gp or th)");
-        println!("    args[4] = result file output (false or true)");
         std::process::exit(-1);
     }
     args
 }
 
 fn main() {
-    // encodedHasing();
+    #[cfg(feature = "hashtable")]
+    encodedHasing();
+    #[cfg(feature = "fsa")]
     finiteStateTranducer();
 }
 
@@ -79,14 +78,14 @@ fn encodedHasing() {
     let threashould: usize = args[0].parse().unwrap();
     let q_filename = &args[1];
     let c_filename = &args[2];
-    let method = &args[3];
 
     let mut clocker = Clocker::new();
 
     /* read central data */
     clocker.set_and_start("Read Central Data");
-    let external_data = EncodedData::read_raw_from_file(c_filename, method);
+    let external_data = EncodedData::read_raw_from_file(c_filename);
     clocker.stop("Read Central Data");
+    let central_data_size = external_data.size();
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
@@ -221,18 +220,26 @@ fn encodedHasing() {
     enclave.destroy();
     // println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
-    if args[4] == "true".to_string() {
-        let now: String = get_timestamp();
-        write_to_file(
-            format!("data/result/result-{}-encodedHasing.txt", now),
-            "simple hash and list".to_string(),
-            c_filename.to_string(),
-            q_filename.to_string(),
-            threashould,
-            "only risk_level".to_string(),
-            clocker
-        );
-    }
+    let now: String = get_timestamp();
+
+    #[cfg(feature = "th48")]
+    let method = "th48";
+    #[cfg(feature = "gp10")]
+    let method = "gp10";
+
+    write_to_file(
+        format!("data/result/result-{}.txt", now),
+        "hash table".to_string(),
+        method.to_string(),
+        c_filename.to_string(),
+        central_data_size,
+        q_filename.to_string(),
+        query_data.client_size,
+        1440,
+        threashould,
+        clocker
+    );
+    
 }
 
 fn finiteStateTranducer() {
@@ -241,14 +248,14 @@ fn finiteStateTranducer() {
     let threashould: usize = args[0].parse().unwrap();
     let q_filename = &args[1];
     let c_filename = &args[2];
-    let method = &args[3];
 
     let mut clocker = Clocker::new();
 
     /* read central data */
     clocker.set_and_start("Read Central Data");
-    let external_data = EncodedData::read_raw_from_file(c_filename, method);
+    let external_data = EncodedData::read_raw_from_file(c_filename);
     clocker.stop("Read Central Data");
+    let central_data_size = external_data.size();
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
@@ -383,16 +390,23 @@ fn finiteStateTranducer() {
     enclave.destroy();
     // println!("[UNTRUSTED] All process is successful!!");
     clocker.show_all();
-    if args[4] == "true".to_string() {
-        let now: String = get_timestamp();
-        write_to_file(
-            format!("data/result/result-{}-finiteStateTranducer.txt", now),
-            "simple hash and list".to_string(),
-            c_filename.to_string(),
-            q_filename.to_string(),
-            threashould,
-            "only risk_level".to_string(),
-            clocker
-        );
-    }
+    let now: String = get_timestamp();
+    
+    #[cfg(feature = "th48")]
+    let method = "th48";
+    #[cfg(feature = "gp10")]
+    let method = "gp10";
+
+    write_to_file(
+        format!("data/result/result-{}.txt", now),
+        "fst".to_string(),
+        method.to_string(),
+        c_filename.to_string(),
+        central_data_size,
+        q_filename.to_string(),
+        query_data.client_size,
+        1440,
+        threashould,
+        clocker
+    );
 }

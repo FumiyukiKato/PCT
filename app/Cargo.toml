@@ -22,3 +22,13 @@ sgx_urts = { path = "../../../sgx_urts" }
 
 [build-dependencies]
 cc = "1.0"
+
+[profile.release]
+opt-level = 3
+
+[features]
+default = []
+th48 = []
+gp10 = []
+fsa = []
+hashtable = []

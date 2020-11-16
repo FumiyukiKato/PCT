@@ -3,12 +3,19 @@ name = "PCTenclave"
 version = "1.0.0"
 authors = ["FumiyukiKato"]
 
+[profile.release]
+opt-level = 3
+
 [lib]
 name = "pctenclave"
 crate-type = ["staticlib"]
 
 [features]
 default = []
+th48 = []
+gp10 = []
+fsa = []
+hashtable = []
 
 [dependencies]
 sgx_fst = { path  = "/root/sgx/samplecode/PCT/sgx_fst" }

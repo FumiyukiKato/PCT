@@ -45,7 +45,7 @@ def encode(time, time_start, time_end, latitude, longtitude, theta_t=23, theta_l
     hash: str
         hash
     """
-    print("hoge")
+
     assert theta_l < MAX_ZOOM,  "theta_l has to be  less than %d " %  MAX_ZOOM
     assert theta_t <= MAX_THETA_T, "theta_t has to be  less than %d " %  MAX_THETA_T
     

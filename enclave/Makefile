@@ -30,9 +30,9 @@ all: $(Rust_Enclave_Name)
 
 $(Rust_Enclave_Name): $(Rust_Enclave_Files)
 ifeq ($(XARGO_SGX), 1)
-	RUST_TARGET_PATH=$(Rust_Target_Path) xargo build --target x86_64-unknown-linux-sgx --release
+	RUST_TARGET_PATH=$(Rust_Target_Path) xargo build --target x86_64-unknown-linux-sgx --release --features "$(FEATURE)"
 	cp ./target/x86_64-unknown-linux-sgx/release/libpctenclave.a ../lib/libenclave.a
 else
-	cargo build --release
+	cargo build --release --features "$(FEATURE)"
 	cp ./target/release/libpctenclave.a ../lib/libenclave.a
 endif

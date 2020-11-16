@@ -53,7 +53,9 @@ fn encryptAsSecureChannel(detail: &EncodedQueryDataDetail) -> Vec<u8> {
     // Remote attestation is done and session (shared) key has been exchanged.
     // Here, suppose that shared key is simply derived from their query_id.
    
+    #[cfg(feature = "th48")]
     let mut u8_vec: Vec<u8> = Vec::with_capacity(detail.query_size);
+    #[cfg(feature = "th48")]
     for base8 in detail.geodata.iter() {
         u8_vec.extend_from_slice(base8decode(base8.to_string()).as_slice());
     }
@@ -64,11 +66,11 @@ fn encryptAsSecureChannel(detail: &EncodedQueryDataDetail) -> Vec<u8> {
     let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
     let src_len: usize = detail.query_size*ENCODEDVALUE_SIZE;
     let mut encrypted_buf: Vec<u8> = vec![0; src_len];
+
+    #[cfg(feature = "th48")]
     let ret = unsafe { 
         sgx_aes_ctr_encrypt(
             &shared_key,
-            // ascii-code
-            // detail.geodata.join("").as_bytes().as_ptr() as * const u8,
             u8_vec.as_ptr() as * const u8,
             src_len as u32,
             &counter_block as * const u8,
@@ -76,6 +78,20 @@ fn encryptAsSecureChannel(detail: &EncodedQueryDataDetail) -> Vec<u8> {
             encrypted_buf.as_mut_ptr()
         )
     };
+
+    #[cfg(any(feature = "gp10"))]
+    let ret = unsafe { 
+        sgx_aes_ctr_encrypt(
+            &shared_key,
+            detail.geodata.join("").as_bytes().as_ptr() as * const u8,
+            src_len as u32,
+            &counter_block as * const u8,
+            ctr_inc_bits,
+            encrypted_buf.as_mut_ptr()
+        )
+    };
+
+
     if ret < 0 {
         println!("Error in CTR encryption.");
         std::process::exit(-1);

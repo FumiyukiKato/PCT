@@ -31,19 +31,23 @@ impl EncodedData {
         }
     }
 
-    pub fn read_raw_from_file(filename: &str, method: &str) -> Self {
+    pub fn size(&self) -> usize {
+        self.structure.len()
+    }
+
+    pub fn read_raw_from_file(filename: &str) -> Self {
         let file = File::open(filename).unwrap();
         let reader = BufReader::new(file);
         let data: ExternalEncodedDataJson = serde_json::from_reader(reader).unwrap();
         
         let mut set: HashSet<EncodedValue> = HashSet::with_capacity(100000);
-        if method == "th" {
+        if cfg!(feature = "th48") {
             for v in data.data.iter() {
                 let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
                 encoded_value_u8.copy_from_slice(base8decode(v.to_string()).as_slice());
                 set.insert(encoded_value_u8);
             }
-        } else if method == "gp" {
+        } else if cfg!(any(feature = "gp10")) {
             for v in data.data.iter() {
                 let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
                 // ascii-code
@@ -51,9 +55,9 @@ impl EncodedData {
                 set.insert(encoded_value_u8);
             }    
         } else {
-            panic!("method is nothing.")
+            panic!("Error attribute 'encode' is wrong.")
         }
-        println!("Central data unique size {}", set.len());
+
         let vec: Vec<EncodedValue> = set.into_iter().collect();
         EncodedData { structure: vec }
     }

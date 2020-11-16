@@ -15,7 +15,10 @@ pub const CONTACT_TIME_THREASHOLD: u64 = 600;
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
 
-// pub const ENCODEDVALUE_SIZE: usize = 14;
+#[cfg(feature = "gp10")]
+pub const ENCODEDVALUE_SIZE: usize = 14;
+
+#[cfg(feature = "th48")]
 pub const ENCODEDVALUE_SIZE: usize = 6;
 
 pub const QUERY_SIZE: usize = 1440;

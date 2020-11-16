@@ -4,7 +4,10 @@ use sgx_types::*;
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 
-// pub const ENCODEDVALUE_SIZE: usize = 14;
+#[cfg(feature = "gp10")]
+pub const ENCODEDVALUE_SIZE: usize = 14;
+
+#[cfg(feature = "th48")]
 pub const ENCODEDVALUE_SIZE: usize = 6;
 
 pub const SGXSSL_CTR_BITS: u32 = 128;
@@ -75,10 +78,13 @@ impl <'a>Clocker<'a>  {
 pub fn write_to_file(
     file_name: String,
     data_structure_type: String,
+    method: String,
     central_data_file: String,
+    central_data_size: usize,
     query_data_file: String,
+    client_size: usize,
+    query_size: usize,
     threashould: usize,
-    response_data_type: String,
     clocker: Clocker,
 ) {
     let mut file = File::create(file_name).unwrap();
@@ -88,10 +94,10 @@ r#"
 Basic data
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 data structure type       : {data_structure_type}
-central data file         : {central_data_file}
-query data file           : {query_data_file}
+encoding method           : {method}
 threashould               : {threashould}
-response data type        : {response_data_type}
+central data file         : size = {central_data_size}, {central_data_file}
+query data file           : size = {query_size} x {client_size}, {query_data_file}
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Clocker data
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -99,10 +105,13 @@ Clocker data
 -----------------------------------------------------------------------------
 "# ,
         data_structure_type=data_structure_type,
+        method=method,
         central_data_file=central_data_file,
+        central_data_size=central_data_size,
         query_data_file=query_data_file,
+        query_size=query_size,
+        client_size=client_size,
         threashould=threashould,
-        response_data_type=response_data_type,
         clocker_string=clocker.to_string()
     );
 
