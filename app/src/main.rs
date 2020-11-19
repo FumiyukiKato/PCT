@@ -51,7 +51,7 @@ pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 3 {
-        println!(" ERROR bin/app needs 4 arguments!");
+        println!(" ERROR bin/app needs 3 arguments!");
         println!("    args[0] = threashold of each chunk block size");
         println!("    args[1] = query data file path");
         println!("    args[2] = central data file path");
@@ -144,7 +144,7 @@ fn private_set_intersection() {
         };
         match result {
             sgx_status_t::SGX_SUCCESS => {
-                print!("\r[UNTRUSTED] private_contact_trace Succes! {} th iteration", chunk_index);
+                // print!("\r[UNTRUSTED] private_contact_trace Succes! {} th iteration", chunk_index);
             },
             _ => {
                 println!("[UNTRUSTED] private_contact_trace Failed {}!", result.as_str());
@@ -153,7 +153,7 @@ fn private_set_intersection() {
         }
         chunk_index += 1;
     }
-    println!("");
+    // println!("");
     
     clocker.stop("ECALL private_contact_trace");
 
@@ -205,7 +205,7 @@ fn private_set_intersection() {
             positive_queries.push(query_id);
         }
     }
-    println!("positive result queryIds: {:?}", positive_queries);
+    // println!("positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();
@@ -230,7 +230,9 @@ fn private_set_intersection() {
     let data_st = "fsa";
 
     write_to_file(
-        format!("data/result/result-{}.txt", now),
+        format!("data/result/journal/{}-{}-{}-{}-{}-{}.txt",
+            data_st.to_string(), method.to_string(), threashould, query_data.client_size, central_data_size, now
+        ),
         data_st.to_string(),
         method.to_string(),
         c_filename.to_string(),
@@ -310,7 +312,7 @@ fn non_private_set_intersection() {
             positive_queries.insert(query_id);
         }
     });
-    println!("positive result queryIds: {:?}", positive_queries);
+    // println!("positive result queryIds: {:?}", positive_queries);
     
     clocker.show_all();
     let now: String = get_timestamp();
@@ -326,10 +328,15 @@ fn non_private_set_intersection() {
     #[cfg(feature = "gp10")]
     let method = "gp10";
     
-    let data_st = "non private hashtable";
+    #[cfg(feature = "hashtable")]
+    let data_st = "nonprivatehashtable";
+    #[cfg(feature = "fsa")]
+    let data_st = "nonprivatefsa";
 
     write_to_file(
-        format!("data/result/result-{}.txt", now),
+        format!("data/result/journal/{}-{}-{}-{}-{}-{}.txt",
+            data_st.to_string(), method.to_string(), threashould, query_data.client_size, central_data_size, now
+        ),
         data_st.to_string(),
         method.to_string(),
         c_filename.to_string(),
@@ -343,6 +350,6 @@ fn non_private_set_intersection() {
 }
 
 fn main() {
-    // private_set_intersection()
-    non_private_set_intersection()
+    private_set_intersection()
+    // non_private_set_intersection()
 }
