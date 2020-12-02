@@ -34,3 +34,8 @@ data/*
 
 # これはビルドできないので載せておく
 !libsample_libcrypto.so
+
+__pycache__/*
+
+.ipynb_checkpoints/
+.python-version

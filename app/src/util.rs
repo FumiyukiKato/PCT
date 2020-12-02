@@ -7,17 +7,17 @@ use std::collections::HashMap;
 #[cfg(feature = "gp10")]
 pub const ENCODEDVALUE_SIZE: usize = 14;
 
-#[cfg(feature = "th64")]
-pub const ENCODEDVALUE_SIZE: usize = 8;
+#[cfg(feature = "th72")]
+pub const ENCODEDVALUE_SIZE: usize = 9;
 
 #[cfg(feature = "th48")]
 pub const ENCODEDVALUE_SIZE: usize = 6;
 
-#[cfg(feature = "th42")]
-pub const ENCODEDVALUE_SIZE: usize = 6;
+#[cfg(feature = "th54")]
+pub const ENCODEDVALUE_SIZE: usize = 7;
 
-#[cfg(feature = "th36")]
-pub const ENCODEDVALUE_SIZE: usize = 5;
+#[cfg(feature = "th60")]
+pub const ENCODEDVALUE_SIZE: usize = 8;
 
 pub const SGXSSL_CTR_BITS: u32 = 128;
 pub const COUNTER_BLOCK: [u8; 16] = [0; 16];

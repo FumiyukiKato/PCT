@@ -213,14 +213,14 @@ fn private_set_intersection() {
     clocker.show_all();
     let now: String = get_timestamp();
 
-    #[cfg(feature = "th64")]
-    let method = "th64";
+    #[cfg(feature = "th72")]
+    let method = "th72";
     #[cfg(feature = "th48")]
     let method = "th48";
-    #[cfg(feature = "th42")]
-    let method = "th42";
-    #[cfg(feature = "th36")]
-    let method = "th36";
+    #[cfg(feature = "th54")]
+    let method = "th54";
+    #[cfg(feature = "th60")]
+    let method = "th60";
     #[cfg(feature = "gp10")]
     let method = "gp10";
 
@@ -279,7 +279,7 @@ fn non_private_set_intersection() {
     for detail in query_data.data.iter() {
         for hash in detail.geodata.iter() {
             let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
-            #[cfg(any(feature = "th64", feature = "th48", feature = "th42", feature = "th36"))]
+            #[cfg(any(feature = "th72", feature = "th48", feature = "th54", feature = "th60"))]
             encoded_value_u8.copy_from_slice(base8decode(hash.to_string()).as_slice());
             #[cfg(any(feature = "gp10"))]
             encoded_value_u8.copy_from_slice(hash.as_bytes());
@@ -302,7 +302,7 @@ fn non_private_set_intersection() {
         let query_id: QueryId = query.query_id;
         let contact = query.geodata.iter().any(|hash| {
             let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
-            #[cfg(any(feature = "th64", feature = "th48", feature = "th42", feature = "th36"))]
+            #[cfg(any(feature = "th72", feature = "th48", feature = "th54", feature = "th60"))]
             encoded_value_u8.copy_from_slice(base8decode(hash.to_string()).as_slice());
             #[cfg(any(feature = "gp10"))]
             encoded_value_u8.copy_from_slice(hash.as_bytes());
@@ -317,14 +317,14 @@ fn non_private_set_intersection() {
     clocker.show_all();
     let now: String = get_timestamp();
 
-    #[cfg(feature = "th64")]
-    let method = "th64";
+    #[cfg(feature = "th72")]
+    let method = "th72";
     #[cfg(feature = "th48")]
     let method = "th48";
-    #[cfg(feature = "th42")]
-    let method = "th42";
-    #[cfg(feature = "th36")]
-    let method = "th36";
+    #[cfg(feature = "th54")]
+    let method = "th54";
+    #[cfg(feature = "th60")]
+    let method = "th60";
     #[cfg(feature = "gp10")]
     let method = "gp10";
     
@@ -349,7 +349,31 @@ fn non_private_set_intersection() {
     );
 }
 
+fn show_size() {
+    let args = _get_options();
+    /* parameters */
+    let threashould: usize = args[0].parse().unwrap();
+    let q_filename = &args[1];
+    let c_filename = &args[2];
+
+
+    /* read central data */
+    let external_data = EncodedData::read_raw_from_file(c_filename);
+    let central_data_size = external_data.size();
+
+    println!("central data size: {}", central_data_size);
+
+    /* preprocess central data */
+    #[cfg(feature = "hashtable")]
+    let mut R: CentralHashSet = CentralHashSet::from_EncodedData(external_data, threashould);
+    #[cfg(feature = "fsa")]
+    let mut R: CentralFST = CentralFST::from_EncodedData(external_data, threashould);
+
+}
+
+
 fn main() {
-    private_set_intersection()
+    // private_set_intersection()
     // non_private_set_intersection()
+    show_size()
 }
