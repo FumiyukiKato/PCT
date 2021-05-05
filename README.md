@@ -42,7 +42,7 @@ $ git clone https://github.com/ylab-public/PCT
 $ cd PCT
 ```
 
-3. Set environment variables in `.env`. 
+3. Set environment variables like below. 
 ```
 RUST_SDK_ROOT=/path/to/incubator-teaclave-sgx-sdk
 PCT_DIR=/path/to/PCT
