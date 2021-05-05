@@ -62,7 +62,7 @@ $ bin/in
 
 #### run
 ```
-[docker-inside]$ bin/app 1000000 data/sample/client.json data/sample/central.json true
+[docker-inside]$ bin/app 1000000 data/sample/client.json data/sample/central.json
 ```
 
 #### random data generator (python3)
