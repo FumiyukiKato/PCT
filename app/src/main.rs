@@ -230,7 +230,7 @@ fn private_set_intersection() {
     let data_st = "fsa";
 
     write_to_file(
-        format!("data/result/journal/ex1/{}-{}-{}-{}-{}-{}.txt",
+        format!("result/{}-{}-{}-{}-{}-{}.txt",
             data_st.to_string(), method.to_string(), threashould, query_data.client_size, central_data_size, now
         ),
         data_st.to_string(),
@@ -334,7 +334,7 @@ fn non_private_set_intersection() {
     let data_st = "nonprivatefsa";
 
     write_to_file(
-        format!("data/result/journal/ex1/{}-{}-{}-{}-{}-{}.txt",
+        format!("result/{}-{}-{}-{}-{}-{}.txt",
             data_st.to_string(), method.to_string(), threashould, query_data.client_size, central_data_size, now
         ),
         data_st.to_string(),
@@ -373,7 +373,7 @@ fn show_size() {
 
 
 fn main() {
-    // private_set_intersection()
+    private_set_intersection()
     // non_private_set_intersection()
-    show_size()
+    // show_size()
 }

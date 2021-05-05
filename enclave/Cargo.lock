@@ -9,19 +9,13 @@ dependencies = [
  "sgx_tcrypto",
  "sgx_trts",
  "sgx_tstd",
- "sgx_types 1.1.2",
+ "sgx_types 1.1.3",
 ]
 
 [[package]]
-name = "autocfg"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
-
-[[package]]
 name = "bincode"
-version = "1.2.1"
-source = "git+https://github.com/mesalock-linux/bincode-sgx.git#44127da90b1626f77017552b0231f888ccc3fcdd"
+version = "1.3.1"
+source = "git+https://github.com/mesalock-linux/bincode-sgx.git#58b004eb5bd7ab8e974a02b70344afcd9724bb2d"
 dependencies = [
  "byteorder",
  "serde",
@@ -31,39 +25,36 @@ dependencies = [
 [[package]]
 name = "byteorder"
 version = "1.3.4"
-source = "git+https://github.com/mesalock-linux/byteorder-sgx.git#46ab71b0753dd29ec4f1b3834f78ae26cf47422e"
+source = "git+https://github.com/mesalock-linux/byteorder-sgx#325f392dcd294109eb05f0a3c45e4141514c7784"
 dependencies = [
  "sgx_tstd",
 ]
 
 [[package]]
 name = "cc"
-version = "1.0.58"
+version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9a06fb2e53271d7c279ec1efea6ab691c35a2ae67ec0d91d7acec0caf13b518"
+checksum = "e3c69b077ad434294d3ce9f1f6143a2a4b89a8a2d54ef813d85003a4fd1137fd"
 
 [[package]]
 name = "hashbrown_tstd"
-version = "0.7.1"
-dependencies = [
- "autocfg",
-]
+version = "0.9.0"
 
 [[package]]
 name = "serde"
-version = "1.0.106"
-source = "git+https://github.com/mesalock-linux/serde-sgx.git#58ff0793d46f96124132110880d0f4d44050d6ee"
+version = "1.0.118"
+source = "git+https://github.com/mesalock-linux/serde-sgx#db0226f1d5d70fca6b96af2c285851502204e21c"
 dependencies = [
  "sgx_tstd",
 ]
 
 [[package]]
 name = "sgx_alloc"
-version = "1.1.2"
+version = "1.1.3"
 
 [[package]]
 name = "sgx_backtrace_sys"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "cc",
  "sgx_build_helper",
@@ -76,7 +67,7 @@ version = "0.1.3"
 
 [[package]]
 name = "sgx_demangle"
-version = "1.1.2"
+version = "1.1.3"
 
 [[package]]
 name = "sgx_fst"
@@ -87,38 +78,38 @@ dependencies = [
 
 [[package]]
 name = "sgx_libc"
-version = "1.1.2"
-dependencies = [
- "sgx_types 1.1.2",
-]
-
-[[package]]
-name = "sgx_tcrypto"
 version = "1.1.3"
-source = "git+https://github.com/apache/rust-sgx-sdk.git#7610877d65bb2b82e6d686f35be6db512c131f36"
 dependencies = [
  "sgx_types 1.1.3",
 ]
 
 [[package]]
+name = "sgx_tcrypto"
+version = "1.1.3"
+source = "git+https://github.com/apache/rust-sgx-sdk.git#c2698dc2685f8dcd9550086c62077bceff15ded0"
+dependencies = [
+ "sgx_types 1.1.3 (git+https://github.com/apache/rust-sgx-sdk.git)",
+]
+
+[[package]]
 name = "sgx_tprotected_fs"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "sgx_trts",
- "sgx_types 1.1.2",
+ "sgx_types 1.1.3",
 ]
 
 [[package]]
 name = "sgx_trts"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "sgx_libc",
- "sgx_types 1.1.2",
+ "sgx_types 1.1.3",
 ]
 
 [[package]]
 name = "sgx_tstd"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "hashbrown_tstd",
  "sgx_alloc",
@@ -127,18 +118,18 @@ dependencies = [
  "sgx_libc",
  "sgx_tprotected_fs",
  "sgx_trts",
- "sgx_types 1.1.2",
+ "sgx_types 1.1.3",
  "sgx_unwind",
 ]
 
 [[package]]
 name = "sgx_types"
-version = "1.1.2"
+version = "1.1.3"
 
 [[package]]
 name = "sgx_types"
 version = "1.1.3"
-source = "git+https://github.com/apache/rust-sgx-sdk.git#7610877d65bb2b82e6d686f35be6db512c131f36"
+source = "git+https://github.com/apache/rust-sgx-sdk.git#c2698dc2685f8dcd9550086c62077bceff15ded0"
 
 [[package]]
 name = "sgx_unwind"
@@ -149,64 +140,64 @@ dependencies = [
 
 [[patch.unused]]
 name = "sgx_cov"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_crypto_helper"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_rand"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_rand_derive"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_serialize"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_serialize_derive"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_serialize_derive_internals"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_tcrypto"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_tcrypto_helper"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_tdh"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_tkey_exchange"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_tse"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_tseal"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_tunittest"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_ucrypto"
-version = "1.1.2"
+version = "1.1.3"
 
 [[patch.unused]]
 name = "sgx_urts"
-version = "1.1.2"
+version = "1.1.3"

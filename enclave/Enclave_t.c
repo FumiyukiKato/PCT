@@ -1895,7 +1895,7 @@ sgx_status_t SGX_CDECL u_ioctl_arg1_ocall(int* retval, int* error, int fd, int r
 			sgx_ocfree();
 			return SGX_ERROR_INVALID_PARAMETER;
 		}
-		if (memcpy_s(__tmp_arg, ocalloc_size, arg, _len_arg)) {
+		if (memcpy_s(__tmp, ocalloc_size, arg, _len_arg)) {
 			sgx_ocfree();
 			return SGX_ERROR_UNEXPECTED;
 		}
@@ -4380,7 +4380,7 @@ sgx_status_t SGX_CDECL u_readdir64_r_ocall(int* retval, void* dirp, struct diren
 	if (entry != NULL) {
 		ms->ms_entry = (struct dirent64_t*)__tmp;
 		__tmp_entry = __tmp;
-		if (memcpy_s(__tmp_entry, ocalloc_size, entry, _len_entry)) {
+		if (memcpy_s(__tmp, ocalloc_size, entry, _len_entry)) {
 			sgx_ocfree();
 			return SGX_ERROR_UNEXPECTED;
 		}

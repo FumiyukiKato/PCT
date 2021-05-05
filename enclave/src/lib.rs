@@ -130,7 +130,7 @@ pub extern "C" fn upload_encoded_query_data(
 
     let mut decrypted_query_data_vec: Vec<u8> = vec![1; total_query_data_vec.len()];
     for (i, query_id) in query_id_list_vec.iter().enumerate() {
-        let counter_block: [u8; 16] = COUNTER_BLOCK;
+        let mut counter_block: [u8; 16] = COUNTER_BLOCK;
         let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
 
         // Originally shared_key is derived by following Remote Attestation protocol.
@@ -141,7 +141,7 @@ pub extern "C" fn upload_encoded_query_data(
         let ret = rsgx_aes_ctr_decrypt(
             &shared_key,
             &total_query_data_vec[current_cursor..current_cursor+QUERY_BYTES],
-            &counter_block,
+            &mut counter_block,
             ctr_inc_bits,
             &mut decrypted_query_data_vec[current_cursor..current_cursor+QUERY_BYTES]
         );
@@ -230,7 +230,7 @@ pub extern "C" fn get_encoded_result(
     /* encryption */
     let mut encrypted_response_vec: Vec<u8> = response_vec.clone();
     for (i, query_rep) in query_buffer.queries.iter().enumerate() {
-        let counter_block: [u8; 16] = COUNTER_BLOCK;
+        let mut counter_block: [u8; 16] = COUNTER_BLOCK;
         let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
 
         // Originally shared_key is derived by following Remote Attestation protocol.
@@ -243,7 +243,7 @@ pub extern "C" fn get_encoded_result(
         let ret = rsgx_aes_ctr_encrypt(
             &shared_key,
             &response_vec[current_cursor+QUERY_ID_SIZE_U8..current_cursor+RESPONSE_DATA_SIZE_U8],
-            &counter_block,
+            &mut counter_block,
             ctr_inc_bits,
             &mut encrypted_response_vec[current_cursor+QUERY_ID_SIZE_U8..current_cursor+RESPONSE_DATA_SIZE_U8]
         );
