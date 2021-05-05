@@ -28,6 +28,8 @@ SOTA software-based approach vs hardware-based approach in PSI
 OS: Ubuntu
 
 0. prepare CPU with Intel SGX instruction set. Docker and docker-compose are needed.
+And install linux-sgx-driver from https://github.com/intel/linux-sgx-driver.
+
 
 1. Clone Rust SGX SDK
 ```
@@ -60,7 +62,7 @@ $ bin/in
 
 #### run
 ```
-[docker-inside]$ bin/app 1000000 data/sample/client.json data/sample/central.json true
+[docker-inside]$ bin/app 1000000 data/sample/client.json data/sample/central.json
 ```
 
 #### random data generator (python3)
