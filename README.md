@@ -77,11 +77,3 @@ $ python script/generator-script-name
   - http://www.csis.u-tokyo.ac.jp/blog/research/joint-research/
 
 
-
-checked version
-- SDK(https://github.com/apache/incubator-teaclave-sgx-sdk)
-  - commit hash c2698dc2685f8dcd9550086c62077bceff15ded0
-- driver(https://github.com/intel/linux-sgx-driver)
-  - commit hash 2d2b795890c01069aab21d4cdfd1226f7f65b971
-
-
