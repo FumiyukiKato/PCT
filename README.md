@@ -28,6 +28,8 @@ SOTA software-based approach vs hardware-based approach in PSI
 OS: Ubuntu
 
 0. prepare CPU with Intel SGX instruction set. Docker and docker-compose are needed.
+And install linux-sgx-driver from https://github.com/intel/linux-sgx-driver.
+
 
 1. Clone Rust SGX SDK
 ```
