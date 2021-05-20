@@ -58,10 +58,10 @@ def gauusian_bridge(tdf, uid, random_state, minutes):
         curr_lng = tdf['lng'].iloc[i]
         
         random_walk = random_state.random(time_times)
-        lat_noise = random_state.normal(lat_diff, np.abs(lat_diff/10), time_times)
-        curr_lat += lat_noise[time_times-1]
-        lng_noise = random_state.normal(lng_diff, np.abs(lng_diff/10), time_times)
-        curr_lng += lng_noise[time_times-1]
+        lat_noise = random_state.normal(lat_diff, np.abs(lat_diff/10), time_times+1)
+        curr_lat += lat_noise[-1]
+        lng_noise = random_state.normal(lng_diff, np.abs(lng_diff/10), time_times+1)
+        curr_lng += lng_noise[-1]
         
         for j in range(time_times):
             tmp_dict["uid"].append(uid)
