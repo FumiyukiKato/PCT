@@ -1,0 +1,3 @@
+[submodule "succinct-trie"]
+	path = succinct-trie
+	url = https://github.com/FumiyukiKato/succinct-trie
