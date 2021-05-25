@@ -117,7 +117,7 @@ def generate_client_data(client_size, seed=1, minutes=10, dir="data"):
         tdf['time'] = tdf['datetime'].apply(lambda x: int(x.timestamp()))
         tdf['time'] = apply_minute(tdf, minutes=minutes)
         tdf = for_all_user(tdf, state, minutes)
-        tdf[['time', 'lat', 'lng']].to_csv(f'{dir}/client/client-{i}-NY-DensityEPR-{minutes}-{seed}-{agents}.csv', index=False)
+        tdf[['time', 'lat', 'lng']].to_csv(f'{dir}/client-{i}-NY-DensityEPR-{minutes}-{seed}-{agents}.csv', index=False)
 
         
 if __name__ == '__main__':
