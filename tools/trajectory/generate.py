@@ -56,8 +56,8 @@ def gauusian_bridge(tdf, uid, random_state, minutes):
         if time_times == 0:
             continue
 
-        lat_diff = (tdf['lat'].iloc[i+1] - tdf['lat'].iloc[i]) / time_times
-        lng_diff = (tdf['lng'].iloc[i+1] - tdf['lng'].iloc[i]) / time_times
+        lat_diff = (tdf['lat'].iloc[i+1] - tdf['lat'].iloc[i]) / (time_times*100)
+        lng_diff = (tdf['lng'].iloc[i+1] - tdf['lng'].iloc[i]) / (time_times*100)
         
         curr_lat = tdf['lat'].iloc[i]
         curr_lng = tdf['lng'].iloc[i]
@@ -75,7 +75,7 @@ def gauusian_bridge(tdf, uid, random_state, minutes):
             tmp_dict["lng"].append(curr_lng)
             
             curr_time += unix_minutes
-            if random_walk[j] < 0.5:
+            if random_walk[j] < 0.75:
                 curr_lat += lat_noise[j]
                 curr_lng += lng_noise[j]
 
@@ -88,7 +88,7 @@ def for_all_user(tdf, random_state, minutes=10):
         df_list.append(gauusian_bridge(tdf[tdf['uid'] == uid], uid, random_state, minutes))
     return pd.concat(df_list, axis=0)
 
-def generate_server_data(agents=100, seed=1, minutes=10, dir="data"):
+def generate_server_data(agents=100, seed=0, minutes=10, dir="data"):
     state = np.random.RandomState(seed)
     start_locations = list(state.choice(list(range(0,62)), agents, True))
     depr = ConstantTimeDensityEPR()
@@ -121,12 +121,13 @@ def generate_client_data(client_size, seed=1, minutes=10, dir="data"):
 
         
 if __name__ == '__main__':
-    minutes = 10
-    seed = 1
+    minutes = 1
     os.makedirs(args.dir, exist_ok=True)
     if args.target == "server":
+        seed=0
         generate_server_data(agents=args.size, seed=seed, minutes=minutes, dir=args.dir)
     elif args.target == "client":
+        seed=1
         generate_client_data(client_size=args.size, seed=seed, minutes=minutes, dir=args.dir)
     else:
         assert(False, "invalid parameter target")
