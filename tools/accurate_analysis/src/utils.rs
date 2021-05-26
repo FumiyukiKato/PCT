@@ -8,7 +8,10 @@ use std::io::BufReader;
 use crate::model::Trajectory;
 use crate::schema::trajectory;
 
-pub fn read_trajectories_per_clients(filenames: Vec<&str>, has_header: bool) -> Vec<Vec<Trajectory>> {
+pub fn read_trajectories_per_clients(
+    filenames: Vec<&str>,
+    has_header: bool,
+) -> Vec<Vec<Trajectory>> {
     let mut trajectories_per_clients = Vec::new();
     for filename in filenames {
         trajectories_per_clients.push(read_trajectory_from_csv(filename, has_header));
@@ -34,9 +37,11 @@ pub fn read_trajectory_from_csv(filename: &str, has_header: bool) -> Vec<Traject
 pub fn store_trajectories(trajectories: Vec<Trajectory>) -> () {
     let connection = establish_connection();
 
-    for trajectory in trajectories {
-        create_trajectory(&connection, trajectory);
-    }
+    diesel::insert_into(trajectory::table)
+        .values(trajectories)
+        //SQLiteはget_result()は対応していないため、execute()
+        .execute(&connection)
+        .expect("Error saving new post");
 }
 
 pub fn doe_accurate_quereis(
@@ -141,13 +146,13 @@ fn establish_connection() -> SqliteConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-fn create_trajectory(conn: &SqliteConnection, traj: Trajectory) -> usize {
-    diesel::insert_into(trajectory::table)
-        .values(&traj)
-        //SQLiteはget_result()は対応していないため、execute()
-        .execute(conn)
-        .expect("Error saving new post")
-}
+// fn create_trajectory(conn: &SqliteConnection, traj: Trajectory) -> usize {
+//     diesel::insert_into(trajectory::table)
+//         .values(&traj)
+//         //SQLiteはget_result()は対応していないため、execute()
+//         .execute(conn)
+//         .expect("Error saving new post")
+// }
 
 // accurate query
 fn query_contact_detection(
