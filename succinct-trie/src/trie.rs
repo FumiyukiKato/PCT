@@ -1,7 +1,9 @@
+use core::intrinsics::{size_of_val};
+
+use crate::builder;
 use crate::config::*;
 use crate::louds_dense::LoudsDense;
 use crate::louds_sparse::LoudsSparse;
-use crate::builder;
 
 pub struct Trie {
     louds_dense: LoudsDense,
@@ -20,8 +22,9 @@ impl Trie {
     pub fn new(keys: &Vec<Vec<u8>>) -> Self {
         let include_dense = K_INCLUDE_DENSE;
         let sparse_dense = K_SPARSE_DENSE_RATIO;
+        let key_len = keys[0].len();
 
-        let mut builder = builder::Builder::new(include_dense, sparse_dense);
+        let mut builder = builder::Builder::new(key_len, include_dense, sparse_dense);
         builder.build(&keys);
         let louds_dense = LoudsDense::new(&builder);
         let louds_sparse = LoudsSparse::new(&builder);
@@ -43,57 +46,17 @@ impl Trie {
             }
 
             let (key_id, level) = Trie::traverse(&louds_dense, &louds_sparse, keys[i].as_slice());
+
             assert!(key_id < num_keys);
             let contents = keys[i][level..].to_vec();
             suffix_builder[key_id] = Suffix { contents };
         }
-        // suffix_builder.sort();
-        // let mut suffix_ptrs: Vec<usize> = vec![0; num_keys];
-        // let mut suffixes = vec![];
-        // let mut prev_suffix = Suffix {
-        //     contents: Vec::new(),
-        //     key_id: kNotFound,
-        // };
-
-        // for i in 0..num_keys {
-        //     let curr_suffix = suffix_builder[num_keys - i - 1];
-        //     if curr_suffix.contents.len() == 0 {
-        //         suffix_ptrs[curr_suffix.key_id] = 0;
-        //         continue;
-        //     }
-        //     let mut num_match = 0;
-        //     while num_match < curr_suffix.contents.len()
-        //         && num_match < prev_suffix.contents.len()
-        //         && prev_suffix.contents[num_match] == curr_suffix.contents[num_match]
-        //     {
-        //         num_match += 1;
-        //     }
-
-        //     if num_match == curr_suffix.contents.len() && prev_suffix.contents.len() != 0 {
-        //         suffix_ptrs[curr_suffix.key_id] = suffix_ptrs[prev_suffix.key_id] + (prev_suffix.contents.len() - num_match)
-        //     } else {
-        //         suffix_ptrs[curr_suffix.key_id] = suffixes.len();
-        //         suffixes.push(curr_suffix);
-        //     }
-        //     prev_suffix = curr_suffix;
-        // }
-
-        // let mut suf_bits = 0;
-        // let mut max_ptr = suffixes.len();
-
-        // suf_bits += 1;
-        // max_ptr >>= 1;
-        // while max_ptr != 0 {
-        //     suf_bits += 1;
-        //     max_ptr >>= 1;
-        // }
-        // let suffix_ptrs = 
 
         return Trie {
             louds_dense,
             louds_sparse,
             suffixes: suffix_builder,
-        }
+        };
     }
 
     fn traverse(
@@ -111,10 +74,7 @@ impl Trie {
         return (ret.0, ret.1);
     }
 
-    fn _traverse(
-        &self,
-        key: &key_t,
-    ) -> (position_t, level_t) {
+    fn _traverse(&self, key: &key_t) -> (position_t, level_t) {
         let ret = self.louds_dense.find_key(key);
         if ret.0 != K_NOT_FOUND {
             return (ret.0, ret.1);
@@ -128,27 +88,27 @@ impl Trie {
     pub fn exact_search(&self, key: &key_t) -> position_t {
         let (key_id, level) = self._traverse(key);
         if key_id == K_NOT_FOUND {
-            return K_NOT_FOUND
+            return K_NOT_FOUND;
         }
 
         let suffix = &self.suffixes[key_id].contents;
         let length = key.len() - level;
         if length != suffix.len() {
-            return K_NOT_FOUND
+            return K_NOT_FOUND;
         }
 
         for (cur_key, cur_suf) in key[level..].iter().zip(suffix.iter()) {
             if cur_key != cur_suf {
-                return K_NOT_FOUND
+                return K_NOT_FOUND;
             }
         }
-        return key_id
+        return key_id;
     }
 
     // // 見つかったかどうか，直前の探索のログを返したい．
     // fn caching_search(&self, previous_key: &key_t, key: &key_t, cache: Cache) -> position_t {
     //     let diff_level = self.find_different_level(previous_key, key);
-    //     let (key_id, level) = 
+    //     let (key_id, level) =
     //         if diff_level < self.louds_sparse.get_start_level() {
     //             let ret = self.louds_dense.find_key_with_cache(key, cache, diff_level);
     //             if ret.0 != K_NOT_FOUND {
@@ -161,7 +121,7 @@ impl Trie {
     //         } else {
     //             self.louds_sparse.find_key_with_cache(key, 0, cache, diff_level)
     //         };
-        
+
     // }
 
     // fn find_different_level(&self, pre_key: &key_t, key: &key_t) -> level_t {
@@ -187,27 +147,26 @@ impl Trie {
             if is_find {
                 sequnce_count += 1;
                 if sequnce_count >= time_range {
-                    return true
+                    return true;
                 }
             } else {
                 sequnce_count = 0;
             }
         }
-        return false
+        return false;
     }
 
     pub fn accurate_search(&self, key: &key_t, th: &TrajectoryHash) -> bool {
         let neighbors = self.get_neighbors(key, th);
         for nei in neighbors {
             if self.exact_search(nei.as_slice()) != K_NOT_FOUND {
-                return true
+                return true;
             }
         }
         false
     }
 
     pub fn get_neighbors(&self, key: &key_t, th: &TrajectoryHash) -> Vec<Vec<u8>> {
-
         let mut vec = Vec::with_capacity(EXTEND_NUMBER);
         let value: u128 = read_be_u128(key);
 
@@ -215,9 +174,21 @@ impl Trie {
         for position in ACCURATE_GRID {
             let bytes = u128_to_bytes(th.calc(value, position), th.byte_length);
             vec.push(bytes);
-        }  
+        }
         vec
+    }
 
+    pub fn byte_size(&self) -> usize {
+        let mut mem_size = 0;
+        unsafe {
+            mem_size += size_of_val(&*self.suffixes);
+            println!("suffix: {}", size_of_val(&*self.suffixes));
+            mem_size += self.louds_dense.byte_size();
+            println!("louds_dense: {}", self.louds_dense.byte_size());
+            mem_size += self.louds_sparse.byte_size();
+            println!("louds_sparse: {}", self.louds_sparse.byte_size());
+        }
+        mem_size
     }
 }
 
@@ -230,7 +201,7 @@ impl TrajectoryHash {
     pub fn new(byte_length: usize, geo_length: usize, time_length: usize) -> Self {
         let mut geo_lng_mask = 0b100u128;
         let mut geo_lat_mask = 0b010u128;
-        let mut time_mask    = 0b001u128;
+        let mut time_mask = 0b001u128;
 
         let diff = (geo_length as i32) - (time_length as i32);
         let mut mask_lists = [Vec::new(), Vec::new(), Vec::new()];
@@ -268,10 +239,13 @@ impl TrajectoryHash {
             }
         }
 
-        TrajectoryHash { byte_length, mask_lists }
+        TrajectoryHash {
+            byte_length,
+            mask_lists,
+        }
     }
 
-    pub fn calc(&self, value: u128, pos: [i32;3]) -> u128 {
+    pub fn calc(&self, value: u128, pos: [i32; 3]) -> u128 {
         let mut updated = value;
         for (dimension, direction) in pos.iter().enumerate() {
             match direction {
@@ -284,8 +258,8 @@ impl TrajectoryHash {
                             updated |= mask;
                         }
                     }
-                },
-                0 => {},
+                }
+                0 => {}
                 1 => {
                     for mask in self.mask_lists[dimension].iter() {
                         if value & mask == 0 {
@@ -295,8 +269,8 @@ impl TrajectoryHash {
                             updated &= !mask;
                         }
                     }
-                },
-                _ => panic!("invalid value of direction!")
+                }
+                _ => panic!("invalid value of direction!"),
             }
         }
         updated
@@ -307,11 +281,11 @@ fn read_be_u128(input: &[u8]) -> u128 {
     let mut output = 0u128;
     let digit = input.len() - 1;
     for (i, byte) in input.iter().enumerate() {
-        output |= (*byte as u128) << 8*(digit - i);
+        output |= (*byte as u128) << 8 * (digit - i);
     }
     output
 }
 
 fn u128_to_bytes(value: u128, byte_length: usize) -> Vec<u8> {
-    value.to_be_bytes()[16-byte_length..].to_vec()
+    value.to_be_bytes()[16 - byte_length..].to_vec()
 }

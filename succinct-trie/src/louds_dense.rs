@@ -1,5 +1,7 @@
+use core::intrinsics::size_of;
+
 use crate::builder::Builder;
-use crate::cache::Cache;
+// use crate::cache::Cache;
 use crate::config::*;
 use crate::rank::BitvectorRank;
 
@@ -14,6 +16,17 @@ pub struct LoudsDense {
 }
 
 impl LoudsDense {
+    pub fn byte_size(&self) -> usize {
+        let mut mem_size = 0;
+        unsafe {
+            mem_size += size_of::<level_t>();
+            mem_size += self.label_bitmaps.byte_size();
+            mem_size += self.child_indicator_bitmaps.byte_size();
+            mem_size += self.prefixkey_indicator_bits.byte_size();
+        }
+        mem_size
+    }
+
     pub fn new(builder: &Builder) -> LoudsDense {
         let height = builder.get_sparse_start_level();
         let mut num_bits_per_level: Vec<position_t> = Vec::new();

@@ -1,3 +1,6 @@
+use core::intrinsics::size_of;
+use core::intrinsics::size_of_val;
+
 use crate::config::*;
 use crate::bitvector::BitVector;
 use crate::popcount::{popcount_linear};
@@ -9,6 +12,16 @@ pub struct BitvectorRank {
 }
 
 impl BitvectorRank {
+    pub fn byte_size(&self) -> usize {
+        let mut mem_size = 0;
+        unsafe {
+            mem_size += self.bitvec.byte_size();
+            mem_size += size_of::<position_t>();
+            mem_size += size_of_val(&*self.rank_lut);
+        }
+        mem_size
+    }
+
     pub fn new(
         basic_block_size: position_t,
         bitvector_per_level: &Vec<Vec<word_t>>,

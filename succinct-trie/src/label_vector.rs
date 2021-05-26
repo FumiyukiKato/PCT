@@ -1,3 +1,4 @@
+use core::intrinsics::{size_of_val};
 use crate::config::*;
 
 pub struct LabelVector {
@@ -5,6 +6,14 @@ pub struct LabelVector {
 }
 
 impl LabelVector {
+    pub fn byte_size(&self) -> usize {
+        let mut mem_size = 0;
+        unsafe {
+            mem_size += size_of_val(&*self.labels);
+        }
+        mem_size
+    }
+
     pub fn new(
         labels_per_level: &Vec<Vec<label_t>>,
         start_level: level_t,
@@ -32,13 +41,14 @@ impl LabelVector {
         LabelVector { labels }
     }
 
-    pub fn search(&self, target: label_t, pos: position_t, search_len: position_t) -> (bool, position_t) {
+    pub fn search(&self, target: label_t, pos: position_t, search_len: position_t, is_last: bool) -> (bool, position_t) {
         let mut updated_pos = pos;
         let mut updated_search_len = search_len;
-        if updated_search_len > 1 && self.labels[updated_pos] == K_TERMINATOR {
-            updated_pos += 1;
-            updated_search_len -= 1;
-        }
+
+        // if updated_search_len > 1 && self.labels[updated_pos] == K_TERMINATOR && is_last {
+        //     updated_pos += 1;
+        //     updated_search_len -= 1;
+        // }
 
         if updated_search_len < 3 {
             return self.linear_search(target, updated_pos, updated_search_len);

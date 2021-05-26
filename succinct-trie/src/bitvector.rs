@@ -1,3 +1,5 @@
+use core::intrinsics::{size_of_val, size_of};
+
 use crate::config::*;
 
 pub struct BitVector {
@@ -6,6 +8,14 @@ pub struct BitVector {
 }
 
 impl BitVector{
+    pub fn byte_size(&self) -> usize {
+        let mut mem_size: usize = 0;
+        unsafe {
+            mem_size += size_of::<position_t>() + size_of_val(&*self.bits);
+        }
+        mem_size
+    }
+
     pub fn new(
         bitvector_per_level: &Vec<Vec<word_t>>,
         num_bits_per_level: &Vec<position_t>,

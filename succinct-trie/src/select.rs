@@ -1,3 +1,5 @@
+use core::intrinsics::{size_of, size_of_val};
+
 use crate::config::*;
 use crate::bitvector::BitVector;
 use crate::popcount::{select64_popcount_search};
@@ -9,6 +11,16 @@ pub struct BitvectorSelect {
 }
 
 impl BitvectorSelect {
+    pub fn byte_size(&self) -> usize {
+        let mut mem_size = 0;
+        unsafe {
+            mem_size += self.bitvec.byte_size();
+            mem_size += size_of::<position_t>();
+            mem_size += size_of_val(&*self.select_lut);
+        }
+        mem_size
+    }
+
     pub fn new (
         sample_interval: position_t,
         bitvector_per_level: &Vec<Vec<word_t>>,

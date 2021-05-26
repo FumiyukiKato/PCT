@@ -4,6 +4,8 @@ use crate::suffix::BitvectorSuffix;
 pub struct Builder {
     // trie level < sparse_start_level_: LOUDS-Dense
     // trie level >= sparse_start_level_: LOUDS-Sparse
+    key_len: usize,
+
     include_dense: bool,
     sparse_dense_ratio: u32,
     sparse_start_level: level_t,
@@ -41,8 +43,10 @@ impl Builder {
         bits[word_id] & (K_MSB_MASK >> offset) != 0
     }
 
-    pub fn new(include_dense: bool, sparse_dense_ratio: u32) -> Self {
+    pub fn new(key_len: usize, include_dense: bool, sparse_dense_ratio: u32) -> Self {
         Builder {
+            key_len: key_len,
+
             include_dense: include_dense,
             sparse_dense_ratio: sparse_dense_ratio,
             sparse_start_level: 0,

@@ -5,7 +5,7 @@ use clap::{AppSettings, Clap};
 use std::{char, io::{BufRead, BufReader}};
 use std::fs::File;
 
-use succinct_trie::{config::K_NOT_FOUND, trie::TrajectoryHash};
+use succinct_trie::{config::K_NOT_FOUND};
 use succinct_trie::trie::Trie;
 
 #[derive(Clap)]
@@ -75,27 +75,22 @@ fn main() {
     let client_data = read_trajectory_hash_from_csv(opts.client_input_file.as_str());
 
     println!("[searching]");
-    // let mut not_found = 0;
-    // let mut found = 0;
+    println!("server byte size {} byte", trie.byte_size());
+    let mut not_found = 0;
+    let mut found = 0;
 
-    // for key in client_data.iter() {
-    //     if trie.exact_search(key) != K_NOT_FOUND {
-    //         found += 1;
-    //     } else {
-    //         not_found += 1;
-    //     }
-    // }
-    // println!("Trie not found: {}, found: {}", not_found, found);
+    for key in client_data.iter() {
+        if trie.exact_search(key) != K_NOT_FOUND {
+            found += 1;
+        } else {
+            not_found += 1;
+        }
+    }
+    println!("Trie not found: {}, found: {}", not_found, found);
 
-    let time_range: usize = opts.duration_of_exposure.parse().unwrap();
-    let result = trie.doe_search(time_range, &client_data);
-    println!("Result: {}", result);
-
-    // let th = TrajectoryHash::new(7, 20, 16);
-    // println!("{:?}", &th.mask_lists);
-    // let neis = trie.get_neighbors(&0b11000001011001011001111000000111100101110101010001110u128.to_be_bytes().to_vec()[9..], &th);
-    // println!("{:?}", neis.len());
-    // println!("{:?}", neis);
+    // let time_range: usize = opts.duration_of_exposure.parse().unwrap();
+    // let result = trie.doe_search(time_range, &client_data);
+    // println!("Result: {}", result);
 
     println!("done.")
     
