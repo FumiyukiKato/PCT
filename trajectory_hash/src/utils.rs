@@ -9,6 +9,8 @@ const MAX_THETA_T: u32 = 32;
 const MIN_LONGITUDE: f64 = -MAX_LONGITUDE;
 const MIN_LATITUDE: f64 = -MAX_LATITUDE;
 
+static mut PRINT_FLAG: bool = true;
+
 pub struct Trajectory {
     time: u32,
     latitude: f64,
@@ -103,7 +105,14 @@ pub fn trajectory_hash(
 
     let (b1, b2, geo_length) = quadkey_encoding(trajectory.longitude, trajectory.latitude, theta_l);
     let (b3, time_length) = periodical_encoding(trajectory.time, time_period, theta_t);
+
     let (mixed, bit_length) = mix(mix_type, b1, b2, geo_length, b3, time_length);
+    unsafe {
+        if PRINT_FLAG {
+            println!("geo_length {}, time_length {} bit_length {}", geo_length, time_length, bit_length);
+            PRINT_FLAG = false;
+        }
+    }
     base8_encoding(&mixed, bit_length)
 }
 

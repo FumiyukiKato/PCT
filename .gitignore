@@ -41,3 +41,5 @@ __pycache__/*
 .python-version
 
 *.csv
+
+*.db
