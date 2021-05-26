@@ -8,17 +8,6 @@ use std::io::BufReader;
 use crate::model::Trajectory;
 use crate::schema::trajectory;
 
-pub fn read_trajectories_per_clients(
-    filenames: Vec<&str>,
-    has_header: bool,
-) -> Vec<Vec<Trajectory>> {
-    let mut trajectories_per_clients = Vec::new();
-    for filename in filenames {
-        trajectories_per_clients.push(read_trajectory_from_csv(filename, has_header));
-    }
-    trajectories_per_clients
-}
-
 pub fn read_trajectory_from_csv(filename: &str, has_header: bool) -> Vec<Trajectory> {
     let file = File::open(filename).expect("file open error");
     let reader = BufReader::new(file);
@@ -44,38 +33,13 @@ pub fn store_trajectories(trajectories: Vec<Trajectory>) -> () {
         .expect("Error saving new post");
 }
 
-pub fn doe_accurate_quereis(
-    trajectories_per_clients: Vec<Vec<Trajectory>>,
-    duration_of_exposure: i64,
-    theta_t: i64,
-    theta_l: f64,
-) -> Vec<(u32, bool)> {
-    let connection = establish_connection();
-    let mut results = Vec::new();
-    let mut client_id = 0;
-    for trajectories_for_client in trajectories_per_clients {
-        results.push((
-            client_id,
-            doe_accurate_quereis_for_client(
-                &connection,
-                trajectories_for_client,
-                duration_of_exposure,
-                theta_t,
-                theta_l,
-            ),
-        ));
-        client_id += 1;
-    }
-    results
-}
-
-fn doe_accurate_quereis_for_client(
-    connection: &SqliteConnection,
-    trajectories: Vec<Trajectory>,
+pub fn doe_accurate_quereis_for_client(
+    trajectories: &Vec<Trajectory>,
     duration_of_exposure: i64,
     theta_t: i64,
     theta_l: f64,
 ) -> bool {
+    let connection = establish_connection();
     let mut seq_count = 0;
 
     for trajectory in trajectories {
@@ -103,7 +67,7 @@ fn doe_accurate_quereis_for_client(
 }
 
 pub fn accurate_quereis(
-    trajectories: Vec<Trajectory>,
+    trajectories: &Vec<Trajectory>,
     theta_t: i64,
     theta_l: f64,
 ) -> Vec<(u32, bool)> {

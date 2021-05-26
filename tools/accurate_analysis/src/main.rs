@@ -2,12 +2,15 @@
 extern crate diesel;
 extern crate dotenv;
 extern crate savefile;
+extern crate glob;
 
 mod utils;
 mod schema;
 mod model;
 
 use clap::{AppSettings, Clap};
+use glob::glob;
+use regex::Regex;
 
 #[derive(Clap)]
 #[clap(version = "0.1", author = "Fumiyuki K. <fumilemon79@gmail.com>")]
@@ -44,15 +47,35 @@ fn main() {
             // 経度 0.0000108  の変化で0.9m
             // 間を取って0.
             let theta_l = 0.0000108;
-            let trajectories = utils::read_trajectory_from_csv(opts.input_file.as_str(), true);
-            let results = utils::accurate_quereis(trajectories, theta_t, theta_l);
+
+            // let duration_of_exposure = 3; // 3 minutes
+
+            let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
+
+            let mut results = Vec::new();
+            // let mut doe_results = Vec::new();
+            for entry in glob(format!("{}/*.csv", opts.input_file).as_str()).expect("Failed to read glob pattern") {
+                match entry {
+                    Ok(path) => {
+                        let filepath = path.to_str().unwrap();
+                        let caps = match re.captures(filepath) {
+                            Some(c) => c,
+                            None => break
+                        };
+                        let client_id: u32 = caps["client_id"].parse().unwrap();
+                        println!("filepath {}, client_id {}", filepath, client_id);
+                        let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
+                        let result = utils::accurate_quereis(&trajectories, theta_t, theta_l);
+                        results.push((client_id, result));
+
+                        // let doe_result = utils::doe_accurate_quereis_for_client(&trajectories, duration_of_exposure, theta_t, theta_l);
+                        // doe_results.push((client_id, doe_result));
+                    },
+                    Err(_) => panic!("failed to find path"),
+                }
+            }
             savefile::prelude::save_file("acc_resutls.bin", 0, &results).expect("failed to save");
-
-
-            let duration_of_exposure = 3; // 30 minutes
-            let trajectories_per_clients = utils::read_trajectories_per_clients(vec![opts.input_file.as_str()], true);
-            let results = utils::doe_accurate_quereis(trajectories_per_clients, duration_of_exposure, theta_t, theta_l);
-            savefile::prelude::save_file("acc_doe_resutls.bin", 0, &results).expect("failed to save");
+            // savefile::prelude::save_file("acc_doe_resutls.bin", 0, &doe_results).expect("failed to save");
 
             // let resutls: Vec<(u32, bool)> = savefile::prelude::load_file("acc_resutls.bin", 0).expect("failed to save");
             // println!("results {:?}", resutls);
