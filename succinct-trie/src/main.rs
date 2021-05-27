@@ -79,9 +79,11 @@ fn main() {
     let trie = Trie::new(&server_data);
     println!("server byte size {} byte", trie.byte_size());
 
-    let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
+    let re = Regex::new(r".+/client-(?P<theta_t>\d+)-(?P<theta_l>\d+)-(?P<client_id>\d+)-.+.csv").unwrap();
     let mut results = Vec::new();
-    let th = TrajectoryHash::new(7, 20, 16);
+    let th = TrajectoryHash::new(6, 17, 11);
+
+    let count = 100;
 
     for entry in glob(format!("{}/*.csv", opts.client_input_file).as_str()).expect("Failed to read glob pattern") {
         match entry {
@@ -92,6 +94,10 @@ fn main() {
                     None => break
                 };
                 let client_id: u32 = caps["client_id"].parse().unwrap();
+
+                if client_id > count {
+                    continue;
+                }
 
                 println!("start ... filepath {}, client_id {}", filepath, client_id);
                 let client_data = read_trajectory_hash_from_csv(path.to_str().unwrap());

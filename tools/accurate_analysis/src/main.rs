@@ -33,7 +33,7 @@ fn main() {
             utils::store_trajectories(trajectories);
         },
         "query" => {
-            // theta_t = 17 (1.2m), theta_l = 22 (17min) とすると 
+            // theta_l = 17 (1.2m), theta_t = 22 (17min) とすると 
             // → 距離 (ルート2 * 1.2m)以内，時間17min以内　に対する近似条件になると想定している．
             // false positiveを0にするためには，正確には前後17min, 前後1.2mを範囲にする必要があるのでそうする．結構false negative起こりそう．
             // 範囲を半分にすれば，同じブロック内の "半分の長さ以上の距離にあるデータ" がfalse positiveになってしまう．

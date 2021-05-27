@@ -176,25 +176,13 @@ impl Trie {
     }
 
     pub fn accurate_search(&self, key: &key_t, th: &TrajectoryHash) -> bool {
-        let neighbors = self.get_neighbors(key, th);
+        let neighbors = th.get_neighbors(key);
         for nei in neighbors {
             if self.exact_search(nei.as_slice()) != K_NOT_FOUND {
                 return true;
             }
         }
         false
-    }
-
-    pub fn get_neighbors(&self, key: &key_t, th: &TrajectoryHash) -> Vec<Vec<u8>> {
-        let mut vec = Vec::with_capacity(EXTEND_NUMBER);
-        let value: u128 = read_be_u128(key);
-
-        // tiles to hash values
-        for position in ACCURATE_GRID {
-            let bytes = u128_to_bytes(th.calc(value, position), th.byte_length);
-            vec.push(bytes);
-        }
-        vec
     }
 
     pub fn byte_size(&self) -> usize {
@@ -262,6 +250,18 @@ impl TrajectoryHash {
             byte_length,
             mask_lists,
         }
+    }
+
+    pub fn get_neighbors(&self, key: &key_t) -> Vec<Vec<u8>> {
+        let mut vec = Vec::with_capacity(EXTEND_NUMBER);
+        let value: u128 = read_be_u128(key);
+
+        // tiles to hash values
+        for position in ACCURATE_GRID {
+            let bytes = u128_to_bytes(self.calc(value, position), self.byte_length);
+            vec.push(bytes);
+        }
+        vec
     }
 
     pub fn calc(&self, value: u128, pos: [i32; 3]) -> u128 {

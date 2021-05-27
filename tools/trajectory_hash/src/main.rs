@@ -66,7 +66,6 @@ fn main() {
                         let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
                         let hashed = utils::bulk_encode(trajectories, &mix_type, opts.theta_t, opts.theta_l, time_period);
                         utils::write_trajectory_hash_csv(format!("{}-{}.csv", opts.output_file.as_str(), client_id).as_str(), hashed);
-                        println!("filepath: {}, client_id: {}", filepath, client_id);
                     },
                     Err(_) => panic!("failed to find path"),
                 }
