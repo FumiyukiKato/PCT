@@ -11,18 +11,18 @@ use clap::{AppSettings, Clap};
 use glob::glob;
 use regex::Regex;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, iter::FromIterator};
 
 #[derive(Clap)]
 #[clap(version = "0.1", author = "Fumiyuki K. <fumilemon79@gmail.com>")]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
     /// Sets input file name. It should have trajectory data
-    #[clap(short, long)]
+    #[clap(short, long, default_value = "")]
     input_file: String,
     
     /// mode insert|query|trunc
-    #[clap(short, long)]
+    #[clap(short, long, default_value = "")]
     mode: String,
 
     /// result-analysis or db-access (default: db-access)
@@ -30,11 +30,11 @@ struct Opts {
     usecase: String,
 
     /// result file name
-    #[clap(short, long)]
+    #[clap(short, long, default_value = "")]
     accurate_result_file: String,
 
     /// result file name
-    #[clap(short, long)]
+    #[clap(short, long, default_value = "")]
     pct_result_file: String,
 }
 
@@ -43,8 +43,8 @@ fn result_analysis(opts: &Opts) {
     let accurate_result_file_name = opts.accurate_result_file.as_str();
     let pct_result_file_name = opts.pct_result_file.as_str();
 
-    let acc_resutls: Vec<Vec<(u32, bool)>> = savefile::prelude::load_file(accurate_result_file_name, 0).expect("failed to load");
-    let pct_resutls: Vec<Vec<(u32, bool)>> = savefile::prelude::load_file(pct_result_file_name, 0).expect("failed to load");
+    let acc_resutls: Vec<(u32, Vec<(u32, bool)>)> = savefile::prelude::load_file(accurate_result_file_name, 0).expect("failed to load");
+    let pct_resutls: Vec<(u32, Vec<(u32, bool)>)> = savefile::prelude::load_file(pct_result_file_name, 0).expect("failed to load");
     
     // calculate confusion_matrix
     let mut confusion_matrix = HashMap::new();
@@ -53,8 +53,11 @@ fn result_analysis(opts: &Opts) {
     confusion_matrix.insert("fn", 0);
     confusion_matrix.insert("tn", 0);
 
-    for (acc_result_per_client, pct_result_per_client) in acc_resutls.iter().zip(pct_resutls) {
-        for (acc_result, pct_result) in acc_result_per_client.iter().zip(pct_result_per_client) {
+    let clinet_map: HashMap::<u32, Vec<(u32, bool)>> = HashMap::from_iter(pct_resutls);
+
+    for acc_result_per_client in acc_resutls {
+        let pct_result_per_client = &clinet_map[&acc_result_per_client.0];
+        for (acc_result, pct_result) in acc_result_per_client.1.iter().zip(pct_result_per_client) {
             if acc_result.0 != pct_result.0 {
                 panic!("query_id is different!")
             }

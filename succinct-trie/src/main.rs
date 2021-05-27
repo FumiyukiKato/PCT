@@ -79,7 +79,7 @@ fn main() {
     let trie = Trie::new(&server_data);
     println!("server byte size {} byte", trie.byte_size());
 
-    let re = Regex::new(r".+/client-(?P<theta_t>\d+)-(?P<theta_l>\d+)-(?P<client_id>\d+)-.+.csv").unwrap();
+    let re = Regex::new(r".+/client-(?P<theta_t>\d+)-(?P<theta_l>\d+)-(?P<client_id>\d+).+.csv").unwrap();
     let mut results = Vec::new();
     let th = TrajectoryHash::new(6, 17, 11);
 
@@ -104,7 +104,7 @@ fn main() {
                 match opts.mode.as_str() {
                     "normal" => {
                         let mut client_result = Vec::new();
-                        let mut query_id = 0;
+                        let mut query_id: u32 = 0;
         
                         for key in client_data.iter() {
                             if trie.exact_search(key) != K_NOT_FOUND {
