@@ -11,22 +11,69 @@ use clap::{AppSettings, Clap};
 use glob::glob;
 use regex::Regex;
 
+use std::collections::HashMap;
+
 #[derive(Clap)]
 #[clap(version = "0.1", author = "Fumiyuki K. <fumilemon79@gmail.com>")]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
     /// Sets input file name. It should have trajectory data
-    #[clap(short, long, default_value = "input.csv")]
+    #[clap(short, long)]
     input_file: String,
     
     /// mode insert|query|trunc
     #[clap(short, long)]
-    mode: String
+    mode: String,
+
+    /// result-analysis or db-access (default: db-access)
+    #[clap(short, long, default_value = "db-access")]
+    usecase: String,
+
+    /// result file name
+    #[clap(short, long)]
+    accurate_result_file: String,
+
+    /// result file name
+    #[clap(short, long)]
+    pct_result_file: String,
 }
 
-fn main() {
-    let opts: Opts = Opts::parse();
 
+fn result_analysis(opts: &Opts) {
+    let accurate_result_file_name = opts.accurate_result_file.as_str();
+    let pct_result_file_name = opts.pct_result_file.as_str();
+
+    let acc_resutls: Vec<Vec<(u32, bool)>> = savefile::prelude::load_file(accurate_result_file_name, 0).expect("failed to load");
+    let pct_resutls: Vec<Vec<(u32, bool)>> = savefile::prelude::load_file(pct_result_file_name, 0).expect("failed to load");
+    
+    // calculate confusion_matrix
+    let mut confusion_matrix = HashMap::new();
+    confusion_matrix.insert("tp", 0);
+    confusion_matrix.insert("fp", 0);
+    confusion_matrix.insert("fn", 0);
+    confusion_matrix.insert("tn", 0);
+
+    for (acc_result_per_client, pct_result_per_client) in acc_resutls.iter().zip(pct_resutls) {
+        for (acc_result, pct_result) in acc_result_per_client.iter().zip(pct_result_per_client) {
+            if acc_result.0 != pct_result.0 {
+                panic!("query_id is different!")
+            }
+            if acc_result.1 == true && pct_result.1 == true {
+                *confusion_matrix.get_mut("tp").unwrap() += 1;
+            } else if acc_result.1 == false && pct_result.1 == true {
+                *confusion_matrix.get_mut("fp").unwrap() += 1;
+            } else if acc_result.1 == true && pct_result.1 == false {
+                *confusion_matrix.get_mut("fn").unwrap() += 1;
+            } else {
+                *confusion_matrix.get_mut("tn").unwrap() += 1;
+            }
+        }
+    }
+    println!("{:?}", confusion_matrix);
+}
+
+
+fn db_access(opts: &Opts) {
     match opts.mode.as_str() {
         "insert" => {
             let trajectories = utils::read_trajectory_from_csv(opts.input_file.as_str(), true);
@@ -83,5 +130,14 @@ fn main() {
             utils::truncate_trajectory_db();
         }
         _ => panic!("Invlid mode argument")
+    }
+}
+fn main() {
+    let opts: Opts = Opts::parse();
+
+    match opts.usecase.as_str() {
+        "db-access" => db_access(&opts),
+        "result-analysis" => result_analysis(&opts),
+        _ => panic!("invalid usecase")
     }
 }
