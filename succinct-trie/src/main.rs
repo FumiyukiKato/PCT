@@ -92,7 +92,8 @@ fn main() {
                     None => break
                 };
                 let client_id: u32 = caps["client_id"].parse().unwrap();
-                // let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
+
+                println!("start ... filepath {}, client_id {}", filepath, client_id);
                 let client_data = read_trajectory_hash_from_csv(path.to_str().unwrap());
                 match opts.mode.as_str() {
                     "normal" => {
@@ -137,7 +138,6 @@ fn main() {
                     },
                     _ => panic!("invalid mode parameter")
                 }
-                println!("filepath {}, client_id {}", filepath, client_id);
             },
             Err(_) => panic!("failed to find path"),
         }
@@ -151,6 +151,27 @@ fn main() {
         _ => panic!("invalid mode parameter")
     };
     savefile::prelude::save_file(result_file_name, 0, &results).expect("failed to save");
+
+    // let mut server_data = read_trajectory_hash_from_csv(opts.server_input_file.as_str());
+
+    // server_data.sort();
+    // let trie = Trie::new(&server_data);
+
+    // let client_data = read_trajectory_hash_from_csv(opts.client_input_file.as_str());
+
+    // println!("[searching]");
+    // println!("server byte size {} byte", trie.byte_size());
+    // let mut not_found = 0;
+    // let mut found = 0;
+
+    // for key in client_data.iter() {
+    //     if trie.exact_search(key) != K_NOT_FOUND {
+    //         found += 1;
+    //     } else {
+    //         not_found += 1;
+    //     }
+    // }
+    // println!("Trie not found: {}, found: {}", not_found, found);
 
     println!("ok.")
     

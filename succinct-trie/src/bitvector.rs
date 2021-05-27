@@ -137,7 +137,7 @@ impl BitVector{
             distance += K_WORD_SIZE - offset;
         }
         
-        while word_id < self.num_words() {
+        while word_id < self.num_words() - 1 {
             word_id += 1;
             test_bits = self.bits[word_id];
             if test_bits > 0 {

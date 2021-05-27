@@ -2,3 +2,5 @@
 Cargo.lock
 
 *.csv
+
+*.bin

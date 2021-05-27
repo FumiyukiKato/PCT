@@ -110,11 +110,10 @@ impl LoudsSparse {
     pub fn find_key(&self, key: &key_t, in_node_num: level_t) -> (position_t, level_t) {
         let mut node_num = in_node_num;
         let mut pos = self.get_first_label_pos(node_num);
-        let mut curr_height = 0;
 
         for level in self.start_level..key.len() {
             self.child_indicator_bits.prefetch(pos);
-            let (res, updated_pos) = self.labels.search(key[level], pos, self.node_size(pos), level + 1 == key.len());
+            let (res, updated_pos) = self.labels.search(key[level], pos, self.node_size(pos));
             pos = updated_pos;
             if !res { 
                 return (K_NOT_FOUND, level) 
@@ -124,12 +123,8 @@ impl LoudsSparse {
             }
             node_num = self.get_child_node_num(pos);
             pos = self.get_first_label_pos(node_num);
-            curr_height = level;
         }
 
-        if curr_height == key.len() - 1 && self.labels.read(pos) == K_TERMINATOR && !self.child_indicator_bits.get_bitvec().read_bit(pos) {
-            return (self.get_suffix_pos(pos) + self.value_count_dense, key.len())
-        }
         return (K_NOT_FOUND, key.len())
     }
 

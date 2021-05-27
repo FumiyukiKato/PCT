@@ -46,6 +46,11 @@ impl Trie {
 
             let (key_id, level) = Trie::traverse(&louds_dense, &louds_sparse, keys[i].as_slice());
 
+            if !(key_id < num_keys) {
+                println!("i {}", i);
+                println!("key_id {}", key_id);
+                println!("keys[i] {:?}", keys[i]);
+            }
             assert!(key_id < num_keys);
             let contents = keys[i][level..].to_vec();
             suffix_builder[key_id] = Suffix { contents };

@@ -19,8 +19,6 @@ pub type key_t = [node_t];
 pub const K_MSB_MASK: word_t = 0x8000000000000000; // 1000000000000000000000000000000000000000000000000000000000000000
 pub const K_ONE_MASK: word_t = 0xFFFFFFFFFFFFFFFF;
 
-// TODO; これバグらない？kTerminatorで最後か判断しているところがあれば．．．
-pub const K_TERMINATOR: label_t = 0;
 
 #[derive(Copy, Clone)]
 pub enum SuffixType {

@@ -201,9 +201,6 @@ impl Builder {
         if level < key.len() {
             self.insert_key_byte(key[level], level, is_start_of_node, is_term);
         } else {
-            // TODO: 深さ全部同じなので最後の値を入れる必要はないはず
-            is_term = true;
-            self.insert_key_byte(K_TERMINATOR, level, is_start_of_node, is_term);
         }
         level += 1;
 
@@ -385,8 +382,9 @@ impl Builder {
     }
 
     fn is_terminator(&self, level: level_t, pos: position_t) -> bool {
-        let label: label_t = self.labels[level][pos];
-        (label == K_TERMINATOR) && !Builder::read_bit(&self.child_indicator_bits[level], pos)
+        // let label: label_t = self.labels[level][pos];
+        // (label == K_TERMINATOR) && !Builder::read_bit(&self.child_indicator_bits[level], pos)
+        false
     }
 
     fn is_start_of_node(&self, level: level_t, pos: position_t) -> bool {

@@ -41,14 +41,10 @@ impl LabelVector {
         LabelVector { labels }
     }
 
-    pub fn search(&self, target: label_t, pos: position_t, search_len: position_t, is_last: bool) -> (bool, position_t) {
+    pub fn search(&self, target: label_t, pos: position_t, search_len: position_t) -> (bool, position_t) {
         let mut updated_pos = pos;
         let mut updated_search_len = search_len;
 
-        // if updated_search_len > 1 && self.labels[updated_pos] == K_TERMINATOR && is_last {
-        //     updated_pos += 1;
-        //     updated_search_len -= 1;
-        // }
 
         if updated_search_len < 3 {
             return self.linear_search(target, updated_pos, updated_search_len);
