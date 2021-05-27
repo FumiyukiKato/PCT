@@ -22,9 +22,8 @@ impl Trie {
     pub fn new(keys: &Vec<Vec<u8>>) -> Self {
         let include_dense = K_INCLUDE_DENSE;
         let sparse_dense = K_SPARSE_DENSE_RATIO;
-        let key_len = keys[0].len();
 
-        let mut builder = builder::Builder::new(key_len, include_dense, sparse_dense);
+        let mut builder = builder::Builder::new(include_dense, sparse_dense);
         builder.build(&keys);
         let louds_dense = LoudsDense::new(&builder);
         let louds_sparse = LoudsSparse::new(&builder);
@@ -139,10 +138,25 @@ impl Trie {
     // time_range is depends on encoding specification
     pub fn doe_search(&self, time_range: usize, keys: &Vec<Vec<u8>>) -> bool {
         let mut sequnce_count = 0;
-        let th = TrajectoryHash::new(7, 20, 16);
         for key in keys.iter() {
-            // let result = self.exact_search(&key);
-            // let is_find = result != K_NOT_FOUND;
+            let result = self.exact_search(&key);
+            let is_find = result != K_NOT_FOUND;
+            if is_find {
+                sequnce_count += 1;
+                if sequnce_count >= time_range {
+                    return true;
+                }
+            } else {
+                sequnce_count = 0;
+            }
+        }
+        return false;
+    }
+
+    // time_range is depends on encoding specification
+    pub fn accurate_doe_search(&self, time_range: usize, keys: &Vec<Vec<u8>>, th: &TrajectoryHash) -> bool {
+        let mut sequnce_count = 0;
+        for key in keys.iter() {
             let is_find = self.accurate_search(key, &th);
             if is_find {
                 sequnce_count += 1;

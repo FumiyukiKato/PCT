@@ -1,12 +1,15 @@
 extern crate succinct_trie;
+extern crate savefile;
 
 use clap::{AppSettings, Clap};
+use glob::glob;
+use regex::Regex;
 
 use std::{char, io::{BufRead, BufReader}};
 use std::fs::File;
 
 use succinct_trie::{config::K_NOT_FOUND};
-use succinct_trie::trie::Trie;
+use succinct_trie::trie::{Trie, TrajectoryHash};
 
 #[derive(Clap)]
 #[clap(version = "0.1", author = "Fumiyuki K. <fumilemon79@gmail.com>")]
@@ -23,6 +26,10 @@ struct Opts {
     /// Sets input file name. Client data
     #[clap(short, long, default_value = "3")]
     duration_of_exposure: String,
+
+    /// mode normal|accurate|doe|doe_accurate
+    #[clap(short, long, default_value = "3")]
+    mode: String,
 }
 
 pub fn read_trajectory_hash_from_csv(filename: &str) -> Vec<Vec<u8>> {
@@ -66,32 +73,85 @@ fn hex_to_num(c: char) -> u8 {
 
 fn main() {
     let opts: Opts = Opts::parse();
-    
-    let mut server_data = read_trajectory_hash_from_csv(opts.server_input_file.as_str());
 
+    let mut server_data = read_trajectory_hash_from_csv(opts.server_input_file.as_str());
     server_data.sort();
     let trie = Trie::new(&server_data);
-
-    let client_data = read_trajectory_hash_from_csv(opts.client_input_file.as_str());
-
-    println!("[searching]");
     println!("server byte size {} byte", trie.byte_size());
-    let mut not_found = 0;
-    let mut found = 0;
 
-    for key in client_data.iter() {
-        if trie.exact_search(key) != K_NOT_FOUND {
-            found += 1;
-        } else {
-            not_found += 1;
+    let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
+    let mut results = Vec::new();
+    let th = TrajectoryHash::new(7, 20, 16);
+
+    for entry in glob(format!("{}/*.csv", opts.client_input_file).as_str()).expect("Failed to read glob pattern") {
+        match entry {
+            Ok(path) => {
+                let filepath = path.to_str().unwrap();
+                let caps = match re.captures(filepath) {
+                    Some(c) => c,
+                    None => break
+                };
+                let client_id: u32 = caps["client_id"].parse().unwrap();
+                // let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
+                let client_data = read_trajectory_hash_from_csv(path.to_str().unwrap());
+                match opts.mode.as_str() {
+                    "normal" => {
+                        let mut client_result = Vec::new();
+                        let mut query_id = 0;
+        
+                        for key in client_data.iter() {
+                            if trie.exact_search(key) != K_NOT_FOUND {
+                                client_result.push((query_id, true));
+                            } else {
+                                client_result.push((query_id, false));
+                            }
+                            query_id += 1;
+                        }
+        
+                        results.push((client_id, client_result));
+                    },
+                    "accurate" => {
+                        let mut client_result = Vec::new();
+                        let mut query_id = 0;
+        
+                        for key in client_data.iter() {
+                            if trie.accurate_search(key, &th) {
+                                client_result.push((query_id, true));
+                            } else {
+                                client_result.push((query_id, false));
+                            }
+                            query_id += 1;
+                        }
+        
+                        results.push((client_id, client_result));
+                    },
+                    "doe" => {
+                        let time_range: usize = opts.duration_of_exposure.parse().unwrap();
+                        let result = trie.doe_search(time_range, &client_data);
+                        results.push((client_id, vec![(0, result)]));
+                    },
+                    "doe_accurate" => {
+                        let time_range: usize = opts.duration_of_exposure.parse().unwrap();
+                        let result = trie.accurate_doe_search(time_range, &client_data, &th);
+                        results.push((client_id, vec![(0, result)]));
+                    },
+                    _ => panic!("invalid mode parameter")
+                }
+                println!("filepath {}, client_id {}", filepath, client_id);
+            },
+            Err(_) => panic!("failed to find path"),
         }
     }
-    println!("Trie not found: {}, found: {}", not_found, found);
 
-    // let time_range: usize = opts.duration_of_exposure.parse().unwrap();
-    // let result = trie.doe_search(time_range, &client_data);
-    // println!("Result: {}", result);
+    let result_file_name = match opts.mode.as_str() {
+        "normal"       => "pct_resutls.bin",
+        "accurate"     => "pct_acc_results.bin",
+        "doe"          => "pct_doe_results.bin",
+        "doe_accurate" => "pct_doe_acc_results.bin",
+        _ => panic!("invalid mode parameter")
+    };
+    savefile::prelude::save_file(result_file_name, 0, &results).expect("failed to save");
 
-    println!("done.")
+    println!("ok.")
     
 }
