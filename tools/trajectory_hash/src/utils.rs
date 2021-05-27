@@ -75,7 +75,7 @@ pub fn write_trajectory_hash_csv(filename: &str, trajectory_hashes: Vec<Vec<u8>>
 
 pub fn bulk_encode(
     trajectories: Vec<Trajectory>,
-    mix_type: MixType,
+    mix_type: &MixType,
     theta_t: u32,
     theta_l: u32,
     time_period: (u32, u32),

@@ -9,7 +9,7 @@ $ diesel migration run --database-url=trajectory.db
 
 Query from file
 ```
-$  cargo run -- -i input.csv -m query 
+$ cargo run --release -- -i ../trajectory/data/client -m query 
 ```
 
 Insert from file

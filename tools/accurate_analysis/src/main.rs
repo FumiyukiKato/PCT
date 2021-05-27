@@ -2,7 +2,6 @@
 extern crate diesel;
 extern crate dotenv;
 extern crate savefile;
-extern crate glob;
 
 mod utils;
 mod schema;
