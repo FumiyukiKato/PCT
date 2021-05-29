@@ -83,19 +83,22 @@ fn db_access(opts: &Opts) {
             utils::store_trajectories(trajectories);
         },
         "query" => {
-            // theta_l = 17 (1.2m), theta_t = 22 (17min) とすると 
-            // → 距離 (ルート2 * 1.2m)以内，時間17min以内　に対する近似条件になると想定している．
+            // theta_l = 24 (2.4m) (https://docs.microsoft.com/ja-jp/azure/azure-maps/zoom-levels-and-tile-grid?tabs=csharp), theta_t = 22 (17min) とすると 
+            // → 距離 (ルート2 * m)以内，時間17min以内　に対する近似条件になると想定している．
             // false positiveを0にするためには，正確には前後17min, 前後1.2mを範囲にする必要があるのでそうする．結構false negative起こりそう．
             // 範囲を半分にすれば，同じブロック内の "半分の長さ以上の距離にあるデータ" がfalse positiveになってしまう．
 
             // 時間は17minなのでsecond(UNIXEPOCH)に直すだけ
             let theta_t = 17*60;
+            
             // NYの緯度経度だと (ref. https://vldb.gsi.go.jp/sokuchi/surveycalc/surveycalc/bl2stf.html)
-            // NYだと赤道の0.75倍くらい，つまりtheta_t=17のとき，横の変化(longitude経度の変化)幅は実際には，0.9mくらい（縦(latitude緯度の変化)は1.2mで同じ）(https://wiki.openstreetmap.org/wiki/Zoom_levels)
-            // 緯度 0.0000108 の変化で1.2m
-            // 経度 0.0000108  の変化で0.9m
-            // 間を取って0.
-            let theta_l = 0.0000108;
+            // 緯度はNYだと赤道の0.75倍くらい，(https://wiki.openstreetmap.org/wiki/Zoom_levels)
+            // さらにタイル座標ではタイルのサイズが大体正方形なので下のようなquadkeyのサイズ設定は下の感じになる
+            // 経度(lng) 0.0000215の変化で1.836mでハッシュ値が1変化
+            // 緯度(lat) 0.0000165 の変化で1.832mでハッシュ値が１変化
+            // ちなみに 最大距離は約2.6m
+            let theta_l_lng = 0.0000215;
+            let theta_l_lat = 0.0000165;
 
             // let duration_of_exposure = 3; // 3 minutes
 
@@ -114,10 +117,10 @@ fn db_access(opts: &Opts) {
                         let client_id: u32 = caps["client_id"].parse().unwrap();
                         println!("filepath {}, client_id {}", filepath, client_id);
                         let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
-                        let result = utils::accurate_quereis(&trajectories, theta_t, theta_l);
+                        let result = utils::accurate_quereis(&trajectories, theta_t, theta_l_lng, theta_l_lat);
                         results.push((client_id, result));
 
-                        // let doe_result = utils::doe_accurate_quereis_for_client(&trajectories, duration_of_exposure, theta_t, theta_l);
+                        // let doe_result = utils::doe_accurate_quereis_for_client(&trajectories, duration_of_exposure, theta_t, theta_l_lng, theta_l_lat);
                         // doe_results.push((client_id, doe_result));
                     },
                     Err(_) => panic!("failed to find path"),

@@ -37,14 +37,15 @@ pub fn doe_accurate_quereis_for_client(
     trajectories: &Vec<Trajectory>,
     duration_of_exposure: i64,
     theta_t: i64,
-    theta_l: f64,
+    theta_l_lng: f64,
+    theta_l_lat: f64,
 ) -> bool {
     let connection = establish_connection();
     let mut seq_count = 0;
 
     for trajectory in trajectories {
         let (time_start, time_end, lng_start, lng_end, lat_start, lat_end) =
-            trajectory.get_query_condition(theta_t, theta_l);
+            trajectory.get_query_condition(theta_t, theta_l_lng, theta_l_lat);
         let ret = query_contact_detection(
             &connection,
             time_start,
@@ -69,7 +70,8 @@ pub fn doe_accurate_quereis_for_client(
 pub fn accurate_quereis(
     trajectories: &Vec<Trajectory>,
     theta_t: i64,
-    theta_l: f64,
+    theta_l_lng: f64,
+    theta_l_lat: f64,
 ) -> Vec<(u32, bool)> {
     let connection = establish_connection();
     let mut results = Vec::new();
@@ -77,7 +79,7 @@ pub fn accurate_quereis(
     let mut query_id = 0;
     for trajectory in trajectories {
         let (time_start, time_end, lng_start, lng_end, lat_start, lat_end) =
-            trajectory.get_query_condition(theta_t, theta_l);
+            trajectory.get_query_condition(theta_t, theta_l_lng, theta_l_lat);
         results.push((
             query_id,
             query_contact_detection(

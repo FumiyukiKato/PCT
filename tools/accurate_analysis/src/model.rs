@@ -25,14 +25,14 @@ impl Trajectory {
         }
     }
 
-    pub fn get_query_condition(&self, theta_t: i64, theta_l: f64) -> (i64, i64, f64, f64, f64, f64) {
+    pub fn get_query_condition(&self, theta_t: i64, theta_l_lng: f64, theta_l_lat: f64) -> (i64, i64, f64, f64, f64, f64) {
         (
-            self.time - (theta_t/2),
-            self.time + (theta_t/2),
-            self.longitude - (theta_l/2.0),
-            self.longitude + (theta_l/2.0),
-            self.latitude - (theta_l/2.0),
-            self.latitude + (theta_l/2.0),
+            self.time - theta_t,
+            self.time + theta_t,
+            self.longitude - theta_l_lng,
+            self.longitude + theta_l_lng,
+            self.latitude - theta_l_lat,
+            self.latitude + theta_l_lat,
         )
     }
 }
