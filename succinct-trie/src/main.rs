@@ -42,6 +42,14 @@ struct Opts {
 	/// time_length
 	#[clap(short, long)]
 	time_length: String,
+
+	/// theta_t
+	#[clap(short, long)]
+	theta_t: String,
+
+	/// theta_l
+	#[clap(short, long)]
+	theta_l: String,
 }
 
 pub fn read_trajectory_hash_from_csv(filename: &str) -> Vec<Vec<u8>> {
@@ -90,24 +98,25 @@ fn main() {
     server_data.sort();
     let trie = Trie::new(&server_data);
     println!("server byte size {} byte", trie.byte_size());
-
-    let re = Regex::new(r".*/client-(?P<theta_t>\d+)-(?P<theta_l>\d+)-(?P<client_id>\d+).*.csv").unwrap();
     
 	let byte_length: usize = opts.byte_length.as_str().parse().unwrap();
 	let geo_length: usize = opts.geo_length.as_str().parse().unwrap();
 	let time_length: usize = opts.time_length.as_str().parse().unwrap();
     let th = TrajectoryHash::new(byte_length, geo_length, time_length);
 
+	let theta_t: usize = opts.theta_t.as_str().parse().unwrap();
+	let theta_l: usize = opts.theta_l.as_str().parse().unwrap();
+    let re = Regex::new(format!(r".*/client-{}-{}-(?P<client_id>\d+).*.csv", theta_t, theta_l).as_str()).unwrap();
+	
     let count = 100;
     let mut results = Vec::new();
     for entry in glob(format!("{}/*.csv", opts.client_input_file).as_str()).expect("Failed to read glob pattern") {
-		println!("hoge");
         match entry {
             Ok(path) => {
                 let filepath = path.to_str().unwrap();
                 let caps = match re.captures(filepath) {
                     Some(c) => c,
-                    None => break
+                    None => continue
                 };
                 let client_id: u32 = caps["client_id"].parse().unwrap();
 
@@ -166,13 +175,13 @@ fn main() {
     }
 
     let result_file_name = match opts.mode.as_str() {
-        "normal"       => "pct_resutls.bin",
-        "accurate"     => "pct_acc_results.bin",
-        "doe"          => "pct_doe_results.bin",
-        "doe_accurate" => "pct_doe_acc_results.bin",
+        "normal"       => format!("pct_results_{}_{}.bin", theta_t, theta_l),
+        "accurate"     => format!("pct_acc_results_{}_{}.bin", theta_t, theta_l),
+        "doe"          => format!("pct_doe_results_{}_{}.bin", theta_t, theta_l),
+        "doe_accurate" => format!("pct_acc_doe_results_{}_{}.bin", theta_t, theta_l),
         _ => panic!("invalid mode parameter")
     };
-    savefile::prelude::save_file(result_file_name, 0, &results).expect("failed to save");
+    savefile::prelude::save_file(result_file_name.as_str(), 0, &results).expect("failed to save");
 
     // let mut server_data = read_trajectory_hash_from_csv(opts.server_input_file.as_str());
 

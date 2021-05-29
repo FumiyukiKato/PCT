@@ -25,7 +25,7 @@ struct Opts {
     #[clap(short, long, default_value = "acc_results.bin")]
     output_file: String,
     
-    /// mode insert|query|trunc
+    /// mode insert|query|trunc|doe
     #[clap(short, long)]
     mode: Option<String>,
 
@@ -40,6 +40,18 @@ struct Opts {
     /// result file name
     #[clap(short, long)]
     pct_result_file: Option<String>,
+
+    /// theta-t minutes
+    #[clap(short, long)]
+    theta_t: Option<String>,
+
+    /// theta_l_lng longitude
+    #[clap(short, long)]
+    theta_l_lng: Option<String>,
+
+    /// theta_l_lat latitude
+    #[clap(short, long)]
+    theta_l_lat: Option<String>,
 }
 
 
@@ -95,7 +107,9 @@ fn db_access(opts: &Opts) {
             // 範囲を半分にすれば，同じブロック内の "半分の長さ以上の距離にあるデータ" がfalse positiveになってしまう．
 
             // 時間は17minなのでsecond(UNIXEPOCH)に直すだけ
-            let theta_t = 17*60;
+			let theta_t: i64 = opts.theta_t.as_ref().unwrap().as_str().parse().unwrap();
+			let theta_t = theta_t * 60;
+            // let theta_t = 17*60;
             
             // NYの緯度経度だと (ref. https://vldb.gsi.go.jp/sokuchi/surveycalc/surveycalc/bl2stf.html)
             // 緯度はNYだと赤道の0.75倍くらい，(https://wiki.openstreetmap.org/wiki/Zoom_levels)
@@ -103,8 +117,10 @@ fn db_access(opts: &Opts) {
             // 経度(lng) 0.0000215の変化で1.836mでハッシュ値が1変化
             // 緯度(lat) 0.0000165 の変化で1.832mでハッシュ値が１変化
             // ちなみに 最大距離は約2.6m
-            let theta_l_lng = 0.0000215;
-            let theta_l_lat = 0.0000165;
+			let theta_l_lng: f64 = opts.theta_l_lng.as_ref().unwrap().as_str().parse().unwrap();
+			let theta_l_lat: f64 = opts.theta_l_lat.as_ref().unwrap().as_str().parse().unwrap();
+            // let theta_l_lng = 0.0000215;
+            // let theta_l_lat = 0.0000165;
 
             // let duration_of_exposure = 3; // 3 minutes
 
@@ -130,19 +146,45 @@ fn db_access(opts: &Opts) {
                         let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
                         let result = utils::accurate_quereis(&trajectories, theta_t, theta_l_lng, theta_l_lat);
                         results.push((client_id, result));
-
-                        // let doe_result = utils::doe_accurate_quereis_for_client(&trajectories, duration_of_exposure, theta_t, theta_l_lng, theta_l_lat);
-                        // doe_results.push((client_id, doe_result));
                     },
                     Err(_) => panic!("failed to find path"),
                 }
             }
             savefile::prelude::save_file(opts.output_file.as_str(), 0, &results).expect("failed to save");
-            // savefile::prelude::save_file("acc_doe_resutls.bin", 0, &doe_results).expect("failed to save");
-
-            // let resutls: Vec<(u32, bool)> = savefile::prelude::load_file("acc_resutls.bin", 0).expect("failed to save");
-            // println!("results {:?}", resutls);
         },
+        "doe" => {
+            let theta_t = 17*60;
+            let theta_l_lng = 0.0000215;
+            let theta_l_lat = 0.0000165;
+            let duration_of_exposure = 15; // 51 minutes
+
+            let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
+			let count = 100;
+
+            let mut doe_results = Vec::new();
+			let input_file = opts.input_file.as_ref().unwrap().as_str();
+            for entry in glob(format!("{}/*.csv", input_file).as_str()).expect("Failed to read glob pattern") {
+                match entry {
+                    Ok(path) => {
+                        let filepath = path.to_str().unwrap();
+                        let caps = match re.captures(filepath) {
+                            Some(c) => c,
+                            None => break
+                        };
+                        let client_id: u32 = caps["client_id"].parse().unwrap();
+						if count <= client_id {
+							continue;
+						}
+                        println!("filepath {}, client_id {}", filepath, client_id);
+                        let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
+                        let doe_result = utils::doe_accurate_quereis_for_client(&trajectories, duration_of_exposure, theta_t, theta_l_lng, theta_l_lat);
+                        doe_results.push((client_id, vec![(0u32, doe_result)]));
+                    },
+                    Err(_) => panic!("failed to find path"),
+                }
+            }
+            savefile::prelude::save_file(opts.output_file.as_str(), 0, &doe_results).expect("failed to save");
+		},
         "trunc" => {
             utils::truncate_trajectory_db();
         }
