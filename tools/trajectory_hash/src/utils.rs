@@ -113,7 +113,6 @@ pub fn trajectory_hash(
             PRINT_FLAG = false;
         }
     }
-    println!("geo_length {}, time_length {} bit_length {}", geo_length, time_length, bit_length);
     base8_encoding(&mixed, bit_length)
 }
 

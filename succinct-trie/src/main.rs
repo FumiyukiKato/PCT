@@ -28,8 +28,20 @@ struct Opts {
     duration_of_exposure: String,
 
     /// mode normal|accurate|doe|doe_accurate
-    #[clap(short, long, default_value = "3")]
+    #[clap(short, long, default_value = "")]
     mode: String,
+
+	/// byte_length
+	#[clap(short, long)]
+	byte_length: String,
+	
+	/// geo_length
+	#[clap(short, long)]
+	geo_length: String,
+	
+	/// time_length
+	#[clap(short, long)]
+	time_length: String,
 }
 
 pub fn read_trajectory_hash_from_csv(filename: &str) -> Vec<Vec<u8>> {
@@ -79,13 +91,17 @@ fn main() {
     let trie = Trie::new(&server_data);
     println!("server byte size {} byte", trie.byte_size());
 
-    let re = Regex::new(r".+/client-(?P<theta_t>\d+)-(?P<theta_l>\d+)-(?P<client_id>\d+).+.csv").unwrap();
-    let mut results = Vec::new();
-    let th = TrajectoryHash::new(6, 17, 11);
+    let re = Regex::new(r".*/client-(?P<theta_t>\d+)-(?P<theta_l>\d+)-(?P<client_id>\d+).*.csv").unwrap();
+    
+	let byte_length: usize = opts.byte_length.as_str().parse().unwrap();
+	let geo_length: usize = opts.geo_length.as_str().parse().unwrap();
+	let time_length: usize = opts.time_length.as_str().parse().unwrap();
+    let th = TrajectoryHash::new(byte_length, geo_length, time_length);
 
     let count = 100;
-
+    let mut results = Vec::new();
     for entry in glob(format!("{}/*.csv", opts.client_input_file).as_str()).expect("Failed to read glob pattern") {
+		println!("hoge");
         match entry {
             Ok(path) => {
                 let filepath = path.to_str().unwrap();

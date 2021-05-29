@@ -18,30 +18,34 @@ use std::{collections::HashMap, iter::FromIterator};
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
     /// Sets input file name. It should have trajectory data
-    #[clap(short, long, default_value = "")]
-    input_file: String,
+    #[clap(short, long)]
+    input_file: Option<String>,
+
+	/// Sets output file name. binary data
+    #[clap(short, long, default_value = "acc_results.bin")]
+    output_file: String,
     
     /// mode insert|query|trunc
-    #[clap(short, long, default_value = "")]
-    mode: String,
+    #[clap(short, long)]
+    mode: Option<String>,
 
     /// result-analysis or db-access (default: db-access)
     #[clap(short, long, default_value = "db-access")]
     usecase: String,
 
     /// result file name
-    #[clap(short, long, default_value = "")]
-    accurate_result_file: String,
+    #[clap(short, long)]
+    accurate_result_file: Option<String>,
 
     /// result file name
-    #[clap(short, long, default_value = "")]
-    pct_result_file: String,
+    #[clap(short, long)]
+    pct_result_file: Option<String>,
 }
 
 
 fn result_analysis(opts: &Opts) {
-    let accurate_result_file_name = opts.accurate_result_file.as_str();
-    let pct_result_file_name = opts.pct_result_file.as_str();
+    let accurate_result_file_name = opts.accurate_result_file.as_ref().unwrap().as_str();
+    let pct_result_file_name = opts.pct_result_file.as_ref().unwrap().as_str();
 
     let acc_resutls: Vec<(u32, Vec<(u32, bool)>)> = savefile::prelude::load_file(accurate_result_file_name, 0).expect("failed to load");
     let pct_resutls: Vec<(u32, Vec<(u32, bool)>)> = savefile::prelude::load_file(pct_result_file_name, 0).expect("failed to load");
@@ -77,9 +81,11 @@ fn result_analysis(opts: &Opts) {
 
 
 fn db_access(opts: &Opts) {
-    match opts.mode.as_str() {
+	let mode = opts.mode.as_ref().unwrap().as_str();
+    match mode {
         "insert" => {
-            let trajectories = utils::read_trajectory_from_csv(opts.input_file.as_str(), true);
+			let input_file = opts.input_file.as_ref().unwrap().as_str();
+            let trajectories = utils::read_trajectory_from_csv(input_file, true);
             utils::store_trajectories(trajectories);
         },
         "query" => {
@@ -103,10 +109,12 @@ fn db_access(opts: &Opts) {
             // let duration_of_exposure = 3; // 3 minutes
 
             let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
+			let count = 100;
 
             let mut results = Vec::new();
             // let mut doe_results = Vec::new();
-            for entry in glob(format!("{}/*.csv", opts.input_file).as_str()).expect("Failed to read glob pattern") {
+			let input_file = opts.input_file.as_ref().unwrap().as_str();
+            for entry in glob(format!("{}/*.csv", input_file).as_str()).expect("Failed to read glob pattern") {
                 match entry {
                     Ok(path) => {
                         let filepath = path.to_str().unwrap();
@@ -115,6 +123,9 @@ fn db_access(opts: &Opts) {
                             None => break
                         };
                         let client_id: u32 = caps["client_id"].parse().unwrap();
+						if count <= client_id {
+							continue;
+						}
                         println!("filepath {}, client_id {}", filepath, client_id);
                         let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
                         let result = utils::accurate_quereis(&trajectories, theta_t, theta_l_lng, theta_l_lat);
@@ -126,7 +137,7 @@ fn db_access(opts: &Opts) {
                     Err(_) => panic!("failed to find path"),
                 }
             }
-            savefile::prelude::save_file("acc_resutls.bin", 0, &results).expect("failed to save");
+            savefile::prelude::save_file(opts.output_file.as_str(), 0, &results).expect("failed to save");
             // savefile::prelude::save_file("acc_doe_resutls.bin", 0, &doe_results).expect("failed to save");
 
             // let resutls: Vec<(u32, bool)> = savefile::prelude::load_file("acc_resutls.bin", 0).expect("failed to save");
