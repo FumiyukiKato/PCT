@@ -1,6 +1,6 @@
+use std::fs::OpenOptions;
 use std::io::{BufReader, BufWriter};
 use std::{f64::consts::PI, fs::File, u32};
-use std::fs::OpenOptions;
 
 const MAX_LONGITUDE: f64 = 180.0;
 const MAX_LATITUDE: f64 = 85.05112877980659; // (2*math.atan2(exp(math.pi))*180.0/math.pi - 90.0)
@@ -109,7 +109,10 @@ pub fn trajectory_hash(
     let (mixed, bit_length) = mix(mix_type, b1, b2, geo_length, b3, time_length);
     unsafe {
         if PRINT_FLAG {
-            println!("geo_length {}, time_length {} bit_length {}", geo_length, time_length, bit_length);
+            println!(
+                "geo_length {}, time_length {} bit_length {}",
+                geo_length, time_length, bit_length
+            );
             PRINT_FLAG = false;
         }
     }
@@ -135,12 +138,12 @@ fn mix(
 
             let digit = 2 * geo_length + time_length;
             for i in 0..geo_length {
-                mixed |= (b1 & (1u128 << (geo_length-i-1))) << (digit - i - geo_length);
-                mixed |= (b2 & (1u128 << (geo_length-i-1))) << (digit - 1 - i - geo_length);
+                mixed |= (b1 & (1u128 << (geo_length - i - 1))) << (digit - i - geo_length);
+                mixed |= (b2 & (1u128 << (geo_length - i - 1))) << (digit - 1 - i - geo_length);
             }
             mixed |= b3 as u128;
             (mixed, 2 * geo_length + time_length)
-        },
+        }
         MixType::Mix => {
             let mut mixed = 0u128;
             let b1 = (b1 & geo_bit_mask) as u128;
@@ -153,28 +156,28 @@ fn mix(
 
             while geo_cursor > time_cursor {
                 if geo_cursor > 0 {
-                    mixed |= (b1 & (1u128 << (geo_cursor-1))) << (curr_digit - geo_cursor);
-                    mixed |= (b2 & (1u128 << (geo_cursor-1))) << (curr_digit - 1 - geo_cursor);
+                    mixed |= (b1 & (1u128 << (geo_cursor - 1))) << (curr_digit - geo_cursor);
+                    mixed |= (b2 & (1u128 << (geo_cursor - 1))) << (curr_digit - 1 - geo_cursor);
                     curr_digit -= 2;
                     geo_cursor -= 1;
                 }
             }
             while geo_cursor < time_cursor {
                 if time_cursor > 0 {
-                    mixed |= (b3 & (1u128 << (time_cursor-1))) << (curr_digit - time_cursor);
+                    mixed |= (b3 & (1u128 << (time_cursor - 1))) << (curr_digit - time_cursor);
                     curr_digit -= 1;
                     time_cursor -= 1;
                 }
             }
             while geo_cursor > 0 || time_cursor > 0 {
                 if geo_cursor > 0 {
-                    mixed |= (b1 & (1u128 << (geo_cursor-1))) << (curr_digit - geo_cursor);
-                    mixed |= (b2 & (1u128 << (geo_cursor-1))) << (curr_digit - 1 - geo_cursor);
+                    mixed |= (b1 & (1u128 << (geo_cursor - 1))) << (curr_digit - geo_cursor);
+                    mixed |= (b2 & (1u128 << (geo_cursor - 1))) << (curr_digit - 1 - geo_cursor);
                     curr_digit -= 2;
                     geo_cursor -= 1;
                 }
                 if time_cursor > 0 {
-                    mixed |= (b3 & (1u128 << (time_cursor-1))) << (curr_digit - time_cursor);
+                    mixed |= (b3 & (1u128 << (time_cursor - 1))) << (curr_digit - time_cursor);
                     curr_digit -= 1;
                     time_cursor -= 1;
                 }
@@ -316,32 +319,65 @@ mod tests {
             (0b111000111000 as u128, 4 + 4 + 4)
         );
         assert_eq!(
-            utils::mix(&utils::MixType::Mix, 0b1010u32, 0b1010u32, 4, 0b0000001010u32, 10),
+            utils::mix(
+                &utils::MixType::Mix,
+                0b1010u32,
+                0b1010u32,
+                4,
+                0b0000001010u32,
+                10
+            ),
             (0b000000111000111000 as u128, 4 + 4 + 10)
         );
         assert_eq!(
-            utils::mix(&utils::MixType::Mix, 0b1010u32, 0b1010u32, 4, 0b0000001010u32, 3),
+            utils::mix(
+                &utils::MixType::Mix,
+                0b1010u32,
+                0b1010u32,
+                4,
+                0b0000001010u32,
+                3
+            ),
             (0b11000111000 as u128, 4 + 4 + 3)
         );
         assert_eq!(
-            utils::mix(&utils::MixType::Seperate, 0b1010u32, 0b1010u32, 4, 0b1010u32, 4),
+            utils::mix(
+                &utils::MixType::Seperate,
+                0b1010u32,
+                0b1010u32,
+                4,
+                0b1010u32,
+                4
+            ),
             (0b110011001010 as u128, 4 + 4 + 4)
         );
     }
 
     #[test]
     fn trajectory_hash() {
-        let trajectory = Trajectory { time: 1598555555, longitude: 139.759556, latitude: 35.716701 };
+        let trajectory = Trajectory {
+            time: 1598555555,
+            longitude: 139.759556,
+            latitude: 35.716701,
+        };
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 27, 20, (1597849200, 1599058800)
+                &trajectory,
+                &utils::MixType::Mix,
+                27,
+                20,
+                (1597849200, 1599058800)
             ),
             vec![188, 14, 85, 232, 11, 151, 53]
         );
 
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Seperate, 27, 20, (1597849200, 1599058800)
+                &trajectory,
+                &utils::MixType::Seperate,
+                27,
+                20,
+                (1597849200, 1599058800)
             ),
             vec![188, 26, 120, 28, 110, 86, 57]
         );
@@ -350,73 +386,136 @@ mod tests {
         // theta_t = 22 theta_l = 24
         // Time:
         // 大体 17*60 = 1020でハッシュ値が1変わる
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.000, latitude: 40.000 };
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.000,
+            latitude: 40.000,
+        };
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 97, 32]
         );
 
-        let trajectory = Trajectory { time: 1597882600, longitude: -74.000, latitude: 40.000 };
+        let trajectory = Trajectory {
+            time: 1597882600,
+            longitude: -74.000,
+            latitude: 40.000,
+        };
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 97, 32]
         );
 
-        let trajectory = Trajectory { time: 1597882650, longitude: -74.000, latitude: 40.000 };
+        let trajectory = Trajectory {
+            time: 1597882650,
+            longitude: -74.000,
+            latitude: 40.000,
+        };
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 97, 33]
         );
 
-
         // Latitude:
         // 大体 0.0000165くらいでハッシュ値が1変わる
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.000000, latitude: 40.0000049 }; // 40.0000049, 40.0000050の間で変わる
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.000000,
+            latitude: 40.0000049,
+        }; // 40.0000049, 40.0000050の間で変わる
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 97, 32]
         );
         // [97, 32]  : 01100001 00100000
 
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.000000, latitude: 40.0000050 }; // 40.0000049, 40.0000050の間で変わる
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.000000,
+            latitude: 40.0000050,
+        }; // 40.0000049, 40.0000050の間で変わる
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 69, 178]
         );
         // [97, 32]  : 01100001 00100000
         // [69, 178] : 01000101 10110010
 
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.000000, latitude: 40.0000214 }; // 40.0000214, 40.0000215の間で変わる
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.000000,
+            latitude: 40.0000214,
+        }; // 40.0000214, 40.0000215の間で変わる
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 69, 178]
         );
 
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.000000, latitude: 40.0000215 }; // 40.0000214, 40.0000215の間で変わる
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.000000,
+            latitude: 40.0000215,
+        }; // 40.0000214, 40.0000215の間で変わる
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 69, 176]
         );
         // [69, 176] : 01000101 10110000
 
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.000000, latitude: 40.0000380 };
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.000000,
+            latitude: 40.0000380,
+        };
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 69, 162]
         );
@@ -424,32 +523,55 @@ mod tests {
         // Longitude:
         // 大体 0.0000215くらいでハッシュ値が1変わる 理論的にも正しい
 
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.0000009, latitude: 40.000 };
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.0000009,
+            latitude: 40.000,
+        };
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 97, 32]
         );
         // 32]: 00100001
 
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.0000010, latitude: 40.000 };
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.0000010,
+            latitude: 40.000,
+        };
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 97, 4]
         );
         // 4]: 00000100
 
-        let trajectory = Trajectory { time: 1597881600, longitude: -74.0000225, latitude: 40.000 }; // .0000224と.0000225の間
+        let trajectory = Trajectory {
+            time: 1597881600,
+            longitude: -74.0000225,
+            latitude: 40.000,
+        }; // .0000224と.0000225の間
         assert_eq!(
             utils::trajectory_hash(
-                &trajectory, &utils::MixType::Mix, 22, 24, (1597881600, 1599090600)
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1597881600, 1599090600)
             ),
             vec![1, 164, 83, 226, 16, 194, 97, 0]
         );
         // 4]: 00000000
-
     }
 }

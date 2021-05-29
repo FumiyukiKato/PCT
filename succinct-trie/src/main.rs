@@ -1,15 +1,18 @@
-extern crate succinct_trie;
 extern crate savefile;
+extern crate succinct_trie;
 
 use clap::{AppSettings, Clap};
 use glob::glob;
 use regex::Regex;
 
-use std::{char, io::{BufRead, BufReader}};
 use std::fs::File;
+use std::{
+    char,
+    io::{BufRead, BufReader},
+};
 
-use succinct_trie::{config::K_NOT_FOUND};
-use succinct_trie::trie::{Trie, TrajectoryHash};
+use succinct_trie::config::K_NOT_FOUND;
+use succinct_trie::trie::{TrajectoryHash, Trie};
 
 #[derive(Clap)]
 #[clap(version = "0.1", author = "Fumiyuki K. <fumilemon79@gmail.com>")]
@@ -31,25 +34,25 @@ struct Opts {
     #[clap(short, long, default_value = "")]
     mode: String,
 
-	/// byte_length
-	#[clap(short, long)]
-	byte_length: String,
-	
-	/// geo_length
-	#[clap(short, long)]
-	geo_length: String,
-	
-	/// time_length
-	#[clap(short, long)]
-	time_length: String,
+    /// byte_length
+    #[clap(short, long)]
+    byte_length: String,
 
-	/// theta_t
-	#[clap(short, long)]
-	theta_t: String,
+    /// geo_length
+    #[clap(short, long)]
+    geo_length: String,
 
-	/// theta_l
-	#[clap(short, long)]
-	theta_l: String,
+    /// time_length
+    #[clap(short, long)]
+    time_length: String,
+
+    /// theta_t
+    #[clap(short, long)]
+    theta_t: String,
+
+    /// theta_l
+    #[clap(short, long)]
+    theta_l: String,
 }
 
 pub fn read_trajectory_hash_from_csv(filename: &str) -> Vec<Vec<u8>> {
@@ -59,9 +62,9 @@ pub fn read_trajectory_hash_from_csv(filename: &str) -> Vec<Vec<u8>> {
     for line in reader.lines().into_iter() {
         if let Ok(hash) = line {
             let chars: Vec<char> = hash.chars().collect();
-            let mut hash_bytes: Vec<u8> = Vec::with_capacity(hash.len()/2);
-            for i in 0..(hash.len()/2) {
-                hash_bytes.push(16*hex_to_num(chars[2*i]) + hex_to_num(chars[2*i+1]));
+            let mut hash_bytes: Vec<u8> = Vec::with_capacity(hash.len() / 2);
+            for i in 0..(hash.len() / 2) {
+                hash_bytes.push(16 * hex_to_num(chars[2 * i]) + hex_to_num(chars[2 * i + 1]));
             }
             hash_vec.push(hash_bytes);
         }
@@ -98,25 +101,34 @@ fn main() {
     server_data.sort();
     let trie = Trie::new(&server_data);
     println!("server byte size {} byte", trie.byte_size());
-    
-	let byte_length: usize = opts.byte_length.as_str().parse().unwrap();
-	let geo_length: usize = opts.geo_length.as_str().parse().unwrap();
-	let time_length: usize = opts.time_length.as_str().parse().unwrap();
+
+    let byte_length: usize = opts.byte_length.as_str().parse().unwrap();
+    let geo_length: usize = opts.geo_length.as_str().parse().unwrap();
+    let time_length: usize = opts.time_length.as_str().parse().unwrap();
     let th = TrajectoryHash::new(byte_length, geo_length, time_length);
 
-	let theta_t: usize = opts.theta_t.as_str().parse().unwrap();
-	let theta_l: usize = opts.theta_l.as_str().parse().unwrap();
-    let re = Regex::new(format!(r".*/client-{}-{}-(?P<client_id>\d+).*.csv", theta_t, theta_l).as_str()).unwrap();
-	
+    let theta_t: usize = opts.theta_t.as_str().parse().unwrap();
+    let theta_l: usize = opts.theta_l.as_str().parse().unwrap();
+    let re = Regex::new(
+        format!(
+            r".*/client-{}-{}-(?P<client_id>\d+).*.csv",
+            theta_t, theta_l
+        )
+        .as_str(),
+    )
+    .unwrap();
+
     let count = 100;
     let mut results = Vec::new();
-    for entry in glob(format!("{}/*.csv", opts.client_input_file).as_str()).expect("Failed to read glob pattern") {
+    for entry in glob(format!("{}/*.csv", opts.client_input_file).as_str())
+        .expect("Failed to read glob pattern")
+    {
         match entry {
             Ok(path) => {
                 let filepath = path.to_str().unwrap();
                 let caps = match re.captures(filepath) {
                     Some(c) => c,
-                    None => continue
+                    None => continue,
                 };
                 let client_id: u32 = caps["client_id"].parse().unwrap();
 
@@ -130,7 +142,7 @@ fn main() {
                     "normal" => {
                         let mut client_result = Vec::new();
                         let mut query_id: u32 = 0;
-        
+
                         for key in client_data.iter() {
                             if trie.exact_search(key) != K_NOT_FOUND {
                                 client_result.push((query_id, true));
@@ -139,13 +151,13 @@ fn main() {
                             }
                             query_id += 1;
                         }
-        
+
                         results.push((client_id, client_result));
-                    },
+                    }
                     "accurate" => {
                         let mut client_result = Vec::new();
                         let mut query_id = 0;
-        
+
                         for key in client_data.iter() {
                             if trie.accurate_search(key, &th) {
                                 client_result.push((query_id, true));
@@ -154,32 +166,32 @@ fn main() {
                             }
                             query_id += 1;
                         }
-        
+
                         results.push((client_id, client_result));
-                    },
+                    }
                     "doe" => {
                         let time_range: usize = opts.duration_of_exposure.parse().unwrap();
                         let result = trie.doe_search(time_range, &client_data);
                         results.push((client_id, vec![(0, result)]));
-                    },
+                    }
                     "doe_accurate" => {
                         let time_range: usize = opts.duration_of_exposure.parse().unwrap();
                         let result = trie.accurate_doe_search(time_range, &client_data, &th);
                         results.push((client_id, vec![(0, result)]));
-                    },
-                    _ => panic!("invalid mode parameter")
+                    }
+                    _ => panic!("invalid mode parameter"),
                 }
-            },
+            }
             Err(_) => panic!("failed to find path"),
         }
     }
 
     let result_file_name = match opts.mode.as_str() {
-        "normal"       => format!("pct_results_{}_{}.bin", theta_t, theta_l),
-        "accurate"     => format!("pct_acc_results_{}_{}.bin", theta_t, theta_l),
-        "doe"          => format!("pct_doe_results_{}_{}.bin", theta_t, theta_l),
+        "normal" => format!("pct_results_{}_{}.bin", theta_t, theta_l),
+        "accurate" => format!("pct_acc_results_{}_{}.bin", theta_t, theta_l),
+        "doe" => format!("pct_doe_results_{}_{}.bin", theta_t, theta_l),
         "doe_accurate" => format!("pct_acc_doe_results_{}_{}.bin", theta_t, theta_l),
-        _ => panic!("invalid mode parameter")
+        _ => panic!("invalid mode parameter"),
     };
     savefile::prelude::save_file(result_file_name.as_str(), 0, &results).expect("failed to save");
 
@@ -205,5 +217,4 @@ fn main() {
     // println!("Trie not found: {}, found: {}", not_found, found);
 
     println!("ok.")
-    
 }

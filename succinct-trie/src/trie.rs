@@ -1,4 +1,4 @@
-use core::intrinsics::{size_of_val};
+use core::intrinsics::size_of_val;
 
 use crate::builder;
 use crate::config::*;
@@ -159,7 +159,12 @@ impl Trie {
     }
 
     // time_range is depends on encoding specification
-    pub fn accurate_doe_search(&self, time_range: usize, keys: &Vec<Vec<u8>>, th: &TrajectoryHash) -> bool {
+    pub fn accurate_doe_search(
+        &self,
+        time_range: usize,
+        keys: &Vec<Vec<u8>>,
+        th: &TrajectoryHash,
+    ) -> bool {
         let mut sequnce_count = 0;
         for key in keys.iter() {
             let is_find = self.accurate_search(key, &th);

@@ -4,7 +4,6 @@ use crate::suffix::BitvectorSuffix;
 pub struct Builder {
     // trie level < sparse_start_level_: LOUDS-Dense
     // trie level >= sparse_start_level_: LOUDS-Sparse
-
     include_dense: bool,
     sparse_dense_ratio: u32,
     sparse_start_level: level_t,
@@ -120,14 +119,20 @@ impl Builder {
         while i < keys.len() {
             let mut level: level_t = self.skip_common_prefix(keys[i].as_slice());
             let curpos = i;
-            while (i + 1 < keys.len()) && Builder::is_same_key(keys[curpos].as_slice(), keys[i + 1].as_slice()) {
+            while (i + 1 < keys.len())
+                && Builder::is_same_key(keys[curpos].as_slice(), keys[i + 1].as_slice())
+            {
                 i += 1;
             }
             if i < keys.len() - 1 {
-                level =
-                    self.insert_key_bytes_to_trie_until_unique(keys[curpos].as_slice(), keys[i + 1].as_slice(), level);
+                level = self.insert_key_bytes_to_trie_until_unique(
+                    keys[curpos].as_slice(),
+                    keys[i + 1].as_slice(),
+                    level,
+                );
             } else {
-                level = self.insert_key_bytes_to_trie_until_unique(keys[curpos].as_slice(), &[], level);
+                level =
+                    self.insert_key_bytes_to_trie_until_unique(keys[curpos].as_slice(), &[], level);
             }
             // suffixだけ別で管理したいのでnext_keyと比較している
             // TODO: FSAにするならここを変える必要がありそう，同じsuffixがすでにあれば

@@ -22,7 +22,7 @@ struct Opts {
     #[clap(long, default_value = "20")]
     theta_l: u32,
     /// Parameter for time period
-    #[clap(short, long, default_value = "1597881600")] // 2020/08/20 00:00:00
+    #[clap(short, long, default_value = "1597881600")] // 2020/08/20 00:00:00 (UTC)
     start_time: u32,
     /// Parameter for time period
     #[clap(short, long, default_value = "1599090600")] // 2020/09/03 00:00:00
