@@ -19,7 +19,7 @@ impl Trajectory {
     }
 }
 
-pub fn read_trajectory_from_csv(filename: &str, has_header: bool, time: u32) -> Vec<Trajectory> {
+pub fn read_trajectory_from_csv(filename: &str, has_header: bool, time: u32) -> (Vec<Trajectory>, f64, f64, f64, f64) {
     let file = File::open(filename).expect("file open error");
     let reader = BufReader::new(file);
     let mut csv_reader = csv::ReaderBuilder::new()
@@ -49,8 +49,8 @@ pub fn read_trajectory_from_csv(filename: &str, has_header: bool, time: u32) -> 
             trajectories.push(record);
         }
     }
-    println!("lng_max: {}, lng_min: {}, lat_max: {}, lat_min: {}", lng_max, lng_min, lat_max, lat_min);
-    trajectories
+    
+    (trajectories, lng_max, lng_min, lat_max, lat_min)
 }
 
 pub fn prepare_grid_vectors(
@@ -117,7 +117,6 @@ pub fn grid_encoding(trajectory: &Trajectory, grid_vectors: &(Vec<f64>, Vec<f64>
     {
         Ok(idx) => idx,
         Err(idx) => {
-            println!("idx: {}", idx);
             if idx == grid_vectors.0.len() || idx == 0 {
                 idx
             } else {

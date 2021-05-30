@@ -16,7 +16,7 @@ struct Opts {
     output_file: String,
 
     /// Parameter for time period
-    #[clap(short, long, default_value = "1598486400")] // 2020/08/20 00:00:00 (UTC)
+    #[clap(long, default_value = "1598486400")] // 2020/08/20 00:00:00 (UTC)
     time: String,
 
     /// Parameter for location
@@ -44,12 +44,13 @@ struct Opts {
     theta_l_lat_min: f64,
 
     /// target server|client
-    #[clap(short, long)]
+    #[clap(long)]
     target: String,
 }
 
 fn main() {
     let opts: Opts = Opts::parse();
+	let count = 100;
 
     let time: u32 = opts.time.as_str().parse().unwrap();
     let grid_vectors = utils::prepare_grid_vectors(
@@ -60,14 +61,21 @@ fn main() {
         opts.theta_l_lng,
         opts.theta_l_lat,
     );
+	
     match opts.target.as_str() {
         "server" => {
-            let trajectories =
+            let (trajectories, lng_max, lng_min, lat_max, lat_min) =
                 utils::read_trajectory_from_csv(opts.input_file.as_str(), true, time);
+			println!("lng_max: {}, lng_min: {}, lat_max: {}, lat_min: {}", lng_max, lng_min, lat_max, lat_min); 
             let hashed = utils::bulk_encode(trajectories, &grid_vectors);
             utils::write_trajectory_hash_csv(opts.output_file.as_str(), hashed);
         }
         "client" => {
+		    let mut lng_max_mut = 0.;
+            let mut lat_max_mut = 0.;
+            let mut lng_min_mut = 200.;
+            let mut lat_min_mut = 200.;
+	
             let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
 
             for entry in glob(format!("{}/*.csv", opts.input_file).as_str())
@@ -81,9 +89,23 @@ fn main() {
                             None => break,
                         };
                         let client_id: u32 = caps["client_id"].parse().unwrap();
-
-                        let trajectories =
-                            utils::read_trajectory_from_csv(opts.input_file.as_str(), true, time);
+						if count <= client_id {
+							continue;
+						}
+                        let (trajectories, lng_max, lng_min, lat_max, lat_min) =
+                            utils::read_trajectory_from_csv(path.to_str().unwrap(), true, time);
+						if lng_max > lng_max_mut {
+							lng_max_mut = lng_max_mut
+						}
+						if lng_min < lng_min_mut {
+							lng_min_mut = lng_min_mut
+						}
+						if lat_max > lat_max_mut {
+							lat_max_mut = lat_max_mut
+						}
+						if lat_max < lat_max_mut {
+							lat_max_mut = lat_max_mut
+						}
                         let hashed = utils::bulk_encode(trajectories, &grid_vectors);
                         utils::write_trajectory_hash_csv(
                             format!("{}-{}.csv", opts.output_file.as_str(), client_id).as_str(),
@@ -93,6 +115,7 @@ fn main() {
                     Err(_) => panic!("failed to find path"),
                 }
             }
+			println!("lng_max: {}, lng_min: {}, lat_max: {}, lat_min: {}", lng_max_mut, lng_min_mut, lat_max_mut, lat_min_mut);
         }
         _ => panic!("invalid target parameter"),
     }
