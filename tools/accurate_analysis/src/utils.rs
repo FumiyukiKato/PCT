@@ -23,6 +23,23 @@ pub fn read_trajectory_from_csv(filename: &str, has_header: bool) -> Vec<Traject
     trajectories
 }
 
+pub fn read_trajectory_from_csv_by_time(filename: &str, has_header: bool, time: i64) -> Vec<Trajectory> {
+    let file = File::open(filename).expect("file open error");
+    let reader = BufReader::new(file);
+    let mut csv_reader = csv::ReaderBuilder::new()
+        .has_headers(has_header)
+        .from_reader(reader);
+
+    let mut trajectories = Vec::new();
+    for result in csv_reader.records().into_iter() {
+        let record = Trajectory::deserialize_from_string_record(result.expect("invalid record"));
+        if record.get_time() == time {
+            trajectories.push(record);
+        }
+    }
+    trajectories
+}
+
 pub fn store_trajectories(trajectories: Vec<Trajectory>) -> () {
     let connection = establish_connection();
 
@@ -97,6 +114,35 @@ pub fn accurate_quereis(
     results
 }
 
+pub fn obliv_accurate_quereis(
+    trajectories: &Vec<Trajectory>,
+    theta_t: i64,
+    theta_l_lng: f64,
+    theta_l_lat: f64,
+) -> Vec<(u32, bool)> {
+    let connection = establish_connection();
+    let mut results = Vec::new();
+
+    let mut query_id = 0;
+    for trajectory in trajectories {
+        let (_, _, lng_start, lng_end, lat_start, lat_end) =
+            trajectory.get_query_condition(theta_t, theta_l_lng, theta_l_lat);
+        results.push((
+            query_id,
+            obliv_query_contact_detection(
+                &connection,
+                theta_t,
+                lng_start,
+                lng_end,
+                lat_start,
+                lat_end,
+            ),
+        ));
+        query_id += 1;
+    }
+    results
+}
+
 pub fn truncate_trajectory_db() {
     let connection = establish_connection();
     diesel::delete(trajectory::table)
@@ -133,6 +179,25 @@ fn query_contact_detection(
     let all_ids = trajectory::table
         .select(trajectory::id)
         .filter(trajectory::time.between(time_start, time_end))
+        .filter(trajectory::longitude.between(lng_start, lng_end))
+        .filter(trajectory::latitude.between(lat_start, lat_end))
+        .load::<i32>(conn)
+        .expect("falied to query");
+    all_ids.len() > 0
+}
+
+// accurate query
+fn obliv_query_contact_detection(
+    conn: &SqliteConnection,
+    time: i64,
+    lng_start: f64,
+    lng_end: f64,
+    lat_start: f64,
+    lat_end: f64,
+) -> bool {
+    let all_ids = trajectory::table
+        .select(trajectory::id)
+        .filter(trajectory::time.eq(time))
         .filter(trajectory::longitude.between(lng_start, lng_end))
         .filter(trajectory::latitude.between(lat_start, lat_end))
         .load::<i32>(conn)

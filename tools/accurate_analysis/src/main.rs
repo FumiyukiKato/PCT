@@ -25,7 +25,7 @@ struct Opts {
     #[clap(short, long, default_value = "acc_results.bin")]
     output_file: String,
 
-    /// mode insert|query|trunc|doe
+    /// mode insert|query|trunc|doe|obli
     #[clap(short, long)]
     mode: Option<String>,
 
@@ -206,6 +206,47 @@ fn db_access(opts: &Opts) {
         }
         "trunc" => {
             utils::truncate_trajectory_db();
+        }
+        "obli" => {
+            let theta_t: i64 = opts.theta_t.as_ref().unwrap().as_str().parse().unwrap();
+            let theta_l_lng: f64 = opts.theta_l_lng.as_ref().unwrap().as_str().parse().unwrap();
+            let theta_l_lat: f64 = opts.theta_l_lat.as_ref().unwrap().as_str().parse().unwrap();
+
+            let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
+            let count = 100;
+
+            let mut results = Vec::new();
+            let input_file = opts.input_file.as_ref().unwrap().as_str();
+            for entry in
+                glob(format!("{}/*.csv", input_file).as_str()).expect("Failed to read glob pattern")
+            {
+                match entry {
+                    Ok(path) => {
+                        let filepath = path.to_str().unwrap();
+                        let caps = match re.captures(filepath) {
+                            Some(c) => c,
+                            None => break,
+                        };
+                        let client_id: u32 = caps["client_id"].parse().unwrap();
+                        if count <= client_id {
+                            continue;
+                        }
+                        println!("filepath {}, client_id {}", filepath, client_id);
+                        let trajectories =
+                            utils::read_trajectory_from_csv_by_time(path.to_str().unwrap(), true, theta_t);
+                        let result = utils::obliv_accurate_quereis(
+                            &trajectories,
+                            theta_t,
+                            3.0*theta_l_lng,
+                            3.0*theta_l_lat,
+                        );
+                        results.push((client_id, result));
+                    }
+                    Err(_) => panic!("failed to find path"),
+                }
+            }
+            savefile::prelude::save_file(opts.output_file.as_str(), 0, &results)
+                .expect("failed to save");
         }
         _ => panic!("Invlid mode argument"),
     }

@@ -25,6 +25,10 @@ impl Trajectory {
         }
     }
 
+    pub fn get_time(&self) -> i64 {
+        self.time
+    }
+
     pub fn get_query_condition(
         &self,
         theta_t: i64,
