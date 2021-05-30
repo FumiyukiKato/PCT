@@ -73,7 +73,7 @@ fn main() {
         "server" => {
             let (trajectories, lng_max, lng_min, lat_max, lat_min) =
                 utils::read_trajectory_from_csv(opts.input_file.as_str(), true, time);
-			println!("lng_max: {}, lng_min: {}, lat_max: {}, lat_min: {}", lng_max, lng_min, lat_max, lat_min); 
+			println!("server data size: {}, lng_max: {}, lng_min: {}, lat_max: {}, lat_min: {}", trajectories.len(), lng_max, lng_min, lat_max, lat_min); 
             let hashed = utils::bulk_encode(trajectories, &grid_vectors);
             utils::write_trajectory_hash_csv(opts.output_file.as_str(), hashed);
         }
@@ -114,6 +114,7 @@ fn main() {
 							lat_min_mut = lat_min
 						}
                         let hashed = utils::bulk_encode(trajectories, &grid_vectors);
+                        println!("client data size: {}", hashed.len());
                         utils::write_trajectory_hash_csv(
                             format!("{}-{}.csv", opts.output_file.as_str(), client_id).as_str(),
                             hashed,
