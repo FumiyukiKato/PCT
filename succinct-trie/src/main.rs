@@ -53,6 +53,10 @@ struct Opts {
     /// theta_l
     #[clap(short, long)]
     theta_l: String,
+
+    /// Sets output file name. binary data
+    #[clap(short, long, default_value = "acc_results.bin")]
+    output_file: String,
 }
 
 pub fn read_trajectory_hash_from_csv(filename: &str) -> Vec<Vec<u8>> {
@@ -186,14 +190,8 @@ fn main() {
         }
     }
 
-    let result_file_name = match opts.mode.as_str() {
-        "normal" => format!("pct_results_{}_{}.bin", theta_t, theta_l),
-        "accurate" => format!("pct_acc_results_{}_{}.bin", theta_t, theta_l),
-        "doe" => format!("pct_doe_results_{}_{}.bin", theta_t, theta_l),
-        "doe_accurate" => format!("pct_acc_doe_results_{}_{}.bin", theta_t, theta_l),
-        _ => panic!("invalid mode parameter"),
-    };
-    savefile::prelude::save_file(result_file_name.as_str(), 0, &results).expect("failed to save");
+    let result_file_name = opts.output_file.as_str();
+    savefile::prelude::save_file(result_file_name, 0, &results).expect("failed to save");
 
     // let mut server_data = read_trajectory_hash_from_csv(opts.server_input_file.as_str());
 

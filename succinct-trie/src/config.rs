@@ -15,6 +15,11 @@ pub type node_t = u8;
 #[allow(non_camel_case_types)]
 pub type key_t = [node_t];
 
+pub const LABEL_T_BYTE_SIZE: usize = 1;
+pub const USIZE_BYTE_SIZE: usize = 8;
+pub const POSITION_T_BYTE_SIZE: usize = 8;
+pub const WORD_T_BYTE_SIZE: usize = 8;
+pub const LEVEL_T_BYTE_SIZE: usize = 8;
 
 pub const K_MSB_MASK: word_t = 0x8000000000000000; // 1000000000000000000000000000000000000000000000000000000000000000
 pub const K_ONE_MASK: word_t = 0xFFFFFFFFFFFFFFFF;

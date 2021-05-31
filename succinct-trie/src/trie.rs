@@ -18,7 +18,96 @@ struct Suffix {
     contents: Vec<u8>,
 }
 
+impl Suffix {
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(10);
+        bytes.extend(self.contents.len().to_be_bytes());
+        bytes.extend(self.contents.as_slice());
+        println!("bytes.len(): {}", bytes.len());
+        bytes
+    }
+
+    pub fn deserialize(bytes: &[u8]) -> Self {
+        let mut cursor = 0;
+
+        let mut suffix_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        suffix_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let suffix_len = usize::from_be_bytes(suffix_len_bytes);
+
+        let mut contents: Vec<u8> = Vec::with_capacity(suffix_len);
+        for i in 0..suffix_len {
+            let mut suffix_word_bytes: [u8; 1] = Default::default();
+            suffix_word_bytes.copy_from_slice(&bytes[cursor..cursor+1]);
+            cursor += 1;
+            let word = u8::from_be_bytes(suffix_word_bytes);
+            contents.push(word);
+        }
+        Suffix { contents }
+    }
+}
+
 impl Trie {
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(100000);
+
+        let louds_dense_bytes = self.louds_dense.serialize();
+        bytes.extend(louds_dense_bytes.len().to_be_bytes());
+        bytes.extend(louds_dense_bytes);
+
+        let louds_sparse_bytes = self.louds_sparse.serialize();
+        bytes.extend(louds_sparse_bytes.len().to_be_bytes());
+        bytes.extend(louds_sparse_bytes);
+
+        bytes.extend(self.suffixes.len().to_be_bytes());
+        println!("suffixes.len(): {}", self.suffixes.len());
+        for suffix in self.suffixes.iter() {
+            let suffix_bytes = suffix.serialize();
+            println!("suffix_bytes.len(): {}", suffix_bytes.len());
+            bytes.extend(suffix_bytes.len().to_be_bytes());
+            bytes.extend(suffix_bytes);
+        }
+        bytes
+    }
+
+    pub fn deserialize(bytes: &[u8]) -> Self {
+        let mut cursor = 0;
+
+        let mut louds_dense_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        louds_dense_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let louds_dense_len = usize::from_be_bytes(louds_dense_len_bytes);
+        let louds_dense = LoudsDense::deserialize(&bytes[cursor..cursor+louds_dense_len]);
+        cursor += louds_dense_len;
+
+        let mut louds_sparse_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        louds_sparse_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let louds_sparse_len = usize::from_be_bytes(louds_sparse_len_bytes);
+        let louds_sparse = LoudsSparse::deserialize(&bytes[cursor..cursor+louds_sparse_len]);
+        cursor += louds_sparse_len;
+
+        let mut suffixes_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        suffixes_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let suffixes_len = usize::from_be_bytes(suffixes_len_bytes);
+        println!("suffixes_len: {}", suffixes_len);
+
+        let mut suffixes: Vec<Suffix> = Vec::with_capacity(suffixes_len);
+        for i in 0..suffixes_len {
+            let mut suffix_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+            suffix_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+            cursor += USIZE_BYTE_SIZE;
+            let suffix_len = usize::from_be_bytes(suffix_len_bytes);
+            println!("suffix_len: {}", suffix_len);
+            let suffix = Suffix::deserialize(&bytes[cursor..cursor+suffix_len]);
+            cursor += suffix_len;
+            suffixes.push(suffix);
+        }
+
+        Trie { louds_dense, louds_sparse, suffixes }
+    }
+
     pub fn new(keys: &Vec<Vec<u8>>) -> Self {
         let include_dense = K_INCLUDE_DENSE;
         let sparse_dense = K_SPARSE_DENSE_RATIO;

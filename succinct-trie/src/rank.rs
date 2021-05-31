@@ -12,6 +12,54 @@ pub struct BitvectorRank {
 }
 
 impl BitvectorRank {
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(1000);
+
+        let bitvec_bytes = self.bitvec.serialize();
+        bytes.extend(bitvec_bytes.len().to_be_bytes());
+        bytes.extend(bitvec_bytes);
+
+        bytes.extend(self.basic_block_size.to_be_bytes());
+
+        bytes.extend(self.rank_lut.len().to_be_bytes());
+        for bit in self.rank_lut.iter() {
+            bytes.extend(bit.to_be_bytes());
+        }
+        bytes
+    }
+
+    pub fn deserialize(bytes: &[u8]) -> Self {
+        let mut cursor = 0;
+
+        let mut bitvec_bytes_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        bitvec_bytes_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let bitvec_bytes_len = usize::from_be_bytes(bitvec_bytes_len_bytes);
+        let bitvec = BitVector::deserialize(&bytes[cursor..cursor+bitvec_bytes_len]);
+        cursor += bitvec_bytes_len;
+
+        let mut basic_block_size_bytes: [u8; POSITION_T_BYTE_SIZE] = Default::default();
+        basic_block_size_bytes.copy_from_slice(&bytes[cursor..cursor+POSITION_T_BYTE_SIZE]);
+        cursor += POSITION_T_BYTE_SIZE;
+        let basic_block_size = position_t::from_be_bytes(basic_block_size_bytes);
+
+        let mut rank_lut_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        rank_lut_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let rank_lut_len = usize::from_be_bytes(rank_lut_len_bytes);
+
+        let mut rank_lut: Vec<position_t> = Vec::with_capacity(rank_lut_len);
+        for i in 0..rank_lut_len {
+            let mut bits_word_bytes: [u8; POSITION_T_BYTE_SIZE] = Default::default();
+            bits_word_bytes.copy_from_slice(&bytes[cursor..cursor+POSITION_T_BYTE_SIZE]);
+            cursor += POSITION_T_BYTE_SIZE;
+            let pos = position_t::from_be_bytes(bits_word_bytes);
+            rank_lut.push(pos);
+        }
+
+        BitvectorRank { bitvec, basic_block_size, rank_lut }
+    }
+
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
         unsafe {

@@ -6,6 +6,35 @@ pub struct LabelVector {
 }
 
 impl LabelVector {
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(1000);
+        bytes.extend(self.labels.len().to_be_bytes());
+        for bit in self.labels.iter() {
+            bytes.extend(bit.to_be_bytes());
+        }
+        bytes
+    }
+
+    pub fn deserialize(bytes: &[u8]) -> Self {
+        let mut cursor = 0;
+
+        let mut labels_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        labels_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let labels_len = usize::from_be_bytes(labels_len_bytes);
+
+        let mut labels: Vec<label_t> = Vec::with_capacity(labels_len);
+        for i in 0..labels_len {
+            let mut labels_bytes: [u8; LABEL_T_BYTE_SIZE] = Default::default();
+            labels_bytes.copy_from_slice(&bytes[cursor..cursor+LABEL_T_BYTE_SIZE]);
+            cursor += LABEL_T_BYTE_SIZE;
+            let label = label_t::from_be_bytes(labels_bytes);
+            labels.push(label);
+        }
+
+        LabelVector { labels }
+    }
+
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
         unsafe {

@@ -53,4 +53,30 @@ mod tests {
             assert_eq!(key_id, K_NOT_FOUND);
         }
     }
+
+    #[test]
+    fn serialize() {
+        let a = vec![48, 49];
+        let b = vec![49, 49];
+        let c = vec![49, 50, 54];
+        let d = vec![50, 50, 54, 55, 56, 57];
+        let keys: Vec<Vec<u8>> = vec![a, b, c, d];
+        let trie = Trie::new(&keys);
+        for key in keys.iter() {
+            let key_id = trie.exact_search(key.as_slice());
+            println!("key_id: {}", key_id);
+            assert_ne!(key_id, K_NOT_FOUND);
+        }
+
+        let bytes = trie.serialize();
+        println!("length : {}", bytes.len());
+        let new_trie = Trie::deserialize(bytes.as_slice());
+        for key in keys.iter() {
+            let key_id = new_trie.exact_search(key.as_slice());
+            println!("key_id: {}", key_id);
+            assert_ne!(key_id, K_NOT_FOUND);
+        }
+        let key_id = new_trie.exact_search(vec![48].as_slice());
+        assert_eq!(key_id, K_NOT_FOUND);
+    }
 }

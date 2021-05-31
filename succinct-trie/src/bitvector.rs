@@ -8,6 +8,40 @@ pub struct BitVector {
 }
 
 impl BitVector{
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(1000);
+        bytes.extend(self.num_bits.to_be_bytes());
+        bytes.extend(self.bits.len().to_be_bytes());
+        for bit in self.bits.iter() {
+            bytes.extend(bit.to_be_bytes());
+        }
+        bytes
+    }
+
+    pub fn deserialize(bytes: &[u8]) -> Self {
+        let mut cursor = 0;
+        let mut num_bits_byte: [u8; POSITION_T_BYTE_SIZE] = Default::default();
+        num_bits_byte.copy_from_slice(&bytes[cursor..cursor+POSITION_T_BYTE_SIZE]);
+        cursor += POSITION_T_BYTE_SIZE;
+        let num_bits = position_t::from_be_bytes(num_bits_byte);
+
+        let mut bits_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        bits_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let bits_len = usize::from_be_bytes(bits_len_bytes);
+
+        let mut bits: Vec<word_t> = Vec::with_capacity(bits_len);
+        for i in 0..bits_len {
+            let mut bits_word_bytes: [u8; WORD_T_BYTE_SIZE] = Default::default();
+            bits_word_bytes.copy_from_slice(&bytes[cursor..cursor+WORD_T_BYTE_SIZE]);
+            cursor += WORD_T_BYTE_SIZE;
+            let word = word_t::from_be_bytes(bits_word_bytes);
+            bits.push(word);
+        }
+
+        BitVector { num_bits, bits }
+    }
+
     pub fn byte_size(&self) -> usize {
         let mut mem_size: usize = 0;
         unsafe {

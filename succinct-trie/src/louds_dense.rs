@@ -16,6 +16,58 @@ pub struct LoudsDense {
 }
 
 impl LoudsDense {
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::with_capacity(1000);
+
+        bytes.extend(self.height.to_be_bytes());
+
+        let label_bitmaps_bytes = self.label_bitmaps.serialize();
+        bytes.extend(label_bitmaps_bytes.len().to_be_bytes());
+        bytes.extend(label_bitmaps_bytes);
+
+        let child_indicator_bitmaps_bytes = self.child_indicator_bitmaps.serialize();
+        bytes.extend(child_indicator_bitmaps_bytes.len().to_be_bytes());
+        bytes.extend(child_indicator_bitmaps_bytes);
+
+        let prefixkey_indicator_bits_bytes = self.prefixkey_indicator_bits.serialize();
+        bytes.extend(prefixkey_indicator_bits_bytes.len().to_be_bytes());
+        bytes.extend(prefixkey_indicator_bits_bytes);
+
+        bytes
+    }
+
+    pub fn deserialize(bytes: &[u8]) -> Self {
+        let mut cursor = 0;
+
+        let mut height_bytes: [u8; LEVEL_T_BYTE_SIZE] = Default::default();
+        height_bytes.copy_from_slice(&bytes[cursor..cursor+LEVEL_T_BYTE_SIZE]);
+        cursor += LEVEL_T_BYTE_SIZE;
+        let height = level_t::from_be_bytes(height_bytes);
+
+        let mut label_bitmaps_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        label_bitmaps_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let label_bitmaps_len = usize::from_be_bytes(label_bitmaps_len_bytes);
+        let label_bitmaps = BitvectorRank::deserialize(&bytes[cursor..cursor+label_bitmaps_len]);
+        cursor += label_bitmaps_len;
+
+        let mut child_indicator_bitmaps_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        child_indicator_bitmaps_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let child_indicator_bitmaps_len = usize::from_be_bytes(child_indicator_bitmaps_len_bytes);
+        let child_indicator_bitmaps = BitvectorRank::deserialize(&bytes[cursor..cursor+child_indicator_bitmaps_len]);
+        cursor += child_indicator_bitmaps_len;
+
+        let mut prefixkey_indicator_bits_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        prefixkey_indicator_bits_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let prefixkey_indicator_bits_len = usize::from_be_bytes(prefixkey_indicator_bits_len_bytes);
+        let prefixkey_indicator_bits = BitvectorRank::deserialize(&bytes[cursor..cursor+prefixkey_indicator_bits_len]);
+        cursor += prefixkey_indicator_bits_len;
+
+        LoudsDense { height, label_bitmaps, child_indicator_bitmaps, prefixkey_indicator_bits }
+    }
+
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
         unsafe {
