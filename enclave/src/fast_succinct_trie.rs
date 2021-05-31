@@ -10,12 +10,6 @@ pub struct FST {
 }
 
 impl FST {
-    pub fn new() -> Self {
-        FST {
-            map: Trie::new(&vec![vec![]])
-        }
-    }
-
     pub fn intersect(&self, query_buffer: &EncodedQueryBuffer, result: &mut EncodedResultBuffer) {
         for encoded_value_vec in query_buffer.queries.iter() {
             if result.data.contains(&encoded_value_vec.id) {
@@ -31,10 +25,9 @@ impl FST {
     }
 
     pub fn build_dictionary_buffer(
-        &mut self,
         bytes: Vec<u8>,
-    ) {
-        self.map = Trie::deserialize(&bytes);
+    ) -> Self {
+        Self { map: Trie::deserialize(&bytes) }
     }
 
     pub fn calc_memory(&self) {

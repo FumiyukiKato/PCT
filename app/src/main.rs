@@ -108,7 +108,7 @@ fn private_set_intersection() {
     clocker.stop("Read Query Data");
 
     /* encrypt and upload query data */
-    let total_data_vec: Vec<u8> = enc_util::total_data_to_u8(&query_data, &query_id_list);
+    let total_data_vec: Vec<u8> = enc_util::encrypt_to_flat_vec_u8(&query_data, &query_id_list);
     clocker.set_and_start("ECALL upload_query_data");
     let mut retval = sgx_status_t::SGX_SUCCESS;
     let result = unsafe {
@@ -209,7 +209,7 @@ fn private_set_intersection() {
             positive_queries.push(query_id);
         }
     }
-    // println!("positive result queryIds: {:?}", positive_queries);
+    println!("positive result queryIds: {:?}", positive_queries);
 
     /* finish */
     enclave.destroy();

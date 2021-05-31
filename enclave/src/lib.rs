@@ -56,7 +56,6 @@ mod fast_succinct_trie;
 use constant::*;
 use encoded_query_buffer::EncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
-// use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_dictionary_buffer::EncodedDictionaryBuffer;
 
 
@@ -158,14 +157,8 @@ pub extern "C" fn upload_encoded_query_data(
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "store queies", end.as_secs(), end.subsec_nanos() / 1_000);
 
-    // let start = Instant::now();
-    // let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
-    // mapped_query_buffer.mapping(&query_buffer);
-    // let end = start.elapsed();
-    // println!("[SGX CLOCK] {}:  {}.{:06} seconds", "merge queries to Q", end.as_secs(), end.subsec_nanos() / 1_000);
-
     let end = whole_start.elapsed();
-    // println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
     
     sgx_status_t::SGX_SUCCESS
 }
@@ -177,12 +170,6 @@ fn _init_encoded_buffers() {
     let query_buffer_box = Box::new(RefCell::<EncodedQueryBuffer>::new(query_buffer));
     let query_buffer_ptr = Box::into_raw(query_buffer_box);
     ENCODED_QUERY_BUFFER.store(query_buffer_ptr as *mut (), Ordering::SeqCst);
-
-    // // initialize mapped query buffer
-    // let mapped_query_buffer = MappedEncodedQueryBuffer::new();
-    // let mapped_query_buffer_box = Box::new(RefCell::<MappedEncodedQueryBuffer>::new(mapped_query_buffer));
-    // let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
-    // MAPPED_ENCODED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize result buffer
     let result_buffer = EncodedResultBuffer::new();
@@ -199,15 +186,36 @@ pub extern "C" fn private_encode_contact_trace(
     encoded_value_u8: *const u8,
     encoded_value_u8_size: usize,
 ) -> sgx_status_t {
-    let mut dictionary_buffer = EncodedDictionaryBuffer::new();
     let encoded_value_vec: Vec<u8> = unsafe {
         slice::from_raw_parts(encoded_value_u8, encoded_value_u8_size)
     }.to_vec();
     if encoded_value_vec.len() != encoded_value_u8_size {
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
-    dictionary_buffer.build_dictionary_buffer(encoded_value_vec);
-    // let mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
+
+    /* decryption */
+    let start = Instant::now();
+    let mut decrypted: Vec<u8> = vec![1; encoded_value_vec.len()];
+    let mut counter_block: [u8; 16] = COUNTER_BLOCK;
+    let ctr_inc_bits: u32 = SGXSSL_CTR_BITS;
+    // Originally shared_key is derived by following Remote Attestation protocol.
+    // This is mock of shared key-based encryption.
+    let mut shared_key: [u8; 16] = [0; 16];
+    shared_key[..8].copy_from_slice(&CENTRAL_KEY.to_be_bytes());
+    let ret = rsgx_aes_ctr_decrypt(
+        &shared_key,
+        &encoded_value_vec,
+        &mut counter_block,
+        ctr_inc_bits,
+        &mut decrypted
+    );
+    match ret { Ok(()) => {}, Err(_) => { return sgx_status_t::SGX_ERROR_UNEXPECTED; } }    
+
+    let end = start.elapsed();
+    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "central data decryption", end.as_secs(), end.subsec_nanos() / 1_000);
+
+
+    let dictionary_buffer = EncodedDictionaryBuffer::build_dictionary_buffer(decrypted);
     let mut result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
     let mut query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
 

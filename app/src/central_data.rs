@@ -4,11 +4,14 @@ use succinct_trie::trie::Trie;
 use bincode;
 use std::mem;
 
+use crate::enc_util::encrypt_central_data;
+
 
 /* rie
     チャンク化しない
 */
 pub type EncodedValue = Vec<u8>;
+const CENTRAL_KEY: u64 = 777;
 
 // vector of binary central data 
 #[derive(Clone, Default, Debug)]
@@ -43,7 +46,7 @@ impl CentralTrie {
                 let trie: Trie = Trie::new(&ordered_vec);
                 println!(" r_i (server side chunk data) size = {} bytes", trie.byte_size());
                 let bytes = trie.serialize();
-                this.data.push(bytes);
+                this.data.push(encrypt_central_data(&bytes, CENTRAL_KEY));
                 ordered_vec = vec![];
             }
         }
@@ -51,7 +54,7 @@ impl CentralTrie {
             let trie: Trie = Trie::new(&ordered_vec);
             println!(" r_i (server side chunk data) size = {} bytes", trie.byte_size());
             let bytes = trie.serialize();
-            this.data.push(bytes);
+            this.data.push(encrypt_central_data(&bytes, CENTRAL_KEY));
         }
         this
     }

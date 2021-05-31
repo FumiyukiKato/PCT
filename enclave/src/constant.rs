@@ -29,7 +29,9 @@ pub const ENCODEDVALUE_SIZE: usize = 8;
 pub const QUERY_SIZE: usize = 1440;
 
 // for optimization
-pub const CLIENT_SIZE: usize = 4500;
+// pub const CLIENT_SIZE: usize = 4500;
+
+pub const CENTRAL_KEY: u64 = 777;
 
 
 // for secure channel encryption

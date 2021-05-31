@@ -19,6 +19,8 @@
 
 **/target
 
+*.db
+
 
 #secret
 setting
@@ -26,20 +28,15 @@ setting
 server.crt
 server.key
 Intel_SGX_Attestaion_RootCA.pem
-
-
 .vscode
-data/*
-!data/sample
-
 # これはビルドできないので載せておく
 !libsample_libcrypto.so
-
 __pycache__/*
-
 .ipynb_checkpoints/
 .python-version
 
-*.csv
+*/**/*.csv
 
-*.db
+data/＊
+!data/sample
+result/
