@@ -198,6 +198,10 @@ impl Trie {
         return key_id;
     }
 
+    pub fn contains(&self, key: &key_t) -> bool {
+        K_NOT_FOUND != self.exact_search(key)
+    }
+
     // // 見つかったかどうか，直前の探索のログを返したい．
     // fn caching_search(&self, previous_key: &key_t, key: &key_t, cache: Cache) -> position_t {
     //     let diff_level = self.find_different_level(previous_key, key);

@@ -14,11 +14,14 @@ bincode = { version = "1.3.1"}
 hex = { version = "0.4" }
 savefile = { version ="0.7" }
 savefile-derive = { version ="0.6.1" }
-fst = { path  = "/root/sgx/samplecode/PCT/fst" }
+succinct-trie = { path = "../succinct-trie" }
+glob = "0.3.0"
+regex = "1.5"
+clap = "3.0.0-beta.2"
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
-sgx_types = { path = "../../../sgx_types" }
-sgx_urts = { path = "../../../sgx_urts" }
+sgx_types = { path = "../../incubator-teaclave-sgx-sdk/sgx_types" }
+sgx_urts = { path = "../../incubator-teaclave-sgx-sdk/sgx_urts" }
 
 [build-dependencies]
 cc = "1.0"
@@ -28,10 +31,8 @@ opt-level = 3
 
 [features]
 default = []
-th72 = []
-th48 = []
-th60 = []
-th54 = []
+th64 = []
+th56 = []
 gp10 = []
 fsa = []
 hashtable = []

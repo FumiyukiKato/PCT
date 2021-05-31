@@ -1,101 +1,24 @@
-use serde::*;
-use std::fs::File;
-use std::io::BufReader;
-use std::collections::HashMap;
 use std::vec::Vec;
 use std::collections::HashSet;
-use fst::{Set};
+use succinct_trie::trie::Trie;
 use bincode;
-use util::*;
 use std::mem;
 
 
-/* Type Period */
-pub type UnixEpoch = u64;
-// UNIX EPOCH INTERVAL OF THE GPS DATA
-pub const TIME_INTERVAL: u64 = 600;
-
-/* TrajectoryTrie
+/* rie
     チャンク化しない
 */
-pub type EncodedValue = [u8; ENCODEDVALUE_SIZE];
+pub type EncodedValue = Vec<u8>;
 
+// vector of binary central data 
 #[derive(Clone, Default, Debug)]
-pub struct EncodedData {
-    structure: Vec<EncodedValue>
-}
-
-impl EncodedData {
-    pub fn new() -> Self {
-        EncodedData {
-            structure: Vec::with_capacity(1000000)
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.structure.len()
-    }
-
-    pub fn read_raw_from_file(filename: &str) -> Self {
-        let file = File::open(filename).unwrap();
-        let reader = BufReader::new(file);
-        let data: ExternalEncodedDataJson = serde_json::from_reader(reader).unwrap();
-        
-        let mut set: HashSet<EncodedValue> = HashSet::with_capacity(100000);
-        if cfg!(any(feature = "th72", feature = "th48", feature = "th54", feature = "th60")) {
-            for v in data.data.iter() {
-                let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
-                encoded_value_u8.copy_from_slice(base8decode(v.to_string()).as_slice());
-                set.insert(encoded_value_u8);
-            }
-        } else if cfg!(feature = "gp10") {
-            for v in data.data.iter() {
-                let mut encoded_value_u8: EncodedValue = [0_u8; ENCODEDVALUE_SIZE];
-                // ascii-code
-                encoded_value_u8.copy_from_slice(v.as_bytes());
-                set.insert(encoded_value_u8);
-            }    
-        } else {
-            panic!("Error attribute 'encode' is wrong.")
-        }
-
-        let vec: Vec<EncodedValue> = set.into_iter().collect();
-        EncodedData { structure: vec }
-    }
-    
-    pub fn prepare_sgx_data(&self, encoded_value_u8: &mut Vec<u8>) -> usize {
-        let mut i = 0;
-        for value in self.structure.iter() {
-            encoded_value_u8.extend_from_slice(value);
-            i += 1;
-        }
-        i
-    }
-
-    pub fn disribute(&self, buf: &mut Vec<Self>, threashould: usize) {
-        let mut val_num = 0;
-        let mut data = Self::new();
-        for (i, value) in self.structure.iter().enumerate() {
-            data.structure.push(*value);
-            if (i+1) % threashould == 0 {
-                buf.push(data);
-                data = Self::new();
-            }
-        }
-        if data.structure.len() > 0 {
-            buf.push(data);
-        }
-    }
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct CentralFST {
+pub struct CentralTrie {
     data: Vec<Vec<u8>>,
 }
 
-impl CentralFST {
+impl CentralTrie {
     pub fn new() -> Self {
-        CentralFST {
+        CentralTrie {
             data: Vec::with_capacity(100),
         }
     }
@@ -108,27 +31,26 @@ impl CentralFST {
         &self.data[index]
     }
 
-    pub fn from_EncodedData(encoded_data: EncodedData, threashould: usize) -> Self {
-        let mut encoded_value_vec = encoded_data.structure;
-        encoded_value_vec.sort();
+    pub fn from_encoded_data(mut encoded_data: Vec<Vec<u8>>, threashould: usize) -> Self {
+        encoded_data.sort();
 
         let mut ordered_vec: Vec<EncodedValue> = vec![];
-        let mut this = CentralFST::new();
+        let mut this = CentralTrie::new();
 
-        for (i, value) in encoded_value_vec.iter().enumerate() {
-            ordered_vec.push(*value);
+        for (i, value) in encoded_data.iter().enumerate() {
+            ordered_vec.push(value.clone());
             if (i+1) % threashould == 0 {
-                let bytes: Vec<u8> = Set::from_iter(ordered_vec)
-                    .unwrap().as_ref().as_bytes().to_vec();
-                println!(" r_i (server side chunk data) size = {} bytes", bytes.len());
+                let trie: Trie = Trie::new(&ordered_vec);
+                println!(" r_i (server side chunk data) size = {} bytes", trie.byte_size());
+                let bytes = trie.serialize();
                 this.data.push(bytes);
                 ordered_vec = vec![];
             }
         }
         if ordered_vec.len() > 0 {
-            let bytes = Set::from_iter(ordered_vec)
-                .unwrap().as_ref().as_bytes().to_vec();
-            println!(" r_i (server side chunk data) size = {} bytes", bytes.len());
+            let trie: Trie = Trie::new(&ordered_vec);
+            println!(" r_i (server side chunk data) size = {} bytes", trie.byte_size());
+            let bytes = trie.serialize();
             this.data.push(bytes);
         }
         this
@@ -155,15 +77,14 @@ impl CentralHashSet {
         &self.data[index]
     }
 
-    pub fn from_EncodedData(encoded_data: EncodedData, threashould: usize) -> Self {
-        let mut encoded_value_vec = encoded_data.structure;
-        encoded_value_vec.sort();
+    pub fn from_encoded_data(mut encoded_data: Vec<Vec<u8>>, threashould: usize) -> Self {
+        encoded_data.sort();
 
         let mut hashset: HashSet<EncodedValue> = HashSet::with_capacity(threashould);
         
         let mut this = CentralHashSet::new();
-        for (i, value) in encoded_value_vec.iter().enumerate() {
-            hashset.insert(*value);
+        for (i, value) in encoded_data.iter().enumerate() {
+            hashset.insert(value.clone());
             if (i+1) % threashould == 0 {
                 let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
                 println!("[HashSet] r_i size = {} bytes", bytes.len());
@@ -192,12 +113,11 @@ impl NonPrivateHashSet {
         }
     }
 
-    pub fn from_EncodedData(encoded_data: EncodedData) -> Self {
+    pub fn from_encoded_data(encoded_data: Vec<Vec<u8>>) -> Self {
         let mut this = NonPrivateHashSet::new();
-        let mut encoded_value_vec = encoded_data.structure;
 
-        for (i, value) in encoded_value_vec.iter().enumerate() {
-            this.set.insert(*value);
+        for value in encoded_data {
+            this.set.insert(value);
         }
         this
     }
@@ -207,99 +127,27 @@ impl NonPrivateHashSet {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct FstValue { pub value: EncodedValue }
-
-impl FstValue {
-    pub fn new(vec: EncodedValue) -> Self {
-        FstValue { value: vec }
-    }
-}
-
-impl AsRef<[u8]> for FstValue {
-    #[inline]
-    fn as_ref(&self) -> &[u8] {
-        &self.value
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct NonPrivateFSA {
-    pub set: Set<Vec<u8>>,
+    pub set: Trie,
 }
 
 impl NonPrivateFSA {
     pub fn new() -> Self {
         NonPrivateFSA {
-            set: Set::from_iter(Vec::<FstValue>::new()).unwrap()
+            set: Trie::new(&vec![vec![]])
         }
     }
 
-    pub fn from_EncodedData(encoded_data: EncodedData) -> Self {
-        let mut this = NonPrivateHashSet::new();
-        let mut encoded_value_vec = encoded_data.structure;
-        encoded_value_vec.sort();
+    pub fn from_encoded_data(mut encoded_data: Vec<Vec<u8>>) -> Self {
+        encoded_data.sort();
         let mut this = NonPrivateFSA::new();
-        this.set = Set::from_iter(encoded_value_vec).unwrap();
+        this.set = Trie::new(&encoded_data);
         this
     }
 
     pub fn calc_memory(&self) {
-        println!("FSA size = {} bytes", self.set.as_ref().size());
+        println!("FSA size = {} bytes", self.set.byte_size());
     }
-}
-
-/* 補助的なものたち */
-
-#[derive(Clone, Default, Debug)]
-pub struct Period(UnixEpoch, UnixEpoch);
-
-impl Period {
-    pub fn new() -> Self {
-        Period::default()
-    }
-
-    pub fn with_start(start: UnixEpoch) -> Self {
-        Period(start, start)
-    }
-
-    pub fn from_unixepoch_vector(unixepoch_vec: &Vec<UnixEpoch>) -> Vec<Period> {
-        let mut period_vec: Vec<Period> = vec![];
-        
-        assert!(unixepoch_vec.len() > 0);
-        let mut latest_unixepoch: UnixEpoch = unixepoch_vec[0];
-        let mut period = Period::with_start(latest_unixepoch);
-        
-        for unixepoch in unixepoch_vec.iter() {
-            if latest_unixepoch + TIME_INTERVAL >= *unixepoch {
-                latest_unixepoch = *unixepoch;
-            } else {
-                period.1 = latest_unixepoch;
-                period_vec.push(period);
-                period = Period::with_start(*unixepoch);
-                latest_unixepoch = *unixepoch;
-            }
-        }
-        period.1 = latest_unixepoch;
-        period_vec.push(period);
-        period_vec
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ExternalEncodedDataJson {
-    data: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ExternalDataJson {
-    vec: Vec<ExternalDataDetail>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ExternalDataDetail {
-    geohash: String,
-    unixepoch: u64,
 }
 
 // 昇順ソート+ユニーク性，O(n^2)だけどサイズは小さいので気にしない
