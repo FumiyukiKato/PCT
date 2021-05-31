@@ -93,7 +93,7 @@ pub fn accurate_quereis(
     let connection = establish_connection();
     let mut results = Vec::new();
 
-    let mut query_id = 0;
+    let mut query_id: u32 = 0;
     for trajectory in trajectories {
         let (time_start, time_end, lng_start, lng_end, lat_start, lat_end) =
             trajectory.get_query_condition(theta_t, theta_l_lng, theta_l_lat);
@@ -123,7 +123,7 @@ pub fn obliv_accurate_quereis(
     let connection = establish_connection();
     let mut results = Vec::new();
 
-    let mut query_id = 0;
+    let mut query_id: u32 = 0;
     for trajectory in trajectories {
         let (_, _, lng_start, lng_end, lat_start, lat_end) =
             trajectory.get_query_condition(theta_t, theta_l_lng, theta_l_lat);

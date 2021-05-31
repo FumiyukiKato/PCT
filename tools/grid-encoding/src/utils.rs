@@ -27,8 +27,8 @@ pub fn read_trajectory_from_csv(filename: &str, has_header: bool, time: u32) -> 
         .from_reader(reader);
 
     let mut trajectories = Vec::new();
-    let mut lng_max = 0.;
-    let mut lat_max = 0.;
+    let mut lng_max = -200.;
+    let mut lat_max = -2000.;
     let mut lng_min = 200.;
     let mut lat_min = 200.;
     for result in csv_reader.records().into_iter() {

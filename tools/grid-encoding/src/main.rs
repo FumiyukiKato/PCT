@@ -61,8 +61,8 @@ fn main() {
 
     let time: u32 = opts.time.as_str().parse().unwrap();
     let grid_vectors = utils::prepare_grid_vectors(
-        opts.theta_l_lng_max,
-        opts.theta_l_lng_min,
+        - opts.theta_l_lng_max,
+        - opts.theta_l_lng_min,
         opts.theta_l_lat_max,
         opts.theta_l_lat_min,
         opts.theta_l_lng,
@@ -78,8 +78,8 @@ fn main() {
             utils::write_trajectory_hash_csv(opts.output_file.as_str(), hashed);
         }
         "client" => {
-		    let mut lng_max_mut = 0.;
-            let mut lat_max_mut = 0.;
+		    let mut lng_max_mut = -200.;
+            let mut lat_max_mut = -200.;
             let mut lng_min_mut = 200.;
             let mut lat_min_mut = 200.;
 	
@@ -157,7 +157,7 @@ fn main() {
                         let hashed = utils::bulk_encode(trajectories, &grid_vectors);
 
                         let mut client_result = Vec::new();
-                        let mut query_id = 0;
+                        let mut query_id: u32 = 0;
                         for hash in hashed {
                             client_result.push((query_id, server_data.contains(&hash)));
                             query_id += 1;

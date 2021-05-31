@@ -25,7 +25,7 @@ struct Opts {
     #[clap(short, long, default_value = "acc_results.bin")]
     output_file: String,
 
-    /// mode insert|query|trunc|doe|obli
+    /// mode insert|query|trunc|doe|obliv
     #[clap(short, long)]
     mode: Option<String>,
 
@@ -207,7 +207,7 @@ fn db_access(opts: &Opts) {
         "trunc" => {
             utils::truncate_trajectory_db();
         }
-        "obli" => {
+        "obliv" => {
             let theta_t: i64 = opts.theta_t.as_ref().unwrap().as_str().parse().unwrap();
             let theta_l_lng: f64 = opts.theta_l_lng.as_ref().unwrap().as_str().parse().unwrap();
             let theta_l_lat: f64 = opts.theta_l_lat.as_ref().unwrap().as_str().parse().unwrap();
