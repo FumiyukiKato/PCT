@@ -20,8 +20,8 @@ regex = "1.5"
 clap = "3.0.0-beta.2"
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
-sgx_types = { path = "../../incubator-teaclave-sgx-sdk/sgx_types" }
-sgx_urts = { path = "../../incubator-teaclave-sgx-sdk/sgx_urts" }
+sgx_types = { path = "../../../sgx_types" }
+sgx_urts = { path = "../../../sgx_urts" }
 
 [build-dependencies]
 cc = "1.0"

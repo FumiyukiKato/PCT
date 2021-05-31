@@ -4,8 +4,8 @@ use std::mem;
 use bincode;
 use primitive::*;
 use constant::*;
-use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
+use encoded_query_buffer::EncodedQueryBuffer;
 
 #[derive(Clone, Default, Debug)]
 pub struct EncodedHashTable {
@@ -18,10 +18,16 @@ impl EncodedHashTable {
         }
     }
 
-    pub fn intersect(&self, mapped_query_buffer: &MappedEncodedQueryBuffer, result: &mut EncodedResultBuffer) {
-        for encoded_value_vec in mapped_query_buffer.map.iter() {
-            if self.map.contains(encoded_value_vec) {
-                result.data.insert(*encoded_value_vec);
+    pub fn intersect(&self, query_buffer: &EncodedQueryBuffer, result: &mut EncodedResultBuffer) {
+        for encoded_value_vec in query_buffer.queries.iter() {
+            if result.data.contains(&encoded_value_vec.id) {
+               continue; 
+            }
+            for key in encoded_value_vec.parameters.iter() {
+                if self.map.contains(key) {
+                    result.data.insert(encoded_value_vec.id);
+                    continue;
+                }
             }
         }
     }

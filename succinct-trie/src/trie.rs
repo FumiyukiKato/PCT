@@ -21,7 +21,7 @@ struct Suffix {
 impl Suffix {
     pub fn serialize(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::with_capacity(10);
-        bytes.extend(self.contents.len().to_be_bytes());
+        bytes.extend(self.contents.len().to_be_bytes().iter());
         bytes.extend(self.contents.as_slice());
         println!("bytes.len(): {}", bytes.len());
         bytes
@@ -36,7 +36,7 @@ impl Suffix {
         let suffix_len = usize::from_be_bytes(suffix_len_bytes);
 
         let mut contents: Vec<u8> = Vec::with_capacity(suffix_len);
-        for i in 0..suffix_len {
+        for _ in 0..suffix_len {
             let mut suffix_word_bytes: [u8; 1] = Default::default();
             suffix_word_bytes.copy_from_slice(&bytes[cursor..cursor+1]);
             cursor += 1;
@@ -52,19 +52,19 @@ impl Trie {
         let mut bytes: Vec<u8> = Vec::with_capacity(100000);
 
         let louds_dense_bytes = self.louds_dense.serialize();
-        bytes.extend(louds_dense_bytes.len().to_be_bytes());
+        bytes.extend(louds_dense_bytes.len().to_be_bytes().iter());
         bytes.extend(louds_dense_bytes);
 
         let louds_sparse_bytes = self.louds_sparse.serialize();
-        bytes.extend(louds_sparse_bytes.len().to_be_bytes());
+        bytes.extend(louds_sparse_bytes.len().to_be_bytes().iter());
         bytes.extend(louds_sparse_bytes);
 
-        bytes.extend(self.suffixes.len().to_be_bytes());
+        bytes.extend(self.suffixes.len().to_be_bytes().iter());
         println!("suffixes.len(): {}", self.suffixes.len());
         for suffix in self.suffixes.iter() {
             let suffix_bytes = suffix.serialize();
             println!("suffix_bytes.len(): {}", suffix_bytes.len());
-            bytes.extend(suffix_bytes.len().to_be_bytes());
+            bytes.extend(suffix_bytes.len().to_be_bytes().iter());
             bytes.extend(suffix_bytes);
         }
         bytes
@@ -94,7 +94,7 @@ impl Trie {
         println!("suffixes_len: {}", suffixes_len);
 
         let mut suffixes: Vec<Suffix> = Vec::with_capacity(suffixes_len);
-        for i in 0..suffixes_len {
+        for _ in 0..suffixes_len {
             let mut suffix_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
             suffix_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
             cursor += USIZE_BYTE_SIZE;
@@ -285,6 +285,7 @@ impl Trie {
 
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
+        #[allow(unused_unsafe)]
         unsafe {
             mem_size += size_of_val(&*self.suffixes);
             println!("suffix: {}", size_of_val(&*self.suffixes));
@@ -355,8 +356,8 @@ impl TrajectoryHash {
         let value: u128 = read_be_u128(key);
 
         // tiles to hash values
-        for position in ACCURATE_GRID {
-            let bytes = u128_to_bytes(self.calc(value, position), self.byte_length);
+        for position in ACCURATE_GRID.iter() {
+            let bytes = u128_to_bytes(self.calc(value, *position), self.byte_length);
             vec.push(bytes);
         }
         vec

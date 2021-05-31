@@ -8,9 +8,9 @@ pub struct LabelVector {
 impl LabelVector {
     pub fn serialize(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::with_capacity(1000);
-        bytes.extend(self.labels.len().to_be_bytes());
+        bytes.extend(self.labels.len().to_be_bytes().iter());
         for bit in self.labels.iter() {
-            bytes.extend(bit.to_be_bytes());
+            bytes.extend(bit.to_be_bytes().iter());
         }
         bytes
     }
@@ -24,7 +24,7 @@ impl LabelVector {
         let labels_len = usize::from_be_bytes(labels_len_bytes);
 
         let mut labels: Vec<label_t> = Vec::with_capacity(labels_len);
-        for i in 0..labels_len {
+        for _ in 0..labels_len {
             let mut labels_bytes: [u8; LABEL_T_BYTE_SIZE] = Default::default();
             labels_bytes.copy_from_slice(&bytes[cursor..cursor+LABEL_T_BYTE_SIZE]);
             cursor += LABEL_T_BYTE_SIZE;
@@ -37,6 +37,7 @@ impl LabelVector {
 
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
+        #[allow(unused_unsafe)]
         unsafe {
             mem_size += size_of_val(&*self.labels);
         }
@@ -71,8 +72,8 @@ impl LabelVector {
     }
 
     pub fn search(&self, target: label_t, pos: position_t, search_len: position_t) -> (bool, position_t) {
-        let mut updated_pos = pos;
-        let mut updated_search_len = search_len;
+        let updated_pos = pos;
+        let updated_search_len = search_len;
 
 
         if updated_search_len < 3 {
@@ -155,9 +156,5 @@ impl LabelVector {
             }
         }
         return (false, pos)
-    }
-
-    pub fn read(&self, pos: position_t) -> label_t {
-        self.labels[pos]
     }
 }

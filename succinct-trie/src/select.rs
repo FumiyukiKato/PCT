@@ -15,14 +15,14 @@ impl BitvectorSelect {
         let mut bytes: Vec<u8> = Vec::with_capacity(1000);
 
         let bitvec_bytes = self.bitvec.serialize();
-        bytes.extend(bitvec_bytes.len().to_be_bytes());
+        bytes.extend(bitvec_bytes.len().to_be_bytes().iter());
         bytes.extend(bitvec_bytes);
 
-        bytes.extend(self.sample_interval.to_be_bytes());
+        bytes.extend(self.sample_interval.to_be_bytes().iter());
 
-        bytes.extend(self.select_lut.len().to_be_bytes());
+        bytes.extend(self.select_lut.len().to_be_bytes().iter());
         for bit in self.select_lut.iter() {
-            bytes.extend(bit.to_be_bytes());
+            bytes.extend(bit.to_be_bytes().iter());
         }
         bytes
     }
@@ -48,7 +48,7 @@ impl BitvectorSelect {
         let select_lut_len = usize::from_be_bytes(select_lut_len_bytes);
 
         let mut select_lut: Vec<position_t> = Vec::with_capacity(select_lut_len);
-        for i in 0..select_lut_len {
+        for _ in 0..select_lut_len {
             let mut bits_word_bytes: [u8; POSITION_T_BYTE_SIZE] = Default::default();
             bits_word_bytes.copy_from_slice(&bytes[cursor..cursor + POSITION_T_BYTE_SIZE]);
             cursor += POSITION_T_BYTE_SIZE;
@@ -65,6 +65,7 @@ impl BitvectorSelect {
 
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
+        #[allow(unused_unsafe)]
         unsafe {
             mem_size += self.bitvec.byte_size();
             mem_size += size_of::<position_t>();

@@ -19,18 +19,18 @@ impl LoudsDense {
     pub fn serialize(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::with_capacity(1000);
 
-        bytes.extend(self.height.to_be_bytes());
+        bytes.extend(self.height.to_be_bytes().iter());
 
         let label_bitmaps_bytes = self.label_bitmaps.serialize();
-        bytes.extend(label_bitmaps_bytes.len().to_be_bytes());
+        bytes.extend(label_bitmaps_bytes.len().to_be_bytes().iter());
         bytes.extend(label_bitmaps_bytes);
 
         let child_indicator_bitmaps_bytes = self.child_indicator_bitmaps.serialize();
-        bytes.extend(child_indicator_bitmaps_bytes.len().to_be_bytes());
+        bytes.extend(child_indicator_bitmaps_bytes.len().to_be_bytes().iter());
         bytes.extend(child_indicator_bitmaps_bytes);
 
         let prefixkey_indicator_bits_bytes = self.prefixkey_indicator_bits.serialize();
-        bytes.extend(prefixkey_indicator_bits_bytes.len().to_be_bytes());
+        bytes.extend(prefixkey_indicator_bits_bytes.len().to_be_bytes().iter());
         bytes.extend(prefixkey_indicator_bits_bytes);
 
         bytes
@@ -63,13 +63,13 @@ impl LoudsDense {
         cursor += USIZE_BYTE_SIZE;
         let prefixkey_indicator_bits_len = usize::from_be_bytes(prefixkey_indicator_bits_len_bytes);
         let prefixkey_indicator_bits = BitvectorRank::deserialize(&bytes[cursor..cursor+prefixkey_indicator_bits_len]);
-        cursor += prefixkey_indicator_bits_len;
 
         LoudsDense { height, label_bitmaps, child_indicator_bitmaps, prefixkey_indicator_bits }
     }
 
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
+        #[allow(unused_unsafe)]
         unsafe {
             mem_size += size_of::<level_t>();
             mem_size += self.label_bitmaps.byte_size();

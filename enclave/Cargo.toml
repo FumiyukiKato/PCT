@@ -12,16 +12,14 @@ crate-type = ["staticlib"]
 
 [features]
 default = []
-th72 = []
-th48 = []
-th54 = []
-th60 = []
+th64 = []
+th56 = []
 gp10 = []
 fsa = []
 hashtable = []
 
 [dependencies]
-sgx_fst = { path  = "/root/sgx/samplecode/PCT/sgx_fst" }
+succinct-trie = { path = "../succinct-trie" }
 bincode = { git = "https://github.com/mesalock-linux/bincode-sgx.git" }
 
 [target.'cfg(not(target_env = "sgx"))'.dependencies]

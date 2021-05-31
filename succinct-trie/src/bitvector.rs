@@ -10,10 +10,10 @@ pub struct BitVector {
 impl BitVector{
     pub fn serialize(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::with_capacity(1000);
-        bytes.extend(self.num_bits.to_be_bytes());
-        bytes.extend(self.bits.len().to_be_bytes());
+        bytes.extend(self.num_bits.to_be_bytes().iter());
+        bytes.extend(self.bits.len().to_be_bytes().iter());
         for bit in self.bits.iter() {
-            bytes.extend(bit.to_be_bytes());
+            bytes.extend(bit.to_be_bytes().iter());
         }
         bytes
     }
@@ -31,7 +31,7 @@ impl BitVector{
         let bits_len = usize::from_be_bytes(bits_len_bytes);
 
         let mut bits: Vec<word_t> = Vec::with_capacity(bits_len);
-        for i in 0..bits_len {
+        for _ in 0..bits_len {
             let mut bits_word_bytes: [u8; WORD_T_BYTE_SIZE] = Default::default();
             bits_word_bytes.copy_from_slice(&bytes[cursor..cursor+WORD_T_BYTE_SIZE]);
             cursor += WORD_T_BYTE_SIZE;
@@ -44,6 +44,7 @@ impl BitVector{
 
     pub fn byte_size(&self) -> usize {
         let mut mem_size: usize = 0;
+        #[allow(unused_unsafe)]
         unsafe {
             mem_size += size_of::<position_t>() + size_of_val(&*self.bits);
         }

@@ -79,9 +79,9 @@ fn private_set_intersection() {
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
-    // #[cfg(feature = "hashtable")]
-    // let mut R: CentralHashSet = CentralHashSet::from_encoded_data(central_data, threashould);
-    // #[cfg(feature = "fsa")]
+    #[cfg(feature = "hashtable")]
+    let mut R: CentralHashSet = CentralHashSet::from_encoded_data(central_data, threashould);
+    #[cfg(feature = "fsa")]
     let mut R: CentralTrie = CentralTrie::from_encoded_data(central_data, threashould);
     clocker.stop("Distribute central data");
 
@@ -217,7 +217,7 @@ fn private_set_intersection() {
     clocker.show_all();
     let now: String = get_timestamp();
 
-    // #[cfg(feature = "th56")]
+    #[cfg(feature = "th56")]
     let method = "th56";
     #[cfg(feature = "th64")]
     let method = "th64";
@@ -225,7 +225,7 @@ fn private_set_intersection() {
 
     #[cfg(feature = "hashtable")]
     let data_st = "hashtable";
-    // #[cfg(feature = "fsa")]
+    #[cfg(feature = "fsa")]
     let data_st = "fsa";
 
     write_to_file(
@@ -261,9 +261,9 @@ fn non_private_set_intersection() {
 
     /* preprocess central data */
     clocker.set_and_start("Distribute central data");
-    // #[cfg(feature = "hashtable")]
-    // let mut R: NonPrivateHashSet = NonPrivateHashSet::from_encoded_data(central_data);
-    // #[cfg(feature = "fsa")]
+    #[cfg(feature = "hashtable")]
+    let mut R: NonPrivateHashSet = NonPrivateHashSet::from_encoded_data(central_data);
+    #[cfg(feature = "fsa")]
     let mut R: NonPrivateFSA = NonPrivateFSA::from_encoded_data(central_data);
     clocker.stop("Distribute central data");
 
@@ -308,15 +308,16 @@ fn non_private_set_intersection() {
     clocker.show_all();
     let now: String = get_timestamp();
 
-    // #[cfg(feature = "th56")]
+    #[cfg(feature = "th56")]
     let method = "th56";
     #[cfg(feature = "th64")]
     let method = "th64";
-
+    #[cfg(feature = "gp10")]
+    let method = "gp10";
 
     #[cfg(feature = "hashtable")]
     let data_st = "hashtable";
-    // #[cfg(feature = "fsa")]
+    #[cfg(feature = "fsa")]
     let data_st = "fsa";
 
     write_to_file(

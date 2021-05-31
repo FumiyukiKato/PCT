@@ -26,9 +26,9 @@ extern crate sgx_trts;
 #[cfg(not(target_env = "sgx"))]
 #[macro_use]
 extern crate sgx_tstd as std;
-extern crate sgx_fst as fst;
 extern crate sgx_tcrypto;
 extern crate bincode;
+extern crate succinct_trie;
 
 use sgx_types::*;
 use sgx_tcrypto::*;
@@ -51,14 +51,14 @@ mod encoded_result_buffer;
 mod mapped_encoded_query_buffer;
 mod encoded_dictionary_buffer;
 mod encoded_hash_table;
-mod encode_finite_state_transducer;
+mod fast_succinct_trie;
 
 use constant::*;
-use primitive::*;
 use encoded_query_buffer::EncodedQueryBuffer;
 use encoded_result_buffer::EncodedResultBuffer;
-use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
+// use mapped_encoded_query_buffer::MappedEncodedQueryBuffer;
 use encoded_dictionary_buffer::EncodedDictionaryBuffer;
+
 
 /* 
 SGXのステート
@@ -75,15 +75,15 @@ pub fn get_ref_encoded_query_buffer() -> Option<&'static RefCell<EncodedQueryBuf
     }
 }
 
-pub static MAPPED_ENCODED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
-pub fn get_ref_mapped_encoded_query_buffer() -> Option<&'static RefCell<MappedEncodedQueryBuffer>> {
-    let ptr = MAPPED_ENCODED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<MappedEncodedQueryBuffer>;
-    if ptr.is_null() {
-        None
-    } else {
-        Some(unsafe { &* ptr })
-    }
-}
+// pub static MAPPED_ENCODED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
+// pub fn get_ref_mapped_encoded_query_buffer() -> Option<&'static RefCell<MappedEncodedQueryBuffer>> {
+//     let ptr = MAPPED_ENCODED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<MappedEncodedQueryBuffer>;
+//     if ptr.is_null() {
+//         None
+//     } else {
+//         Some(unsafe { &* ptr })
+//     }
+// }
 
 pub static ENCODED_RESULT_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
 pub fn get_ref_encoded_result_buffer() -> Option<&'static RefCell<EncodedResultBuffer>> {
@@ -158,11 +158,11 @@ pub extern "C" fn upload_encoded_query_data(
     let end = start.elapsed();
     println!("[SGX CLOCK] {}:  {}.{:06} seconds", "store queies", end.as_secs(), end.subsec_nanos() / 1_000);
 
-    let start = Instant::now();
-    let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
-    mapped_query_buffer.mapping(&query_buffer);
-    let end = start.elapsed();
-    println!("[SGX CLOCK] {}:  {}.{:06} seconds", "merge queries to Q", end.as_secs(), end.subsec_nanos() / 1_000);
+    // let start = Instant::now();
+    // let mut mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
+    // mapped_query_buffer.mapping(&query_buffer);
+    // let end = start.elapsed();
+    // println!("[SGX CLOCK] {}:  {}.{:06} seconds", "merge queries to Q", end.as_secs(), end.subsec_nanos() / 1_000);
 
     let end = whole_start.elapsed();
     // println!("[SGX CLOCK] {}:  {}.{:06} seconds", "whole", end.as_secs(), end.subsec_nanos() / 1_000);
@@ -178,11 +178,11 @@ fn _init_encoded_buffers() {
     let query_buffer_ptr = Box::into_raw(query_buffer_box);
     ENCODED_QUERY_BUFFER.store(query_buffer_ptr as *mut (), Ordering::SeqCst);
 
-    // initialize mapped query buffer
-    let mapped_query_buffer = MappedEncodedQueryBuffer::new();
-    let mapped_query_buffer_box = Box::new(RefCell::<MappedEncodedQueryBuffer>::new(mapped_query_buffer));
-    let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
-    MAPPED_ENCODED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
+    // // initialize mapped query buffer
+    // let mapped_query_buffer = MappedEncodedQueryBuffer::new();
+    // let mapped_query_buffer_box = Box::new(RefCell::<MappedEncodedQueryBuffer>::new(mapped_query_buffer));
+    // let mapped_query_buffer_ptr = Box::into_raw(mapped_query_buffer_box);
+    // MAPPED_ENCODED_QUERY_BUFFER.store(mapped_query_buffer_ptr as *mut (), Ordering::SeqCst);
 
     // initialize result buffer
     let result_buffer = EncodedResultBuffer::new();
@@ -192,7 +192,7 @@ fn _init_encoded_buffers() {
 }
 
 /*
-    Private set intersectino
+    Private set intersection
 */
 #[no_mangle]
 pub extern "C" fn private_encode_contact_trace(
@@ -207,10 +207,11 @@ pub extern "C" fn private_encode_contact_trace(
         return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
     }
     dictionary_buffer.build_dictionary_buffer(encoded_value_vec);
-    let mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
+    // let mapped_query_buffer = get_ref_mapped_encoded_query_buffer().unwrap().borrow_mut();
     let mut result_buffer = get_ref_encoded_result_buffer().unwrap().borrow_mut();
+    let mut query_buffer = get_ref_encoded_query_buffer().unwrap().borrow_mut();
 
-    dictionary_buffer.intersect(&mapped_query_buffer, &mut result_buffer);
+    dictionary_buffer.intersect(&query_buffer, &mut result_buffer);
     
     sgx_status_t::SGX_SUCCESS
 }

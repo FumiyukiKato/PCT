@@ -10,7 +10,7 @@ use std::{
 };
 use regex::Regex;
 
-pub const ENCODEDVALUE_SIZE: usize = 8;
+// pub const ENCODEDVALUE_SIZE: usize = 8;
 
 #[cfg(feature = "gp10")]
 pub const ENCODEDVALUE_SIZE: usize = 14;

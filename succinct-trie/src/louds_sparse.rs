@@ -31,22 +31,22 @@ impl LoudsSparse {
     pub fn serialize(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::with_capacity(1000);
 
-        bytes.extend(self.height.to_be_bytes());
-        bytes.extend(self.start_level.to_be_bytes());
-        bytes.extend(self.node_count_dense.to_be_bytes());
-        bytes.extend(self.child_count_dense.to_be_bytes());
-        bytes.extend(self.value_count_dense.to_be_bytes());
+        bytes.extend(self.height.to_be_bytes().iter());
+        bytes.extend(self.start_level.to_be_bytes().iter());
+        bytes.extend(self.node_count_dense.to_be_bytes().iter());
+        bytes.extend(self.child_count_dense.to_be_bytes().iter());
+        bytes.extend(self.value_count_dense.to_be_bytes().iter());
 
         let labels_bytes = self.labels.serialize();
-        bytes.extend(labels_bytes.len().to_be_bytes());
+        bytes.extend(labels_bytes.len().to_be_bytes().iter());
         bytes.extend(labels_bytes);
 
         let child_indicator_bits_bytes = self.child_indicator_bits.serialize();
-        bytes.extend(child_indicator_bits_bytes.len().to_be_bytes());
+        bytes.extend(child_indicator_bits_bytes.len().to_be_bytes().iter());
         bytes.extend(child_indicator_bits_bytes);
 
         let louds_bits_bytes = self.louds_bits.serialize();
-        bytes.extend(louds_bits_bytes.len().to_be_bytes());
+        bytes.extend(louds_bits_bytes.len().to_be_bytes().iter());
         bytes.extend(louds_bits_bytes);
 
         bytes
@@ -100,7 +100,6 @@ impl LoudsSparse {
         cursor += USIZE_BYTE_SIZE;
         let louds_bits_len = usize::from_be_bytes(louds_bits_len_bytes);
         let louds_bits = BitvectorSelect::deserialize(&bytes[cursor..cursor + louds_bits_len]);
-        cursor += louds_bits_len;
 
         LoudsSparse {
             height,
@@ -115,6 +114,7 @@ impl LoudsSparse {
     }
     pub fn byte_size(&self) -> usize {
         let mut mem_size = 0;
+        #[allow(unused_unsafe)]
         unsafe {
             mem_size += size_of::<level_t>() * 2 + size_of::<position_t>() * 3;
             mem_size += self.labels.byte_size();
@@ -186,10 +186,6 @@ impl LoudsSparse {
 
     pub fn get_height(&self) -> level_t {
         self.height
-    }
-
-    pub fn get_start_level(&self) -> level_t {
-        self.start_level
     }
 
     pub fn find_key(&self, key: &key_t, in_node_num: level_t) -> (position_t, level_t) {

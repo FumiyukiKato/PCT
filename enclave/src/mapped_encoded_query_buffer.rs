@@ -1,17 +1,16 @@
 use std::vec::Vec;
 use std::collections::HashSet;
-use constant::*;
 use primitive::*;
 use encoded_query_buffer::EncodedQueryBuffer;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct MappedEncodedQueryBuffer {
     pub map: Vec<EncodedValue>,
 }
 
 impl MappedEncodedQueryBuffer {
     pub fn new() -> Self {
-        MappedEncodedQueryBuffer::default()
+        MappedEncodedQueryBuffer { map: vec![] }
     }
 
     // !!このメソッドでは全くerror処理していない

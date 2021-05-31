@@ -180,7 +180,7 @@ impl Builder {
     ) -> level_t {
         let mut level: level_t = start_level;
         let mut is_start_of_node: bool = false;
-        let mut is_term: bool = false;
+        let is_term: bool = false;
 
         if self.is_level_empty(level) {
             is_start_of_node = true; // ノードの中で長男ということ
@@ -386,6 +386,7 @@ impl Builder {
         }
     }
 
+    #[allow(unused_variables)]
     fn is_terminator(&self, level: level_t, pos: position_t) -> bool {
         // let label: label_t = self.labels[level][pos];
         // (label == K_TERMINATOR) && !Builder::read_bit(&self.child_indicator_bits[level], pos)
