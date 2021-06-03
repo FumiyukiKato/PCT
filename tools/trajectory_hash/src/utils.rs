@@ -11,6 +11,7 @@ const MIN_LATITUDE: f64 = -MAX_LATITUDE;
 
 static mut PRINT_FLAG: bool = true;
 
+#[derive(Debug)]
 pub struct Trajectory {
     time: u32,
     latitude: f64,
@@ -23,11 +24,19 @@ pub enum MixType {
 }
 
 impl Trajectory {
-    fn deserialize_from_string_record(string_record: csv::StringRecord) -> Trajectory {
-        Trajectory {
-            time: string_record[0].parse().expect("time is invalid"),
-            latitude: string_record[1].parse().expect("latitude is invalid"),
-            longitude: string_record[2].parse().expect("longitude is invalid"),
+    fn deserialize_from_string_record(string_record: csv::StringRecord, format: i32) -> Trajectory {
+        match format {
+            1 => Trajectory {
+                time: string_record[0].parse().expect("time is invalid"),
+                latitude: string_record[1].parse().expect("latitude is invalid"),
+                longitude: string_record[2].parse().expect("longitude is invalid"),
+            },
+            2 => Trajectory {
+                time: string_record[0].parse().expect("time is invalid"),
+                longitude: string_record[1].parse().expect("longitude is invalid"),
+                latitude: string_record[2].parse().expect("latitude is invalid"),
+            },
+            _ => panic!("invalid format parameter")
         }
     }
 
@@ -36,7 +45,7 @@ impl Trajectory {
     }
 }
 
-pub fn read_trajectory_from_csv(filename: &str, has_header: bool) -> Vec<Trajectory> {
+pub fn read_trajectory_from_csv(filename: &str, has_header: bool, format: i32) -> Vec<Trajectory> {
     let file = File::open(filename).expect("file open error");
     let reader = BufReader::new(file);
     let mut csv_reader = csv::ReaderBuilder::new()
@@ -45,7 +54,7 @@ pub fn read_trajectory_from_csv(filename: &str, has_header: bool) -> Vec<Traject
 
     let mut trajectories = Vec::new();
     for result in csv_reader.records().into_iter() {
-        let record = Trajectory::deserialize_from_string_record(result.expect("invalid record"));
+        let record = Trajectory::deserialize_from_string_record(result.expect("invalid record"), format);
         trajectories.push(record);
     }
     trajectories
@@ -212,7 +221,14 @@ fn stable_ctlz(num: u32) -> u32 {
 }
 
 fn periodical_encoding(time: u32, time_period: (u32, u32), theta_t: u32) -> (u32, u32) {
-    assert!(time >= time_period.0);
+    // assert!(time >= time_period.0);
+    // assert!(time <= time_period.1);
+    if time < time_period.0 {
+        println!("small time: {}", time);
+    }
+    if time > time_period.1 {
+        println!("high time: {}", time);
+    }
     let t_diff = time - time_period.0;
     let shift = 32 - theta_t;
     let zoomed_t_diff = t_diff >> shift;
@@ -573,5 +589,124 @@ mod tests {
             vec![1, 164, 83, 226, 16, 194, 97, 0]
         );
         // 4]: 00000000
+
+        // Kinki
+        // Lat
+        let trajectory = Trajectory {
+            time: 1285891200,
+            longitude: 135.916634,
+            latitude: 35.1143095,
+        };
+        assert_eq!(
+            utils::trajectory_hash(
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1285891200, 1285977540)
+            ),
+            vec![94, 8, 204, 60, 209, 109, 178]
+        );
+        // 1143095と1143096の間 1143096
+        let trajectory = Trajectory {
+            time: 1285891200,
+            longitude: 135.916634,
+            latitude: 35.1143096,
+        };
+        assert_eq!(
+            utils::trajectory_hash(
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1285891200, 1285977540)
+            ),
+            vec![94, 8, 204, 60, 209, 109, 176]
+        );
+        // 1143270と1143271の間 => 0000175
+        let trajectory = Trajectory {
+            time: 1285891200,
+            longitude: 135.916634,
+            latitude: 35.1143447,
+        };
+        assert_eq!(
+            utils::trajectory_hash(
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1285891200, 1285977540)
+            ),
+            vec![94, 8, 204, 60, 209, 109, 160]
+        );
+
+        // Long
+        // 9166502 と9166503の間
+        let trajectory = Trajectory {
+            time: 1285891200,
+            longitude: 135.9166502,
+            latitude: 35.1143096,
+        };
+        assert_eq!(
+            utils::trajectory_hash(
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1285891200, 1285977540)
+            ),
+            vec![94, 8, 204, 60, 209, 109, 176]
+        );
+        // 9166717と9166718の間 => 9166718 - 9166503 = 0000215
+        let trajectory = Trajectory {
+            time: 1285891200,
+            longitude: 135.9166717,
+            latitude: 35.1143096,
+        };
+        assert_eq!(
+            utils::trajectory_hash(
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1285891200, 1285977540)
+            ),
+            vec![94, 8, 204, 60, 209, 109, 180]
+        );
+
+        // Tokyo
+        // Lat
+        // 6999128と6999129の間
+        let trajectory = Trajectory {
+            time: 1285891200,
+            longitude: 139.774175,
+            latitude: 35.6999128,
+        };
+        assert_eq!(
+            utils::trajectory_hash(
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1222819200, 1222905540)
+            ),
+            vec![94, 13, 60, 51, 9, 123, 19]
+        );
+        // 6999302と6999303の間 => 6999303 - 6999129 = 0000174
+        let trajectory = Trajectory {
+            time: 1285891200,
+            longitude: 139.774175,
+            latitude: 35.6999302,
+        };
+        assert_eq!(
+            utils::trajectory_hash(
+                &trajectory,
+                &utils::MixType::Mix,
+                22,
+                24,
+                (1222819200, 1222905540)
+            ),
+            vec![94, 13, 60, 51, 9, 123, 17]
+        );
     }
 }

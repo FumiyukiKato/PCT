@@ -162,9 +162,10 @@ fn db_access(opts: &Opts) {
                 .expect("failed to save");
         }
         "doe" => {
-            let theta_t = 17 * 60;
-            let theta_l_lng = 0.0000215;
-            let theta_l_lat = 0.0000165;
+            let theta_t: i64 = opts.theta_t.as_ref().unwrap().as_str().parse().unwrap();
+            let theta_t = theta_t * 60;
+            let theta_l_lng: f64 = opts.theta_l_lng.as_ref().unwrap().as_str().parse().unwrap();
+            let theta_l_lat: f64 = opts.theta_l_lat.as_ref().unwrap().as_str().parse().unwrap();
             let duration_of_exposure = 15; // 51 minutes
 
             let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();

@@ -116,7 +116,7 @@ fn main() {
     let re = Regex::new(
         format!(
             r".*/client-{}-{}-(?P<client_id>\d+).*.csv",
-            theta_t, theta_l
+            theta_l, theta_t
         )
         .as_str(),
     )

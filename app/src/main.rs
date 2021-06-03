@@ -52,11 +52,12 @@ pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 */
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
-    if args.len() != 3 {
+    if args.len() != 4 {
         println!(" ERROR bin/app needs 3 arguments!");
         println!("    args[0] = threashold of each chunk block size");
         println!("    args[1] = query data file path");
-        println!("    args[2] = central data file path");
+        println!("    args[2] = number of clients");
+        println!("    args[3] = central data file path");
         std::process::exit(-1);
     }
     args
@@ -67,7 +68,8 @@ fn private_set_intersection() {
     /* parameters */
     let threashould: usize = args[0].parse().unwrap();
     let q_dirname = &args[1];
-    let c_filename = &args[2];
+    let client_num: u32 = args[2].parse().unwrap();
+    let c_filename = &args[3];
 
     let mut clocker = Clocker::new();
 
@@ -102,7 +104,7 @@ fn private_set_intersection() {
 
     /* read query data */
     clocker.set_and_start("Read Query Data");
-    let query_data = util::read_trajectory_hash_from_csv_for_clients(q_dirname);
+    let query_data = util::read_trajectory_hash_from_csv_for_clients(q_dirname, client_num);
     let client_size = query_data.len();
     let query_id_list: Vec<u64> = Vec::from_iter((0u64..client_size as u64).into_iter());
     clocker.stop("Read Query Data");
@@ -249,7 +251,8 @@ fn non_private_set_intersection() {
     /* parameters */
     let threashould: usize = args[0].parse().unwrap();
     let q_dirname = &args[1];
-    let c_filename = &args[2];
+    let client_num: u32 = args[2].parse().unwrap();
+    let c_filename = &args[3];
 
     let mut clocker = Clocker::new();
 
@@ -271,7 +274,7 @@ fn non_private_set_intersection() {
 
     /* read query data */
     clocker.set_and_start("Read Query Data");
-    let query_data = util::read_trajectory_hash_from_csv_for_clients(q_dirname);
+    let query_data = util::read_trajectory_hash_from_csv_for_clients(q_dirname, client_num);
     let client_size = query_data.len();
     let query_id_list: Vec<u64> = Vec::from_iter((0u64..client_size as u64).into_iter());
     clocker.stop("Read Query Data");

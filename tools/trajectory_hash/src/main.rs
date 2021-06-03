@@ -16,16 +16,16 @@ struct Opts {
     #[clap(short, long, default_value = "output.csv")]
     output_file: String,
     /// Parameter for time
-    #[clap(long, default_value = "27")]
+    #[clap(long)]
     theta_t: u32,
     /// Parameter for location
-    #[clap(long, default_value = "20")]
+    #[clap(long)]
     theta_l: u32,
     /// Parameter for time period
-    #[clap(short, long, default_value = "1597881600")] // 2020/08/20 00:00:00 (UTC)
+    #[clap(short, long)]
     start_time: u32,
     /// Parameter for time period
-    #[clap(short, long, default_value = "1599090600")] // 2020/09/03 00:00:00
+    #[clap(short, long)]
     end_time: u32,
 
     /// Parameter for mixing type
@@ -34,7 +34,11 @@ struct Opts {
 
     /// target server|client
     #[clap(short, long)]
-    target: String
+    target: String,
+
+    /// data flag because CSV data had some format... 1 => 'time', 'lat', 'lng' , 2 => 'time', 'lng', 'lat'
+    #[clap(short, long, default_value = "1")]
+    format: String
 }
 
 fn main() {
@@ -44,10 +48,12 @@ fn main() {
         "seperate" => MixType::Seperate,
         _ => panic!("invalid option: mix_type")
     };
+    let format: i32 = opts.format.as_str().parse().unwrap();
     let time_period = (opts.start_time, opts.end_time);
+    
     match opts.target.as_str() {
         "server" => {
-            let trajectories = utils::read_trajectory_from_csv(opts.input_file.as_str(), true);
+            let trajectories = utils::read_trajectory_from_csv(opts.input_file.as_str(), true, format);
             let hashed = utils::bulk_encode(trajectories, &mix_type, opts.theta_t, opts.theta_l, time_period);
             utils::write_trajectory_hash_csv(opts.output_file.as_str(), hashed);
         },
@@ -63,7 +69,7 @@ fn main() {
                             None => break
                         };
                         let client_id: u32 = caps["client_id"].parse().unwrap();
-                        let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true);
+                        let trajectories = utils::read_trajectory_from_csv(path.to_str().unwrap(), true, format);
                         let hashed = utils::bulk_encode(trajectories, &mix_type, opts.theta_t, opts.theta_l, time_period);
                         utils::write_trajectory_hash_csv(format!("{}-{}.csv", opts.output_file.as_str(), client_id).as_str(), hashed);
                     },

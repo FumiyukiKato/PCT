@@ -117,9 +117,9 @@ pub fn read_trajectory_hash_from_csv(filename: &str) -> Vec<Vec<u8>> {
     hash_vec
 }
 
-pub fn read_trajectory_hash_from_csv_for_clients(dirname: &str) -> Vec<Vec<Vec<u8>>> {
+pub fn read_trajectory_hash_from_csv_for_clients(dirname: &str, client_num: u32) -> Vec<Vec<Vec<u8>>> {
     let mut query_data = Vec::new();
-    let re = Regex::new(r".*/client-(?P<client_id>\d+).*.csv").unwrap();
+    let re = Regex::new(r".*/client-\d+-\d+-(?P<client_id>\d+).*.csv").unwrap();
     for entry in glob(format!("{}/*.csv", dirname).as_str()).expect("Failed to read glob pattern") {
         match entry {
             Ok(path) => {
@@ -129,7 +129,9 @@ pub fn read_trajectory_hash_from_csv_for_clients(dirname: &str) -> Vec<Vec<Vec<u
                     None => continue,
                 };
                 let client_id: u32 = caps["client_id"].parse().unwrap();
-
+                if client_num <= client_id {
+                    continue;
+                }
                 println!("start ... filepath {}, client_id {}", filepath, client_id);
                 let client_data = read_trajectory_hash_from_csv(path.to_str().unwrap());
 
