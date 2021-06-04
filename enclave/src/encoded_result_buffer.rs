@@ -6,7 +6,7 @@ use query_result::QueryResult;
 
 #[derive(Clone, Default, Debug)]
 pub struct EncodedResultBuffer {
-    pub data: HashSet<EncodedValue>,
+    pub data: HashSet<QueryId>,
 }
 
 impl EncodedResultBuffer {
@@ -24,12 +24,12 @@ impl EncodedResultBuffer {
         for query in query_buffer.queries.iter() {
             let mut result = QueryResult::new();
             result.query_id = query.id;
-            for encoded_value in query.parameters.iter() {
-                if self.data.contains(encoded_value) {
-                    result.risk_level = 1;
-                    break;
-                };
-            }
+            if self.data.contains(&query.id) {
+                result.risk_level = 1;
+            } else {
+                result.risk_level = 0;
+            };
+
             response_vec.extend_from_slice(&result.to_be_bytes());
         }
     }

@@ -1,3 +1,4 @@
+use std::vec::Vec;
 use crate::config::*;
 use crate::suffix::BitvectorSuffix;
 

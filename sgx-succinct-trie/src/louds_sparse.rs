@@ -1,4 +1,5 @@
-use std::intrinsics::size_of;
+use std::vec::Vec;
+use core::intrinsics::size_of;
 
 use crate::builder::Builder;
 // use crate::cache::Cache;

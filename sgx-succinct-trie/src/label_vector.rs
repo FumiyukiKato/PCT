@@ -1,4 +1,5 @@
 use core::intrinsics::{size_of_val};
+use std::vec::Vec;
 use crate::config::*;
 
 pub struct LabelVector {

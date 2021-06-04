@@ -57,12 +57,12 @@ $ bin/up
 #### build
 ```
 $ bin/in
-[docker-inside]$ make clean && FEATURE="fsa gp10" make
+[docker-inside]$ make clean && FEATURE="fsa tah64" make
 ```
 
 #### run
 ```
-[docker-inside]$ bin/app 1000000 data/sample/client.json data/sample/central.json
+[docker-inside]$ bin/app 100 data/sample data/sample/server.csv
 ```
 
 #### random data generator (python3)

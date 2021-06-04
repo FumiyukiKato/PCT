@@ -1,4 +1,5 @@
 use core::intrinsics::size_of_val;
+use std::vec::Vec;
 
 use crate::builder;
 use crate::config::*;
@@ -88,7 +89,6 @@ impl Trie {
         suffixes_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
         cursor += USIZE_BYTE_SIZE;
         let suffixes_len = usize::from_be_bytes(suffixes_len_bytes);
-        println!("suffixes_len: {}", suffixes_len);
 
         let mut suffixes: Vec<Suffix> = Vec::with_capacity(suffixes_len);
         for _ in 0..suffixes_len {
@@ -96,7 +96,6 @@ impl Trie {
             suffix_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
             cursor += USIZE_BYTE_SIZE;
             let suffix_len = usize::from_be_bytes(suffix_len_bytes);
-            println!("suffix_len: {}", suffix_len);
             let suffix = Suffix::deserialize(&bytes[cursor..cursor+suffix_len]);
             cursor += suffix_len;
             suffixes.push(suffix);

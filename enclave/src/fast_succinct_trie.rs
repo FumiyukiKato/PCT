@@ -1,23 +1,15 @@
+use succinct_trie::trie::Trie;
 use std::vec::Vec;
-use std::collections::HashSet;
-use std::mem;
-use bincode;
-use primitive::*;
-use constant::*;
+
 use encoded_result_buffer::EncodedResultBuffer;
 use encoded_query_buffer::EncodedQueryBuffer;
 
-#[derive(Clone, Default, Debug)]
-pub struct EncodedHashTable {
-    pub map: HashSet<EncodedValue>,
+// queryデータの方に使います．
+pub struct FST {
+    pub map: Trie,
 }
-impl EncodedHashTable {
-    pub fn new() -> Self {
-        EncodedHashTable {
-            map: HashSet::with_capacity(THREASHOLD)
-        }
-    }
 
+impl FST {
     pub fn intersect(&self, query_buffer: &EncodedQueryBuffer, result: &mut EncodedResultBuffer) {
         for encoded_value_vec in query_buffer.queries.iter() {
             if result.data.contains(&encoded_value_vec.id) {
@@ -33,13 +25,12 @@ impl EncodedHashTable {
     }
 
     pub fn build_dictionary_buffer(
-        &mut self,
         bytes: Vec<u8>,
-    ) {
-        self.map = bincode::deserialize(&bytes[..]).unwrap();
+    ) -> Self {
+        Self { map: Trie::deserialize(&bytes) }
     }
 
     pub fn calc_memory(&self) {
-        println!("[HashTable] r_i size = {} bytes", (self.map.capacity() * 11 / 10) * (mem::size_of::<EncodedValue>() + mem::size_of::<()>() + mem::size_of::<u64>()));
+        println!("[FSA] r_i size = {} bytes", self.map.byte_size());
     }
 }
