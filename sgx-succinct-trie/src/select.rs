@@ -25,6 +25,7 @@ impl BitvectorSelect {
         for bit in self.select_lut.iter() {
             bytes.extend(bit.to_be_bytes().iter());
         }
+        bytes.shrink_to_fit();
         bytes
     }
 

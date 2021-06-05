@@ -25,9 +25,9 @@ mod tests {
 
     #[test]
     fn contains_check() {
-        let a = vec![48, 49];
-        let b = vec![49, 49];
-        let c = vec![49, 50, 54];
+        let a = vec![48, 49, 50, 50, 1, 0];
+        let b = vec![48, 49, 50, 50, 1, 3];
+        let c = vec![49, 49, 229, 0, 1, 0];
         let d = vec![50, 50, 54, 55, 56, 57];
         let keys: Vec<Vec<u8>> = vec![a, b, c, d];
         let trie = Trie::new(&keys);
@@ -37,10 +37,10 @@ mod tests {
             assert_ne!(key_id, K_NOT_FOUND);
         }
 
-        let not_exist_item_a = vec![48, 49, 50];
-        let not_exist_item_b = vec![48,50];
-        let not_exist_item_c = vec![50, 51, 54, 55, 56, 57];
-        let not_exist_item_d = vec![255, 255, 255, 255, 255, 255, 255];
+        let not_exist_item_a = vec![50, 50, 54, 55, 56, 0];
+        let not_exist_item_b = vec![0, 0, 0, 0, 0, 0];
+        let not_exist_item_c = vec![50, 0, 54, 55, 56, 57];
+        let not_exist_item_d = vec![50, 50, 0, 55, 56, 57];
         let not_exist_keys: Vec<&[u8]> = vec![
             not_exist_item_a.as_slice(),
             not_exist_item_b.as_slice(),
@@ -56,9 +56,9 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let a = vec![48, 49];
-        let b = vec![49, 49];
-        let c = vec![49, 50, 54];
+        let a = vec![48, 49, 50, 50, 1, 0];
+        let b = vec![48, 49, 50, 50, 1, 3];
+        let c = vec![49, 49, 229, 0, 1, 0];
         let d = vec![50, 50, 54, 55, 56, 57];
         let keys: Vec<Vec<u8>> = vec![a, b, c, d];
         let trie = Trie::new(&keys);

@@ -49,6 +49,7 @@ impl LoudsSparse {
         bytes.extend(louds_bits_bytes.len().to_be_bytes().iter());
         bytes.extend(louds_bits_bytes);
 
+        bytes.shrink_to_fit();
         bytes
     }
 

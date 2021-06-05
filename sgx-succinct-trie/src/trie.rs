@@ -9,43 +9,132 @@ use crate::louds_sparse::LoudsSparse;
 pub struct Trie {
     louds_dense: LoudsDense,
     louds_sparse: LoudsSparse,
-    suffixes: Vec<Suffix>,
+    suffixes: Vec<u8>,
+    suffix_ptrs: CompactArray,
 }
 
-// 生ポインタを使えばもっと速くなる
-// ベクタofベクタだとキャッシュにも乗らない
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Suffix {
-    contents: Vec<u8>,
+struct CompactArray {
+    size: u32,
+    mask: u32,
+    bits: u32,
+    chunks: Vec<u32>,
 }
 
-impl Suffix {
+impl CompactArray {
     pub fn serialize(&self) -> Vec<u8> {
-        let mut bytes: Vec<u8> = Vec::with_capacity(10);
-        bytes.extend(self.contents.len().to_be_bytes().iter());
-        bytes.extend(self.contents.as_slice());
+        let mut bytes: Vec<u8> = Vec::with_capacity(1000);
+
+        bytes.extend(self.size.to_be_bytes().iter());
+        bytes.extend(self.mask.to_be_bytes().iter());
+        bytes.extend(self.bits.to_be_bytes().iter());
+
+        bytes.extend(self.chunks.len().to_be_bytes().iter());
+        for u32byte in self.chunks.iter() {
+            bytes.extend(u32byte.to_be_bytes().iter());
+        }
+
+        bytes.shrink_to_fit();
         bytes
     }
 
     pub fn deserialize(bytes: &[u8]) -> Self {
         let mut cursor = 0;
+        let mut size_byte: [u8; U32_BYTE_SIZE] = Default::default();
+        size_byte.copy_from_slice(&bytes[cursor..cursor+U32_BYTE_SIZE]);
+        cursor += U32_BYTE_SIZE;
+        let size = u32::from_be_bytes(size_byte);
 
-        let mut suffix_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
-        suffix_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        let mut mask_byte: [u8; U32_BYTE_SIZE] = Default::default();
+        mask_byte.copy_from_slice(&bytes[cursor..cursor+U32_BYTE_SIZE]);
+        cursor += U32_BYTE_SIZE;
+        let mask = u32::from_be_bytes(mask_byte);
+
+        let mut bits_byte: [u8; U32_BYTE_SIZE] = Default::default();
+        bits_byte.copy_from_slice(&bytes[cursor..cursor+U32_BYTE_SIZE]);
+        cursor += U32_BYTE_SIZE;
+        let bits = u32::from_be_bytes(bits_byte);
+
+        let mut chunks_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        chunks_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
         cursor += USIZE_BYTE_SIZE;
-        let suffix_len = usize::from_be_bytes(suffix_len_bytes);
+        let chunks_len = usize::from_be_bytes(chunks_len_bytes);
 
-        let mut contents: Vec<u8> = Vec::with_capacity(suffix_len);
-        for _ in 0..suffix_len {
-            let mut suffix_word_bytes: [u8; 1] = Default::default();
-            suffix_word_bytes.copy_from_slice(&bytes[cursor..cursor+1]);
-            cursor += 1;
-            let word = u8::from_be_bytes(suffix_word_bytes);
-            contents.push(word);
+        let mut chunks: Vec<u32> = Vec::with_capacity(chunks_len);
+        for _ in 0..chunks_len {
+            let mut chunks_word_bytes: [u8; U32_BYTE_SIZE] = Default::default();
+            chunks_word_bytes.copy_from_slice(&bytes[cursor..cursor+U32_BYTE_SIZE]);
+            cursor += U32_BYTE_SIZE;
+            let word = u32::from_be_bytes(chunks_word_bytes);
+            chunks.push(word);
         }
-        Suffix { contents }
+
+        CompactArray { size, mask, bits, chunks }
+    }
+
+    pub fn new(input: Vec<u32>, input_bits: u32) -> Self {
+        let size = input.len() as u32;
+        let mask = (1u32 << input_bits) - 1;
+        let bits = input_bits;
+        let mut chunks = vec![0; (size * bits / 32 + 1) as usize];
+
+        for i in 0..size {
+            let quo = i * bits / 32;
+            let modu = i * bits % 32;
+            chunks[quo as usize] &= !(mask << modu);
+            chunks[quo as usize] |= (input[i as usize] & mask) << modu;
+            if 32 < modu + bits {
+                chunks[(quo + 1) as usize] &= !(mask >> (32 - modu));
+                chunks[(quo + 1) as usize] |= (input[(i as usize)] & mask) >> (32 - modu);
+            }
+        }
+        CompactArray { size, mask, bits, chunks }
+    }
+
+    pub fn get(&self, i: u32) -> u32 {
+        let quo = i * self.bits / 32;
+        let modu = i * self.bits % 32;
+        return if modu + self.bits <= 32 {
+            (self.chunks[quo as usize] >> modu) & self.mask
+        } else {
+            ((self.chunks[quo as usize] >> modu) | (self.chunks[(quo + 1) as usize] << (32 - modu))) & self.mask
+        }
     }
 }
+
+// // 生ポインタを使えばもっと速くなる
+// // ベクタofベクタだとキャッシュにも乗らない
+// #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+// struct Suffix {
+//     contents: Vec<u8>,
+// }
+
+// impl Suffix {
+//     pub fn serialize(&self) -> Vec<u8> {
+//         let mut bytes: Vec<u8> = Vec::with_capacity(10);
+//         bytes.extend(self.contents.len().to_be_bytes().iter());
+//         bytes.extend(self.contents.as_slice());
+//         bytes
+//     }
+
+//     pub fn deserialize(bytes: &[u8]) -> Self {
+//         let mut cursor = 0;
+
+//         let mut suffix_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+//         suffix_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+//         cursor += USIZE_BYTE_SIZE;
+//         let suffix_len = usize::from_be_bytes(suffix_len_bytes);
+
+//         let mut contents: Vec<u8> = Vec::with_capacity(suffix_len);
+//         for _ in 0..suffix_len {
+//             let mut suffix_word_bytes: [u8; 1] = Default::default();
+//             suffix_word_bytes.copy_from_slice(&bytes[cursor..cursor+1]);
+//             cursor += 1;
+//             let word = u8::from_be_bytes(suffix_word_bytes);
+//             contents.push(word);
+//         }
+//         Suffix { contents }
+//     }
+// }
 
 impl Trie {
     pub fn serialize(&self) -> Vec<u8> {
@@ -60,11 +149,13 @@ impl Trie {
         bytes.extend(louds_sparse_bytes);
 
         bytes.extend(self.suffixes.len().to_be_bytes().iter());
-        for suffix in self.suffixes.iter() {
-            let suffix_bytes = suffix.serialize();
-            bytes.extend(suffix_bytes.len().to_be_bytes().iter());
-            bytes.extend(suffix_bytes);
-        }
+        bytes.extend(self.suffixes.as_slice());
+
+        let suffix_ptrs_bytes = self.suffix_ptrs.serialize();
+        bytes.extend(suffix_ptrs_bytes.len().to_be_bytes().iter());
+        bytes.extend(suffix_ptrs_bytes);
+
+        bytes.shrink_to_fit();
         bytes
     }
 
@@ -89,19 +180,17 @@ impl Trie {
         suffixes_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
         cursor += USIZE_BYTE_SIZE;
         let suffixes_len = usize::from_be_bytes(suffixes_len_bytes);
+        let mut suffixes: Vec<u8> = bytes[cursor..cursor+suffixes_len].to_vec();
+        cursor += suffixes_len;
 
-        let mut suffixes: Vec<Suffix> = Vec::with_capacity(suffixes_len);
-        for _ in 0..suffixes_len {
-            let mut suffix_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
-            suffix_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
-            cursor += USIZE_BYTE_SIZE;
-            let suffix_len = usize::from_be_bytes(suffix_len_bytes);
-            let suffix = Suffix::deserialize(&bytes[cursor..cursor+suffix_len]);
-            cursor += suffix_len;
-            suffixes.push(suffix);
-        }
+        let mut suffix_ptrs_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
+        suffix_ptrs_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
+        cursor += USIZE_BYTE_SIZE;
+        let suffix_ptrs_len = usize::from_be_bytes(suffix_ptrs_len_bytes);
+        let suffix_ptrs = CompactArray::deserialize(&bytes[cursor..cursor+suffix_ptrs_len]);
+        cursor += suffix_ptrs_len;
 
-        Trie { louds_dense, louds_sparse, suffixes }
+        Trie { louds_dense, louds_sparse, suffixes, suffix_ptrs }
     }
 
     pub fn new(keys: &Vec<Vec<u8>>) -> Self {
@@ -118,10 +207,9 @@ impl Trie {
             num_keys += builder.get_suffix_counts()[level];
         }
 
-        let mut suffix_builder: Vec<Suffix> = vec![
-            Suffix {
-                contents: Vec::new(),
-            };
+        let mut suffixes = vec![0u8];
+        let mut suffix_builder: Vec<(Vec<u8>, usize)> = vec![
+            (vec![], K_NOT_FOUND);
             num_keys
         ];
         for i in 0..keys.len() {
@@ -138,13 +226,52 @@ impl Trie {
             }
             assert!(key_id < num_keys);
             let contents = keys[i][level..].to_vec();
-            suffix_builder[key_id] = Suffix { contents };
+            suffix_builder[key_id] = (contents, key_id);
         }
+
+        suffix_builder.sort_by(|a, b| a.0.cmp(&b.0));
+        let mut suffix_ptrs: Vec<u32> = vec![0; num_keys];
+        
+        let mut prev_suffix = (vec![], K_NOT_FOUND);
+        for i in 0usize .. num_keys {
+            let curr_suffix = &suffix_builder[num_keys - i - 1];
+            if curr_suffix.0.len() == 0 {
+                suffix_ptrs[curr_suffix.1] = 0;
+                continue;
+            }
+
+            let mut match_val = 0;
+            while match_val < curr_suffix.0.len() && match_val < prev_suffix.0.len() && prev_suffix.0[match_val] == curr_suffix.0[match_val] {
+                match_val += 1;
+            }
+            if match_val == curr_suffix.0.len() && prev_suffix.0.len() != 0 {
+                suffix_ptrs[curr_suffix.1] = suffix_ptrs[prev_suffix.1] + (prev_suffix.0.len() - match_val) as u32;
+            } else {
+                suffix_ptrs[curr_suffix.1] = suffixes.len() as u32;
+                suffixes.extend(curr_suffix.0.clone());
+                // suffixes.push(0);
+            }
+            prev_suffix = curr_suffix.clone();
+        }
+
+        let mut suf_bits: u32 = 0;
+        let mut max_ptr: u32 = suffixes.len() as u32;
+
+        suf_bits += 1;
+        max_ptr >>= 1;
+        while max_ptr != 0 {
+            suf_bits += 1;
+            max_ptr >>= 1;
+        }
+
+        let suffix_ptrs = CompactArray::new(suffix_ptrs, suf_bits);
+        suffixes.shrink_to_fit();
 
         return Trie {
             louds_dense,
             louds_sparse,
-            suffixes: suffix_builder,
+            suffixes,
+            suffix_ptrs: suffix_ptrs
         };
     }
 
@@ -180,17 +307,24 @@ impl Trie {
             return K_NOT_FOUND;
         }
 
-        let suffix = &self.suffixes[key_id].contents;
-        let length = key.len() - level;
-        if length != suffix.len() {
-            return K_NOT_FOUND;
+        let mut suf_pos: position_t = self.suffix_ptrs.get(key_id as u32) as position_t;
+        if suf_pos == 0 {
+            return key_id
         }
 
-        for (cur_key, cur_suf) in key[level..].iter().zip(suffix.iter()) {
-            if cur_key != cur_suf {
-                return K_NOT_FOUND;
+        let mut curr_level = level;
+        for _ in level..key.len() {
+            if key[curr_level] != self.suffixes[suf_pos] {
+                return K_NOT_FOUND
             }
+            suf_pos += 1;
+            curr_level += 1;
         }
+
+        if curr_level != key.len() {
+            return K_NOT_FOUND
+        }
+
         return key_id;
     }
 

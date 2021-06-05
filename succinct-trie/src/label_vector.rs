@@ -12,6 +12,7 @@ impl LabelVector {
         for bit in self.labels.iter() {
             bytes.extend(bit.to_be_bytes().iter());
         }
+        bytes.shrink_to_fit();
         bytes
     }
 

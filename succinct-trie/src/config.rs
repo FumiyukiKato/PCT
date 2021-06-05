@@ -16,6 +16,7 @@ pub type node_t = u8;
 pub type key_t = [node_t];
 
 pub const LABEL_T_BYTE_SIZE: usize = 1;
+pub const U32_BYTE_SIZE: usize = 4;
 pub const USIZE_BYTE_SIZE: usize = 8;
 pub const POSITION_T_BYTE_SIZE: usize = 8;
 pub const WORD_T_BYTE_SIZE: usize = 8;

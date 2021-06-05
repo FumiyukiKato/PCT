@@ -26,7 +26,8 @@ pub const ENCODEDVALUE_SIZE: usize = 7;
 #[cfg(feature = "th64")]
 pub const ENCODEDVALUE_SIZE: usize = 8;
 
-pub const QUERY_SIZE: usize = 20160;
+// pub const QUERY_SIZE: usize = 20160;
+pub const QUERY_SIZE: usize = 1439;
 
 // for optimization
 // pub const CLIENT_SIZE: usize = 4500;

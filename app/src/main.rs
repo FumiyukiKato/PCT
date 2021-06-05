@@ -363,7 +363,7 @@ fn size_compare() {
 }
 
 fn main() {
-    // private_set_intersection()
+    private_set_intersection()
     // non_private_set_intersection()
-    size_compare()
+    // size_compare()
 }

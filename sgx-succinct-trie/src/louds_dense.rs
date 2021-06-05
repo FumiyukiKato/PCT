@@ -34,6 +34,7 @@ impl LoudsDense {
         bytes.extend(prefixkey_indicator_bits_bytes.len().to_be_bytes().iter());
         bytes.extend(prefixkey_indicator_bits_bytes);
 
+        bytes.shrink_to_fit();
         bytes
     }
 

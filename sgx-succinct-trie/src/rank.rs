@@ -26,6 +26,7 @@ impl BitvectorRank {
         for bit in self.rank_lut.iter() {
             bytes.extend(bit.to_be_bytes().iter());
         }
+        bytes.shrink_to_fit();
         bytes
     }
 
