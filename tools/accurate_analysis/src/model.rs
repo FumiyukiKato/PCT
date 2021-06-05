@@ -11,9 +11,9 @@ pub struct TrajectoryModel {
 #[derive(Debug, Insertable)]
 #[table_name = "trajectory"]
 pub struct Trajectory {
-    time: i64,
-    longitude: f64,
-    latitude: f64,
+    pub time: i64,
+    pub longitude: f64,
+    pub latitude: f64,
 }
 
 impl Trajectory {

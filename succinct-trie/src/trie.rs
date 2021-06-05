@@ -119,6 +119,7 @@ impl Trie {
             num_keys += builder.get_suffix_counts()[level];
         }
 
+
         let mut suffix_builder: Vec<Suffix> = vec![
             Suffix {
                 contents: Vec::new(),
@@ -141,6 +142,12 @@ impl Trie {
             let contents = keys[i][level..].to_vec();
             suffix_builder[key_id] = Suffix { contents };
         }
+
+        let mut suffix_len_vec = vec![0, 0, 0, 0 ,0,0,0];
+        for s in suffix_builder.iter() {
+            suffix_len_vec[s.contents.len()] += 1;
+        }
+        println!("suffix_len_vec : {:?}", suffix_len_vec);
 
         return Trie {
             louds_dense,

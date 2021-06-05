@@ -339,7 +339,31 @@ fn non_private_set_intersection() {
     );
 }
 
+fn size_compare() {
+    let args = _get_options();
+    /* parameters */
+    let threashould: usize = args[0].parse().unwrap();
+    let q_dirname = &args[1];
+    let client_num: u32 = args[2].parse().unwrap();
+    let c_filename = &args[3];
+
+    let mut clocker = Clocker::new();
+
+    /* read central data */
+    clocker.set_and_start("Read Central Data");
+    let mut central_data = util::read_trajectory_hash_from_csv(c_filename);
+    clocker.stop("Read Central Data");
+    let central_data_size = central_data.len();
+
+    /* preprocess central data */
+    clocker.set_and_start("Distribute central data");
+    // let mut R_hash_set: CentralHashSet = CentralHashSet::from_encoded_data(central_data, threashould);
+    let mut R_trie: CentralTrie = CentralTrie::from_encoded_data(central_data, threashould);
+    clocker.stop("Distribute central data");
+}
+
 fn main() {
-    private_set_intersection()
+    // private_set_intersection()
     // non_private_set_intersection()
+    size_compare()
 }

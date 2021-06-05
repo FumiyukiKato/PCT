@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use succinct_trie::trie::Trie;
 use bincode;
 use std::mem;
+use util::ENCODEDVALUE_SIZE;
 
 use crate::enc_util::encrypt_central_data;
 
@@ -54,6 +55,7 @@ impl CentralTrie {
             let trie: Trie = Trie::new(&ordered_vec);
             println!(" r_i (server side chunk data) size = {} bytes", trie.byte_size());
             let bytes = trie.serialize();
+            println!("Trie byte len = {}", bytes.len());
             this.data.push(encrypt_central_data(&bytes, CENTRAL_KEY));
         }
         this
@@ -83,7 +85,7 @@ impl CentralHashSet {
     pub fn from_encoded_data(mut encoded_data: Vec<Vec<u8>>, threashould: usize) -> Self {
         encoded_data.sort();
 
-        let mut hashset: HashSet<EncodedValue> = HashSet::with_capacity(threashould);
+        let mut hashset: HashSet<EncodedValue> = HashSet::with_capacity(0);
         
         let mut this = CentralHashSet::new();
         for (i, value) in encoded_data.iter().enumerate() {
@@ -96,8 +98,10 @@ impl CentralHashSet {
             }
         }
         if hashset.len() > 0 {
+            println!("[HashSet] len {}", hashset.len());
             let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
             println!("[HashSet] r_i size = {} bytes", bytes.len());
+            println!("HashTable size = {} bytes", (hashset.capacity() * 11 / 10) * (ENCODEDVALUE_SIZE + mem::size_of::<u64>()));
             this.data.push(bytes);
         }
         this

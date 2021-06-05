@@ -6,20 +6,20 @@ seed = 0
 
 # starting and end times of the simulation
 start_time = int(pd.to_datetime('2020/08/20 00:00:00').timestamp())
-end_time = int(pd.to_datetime('2020/09/03 00:00:00').timestamp())
+end_time = int(pd.to_datetime('2020/08/20 00:30:00').timestamp())
 
-MIN_lng = -75.0
-MAX_lng = -74.0
+MIN_lng = -74.001
+MAX_lng = -74.00
 DIFF_lng = MAX_lng - MIN_lng
 
 MIN_lat = 40.0
-MAX_lat = 41.0
+MAX_lat = 40.001
 DIFF_lat = MAX_lat - MIN_lat
 
 num_of_data = (end_time - start_time) // 60
 
 num_of_client = 1000
-num_of_server_data = 1000
+num_of_server_data = 100000
 
 def generate_one_client_random_data():
     data = {'time': [], 'lng': [], 'lat': []}

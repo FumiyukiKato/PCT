@@ -59,7 +59,6 @@ fn main() {
         },
         "client" => {
             let re = Regex::new(r".+/client-(?P<client_id>\d+)-.+.csv").unwrap();
-            
             for entry in glob(format!("{}/*.csv", opts.input_file).as_str()).expect("Failed to read glob pattern") {
                 match entry {
                     Ok(path) => {

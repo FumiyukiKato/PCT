@@ -40,3 +40,5 @@ __pycache__/*
 data/＊
 !data/sample
 result/
+
+*/**/*.pyc
