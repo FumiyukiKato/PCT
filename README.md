@@ -72,10 +72,6 @@ $ bin/in
     args[3] = central data file path"
 ```
 
-#### random data generator (python3)
-```
-$ python script/generator-script-name
-```
 
 #### Other materials
 - SDK
