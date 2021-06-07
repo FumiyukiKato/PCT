@@ -26,7 +26,6 @@ pub fn encrypt_central_data(central_byte_data: &Vec<u8>, key: u64) -> Vec<u8> {
     let src_len: usize = central_byte_data.len();
     let mut encrypted_buf: Vec<u8> = vec![0; src_len];
 
-    // #[cfg(any(feature = "th64", feature = "th56"))]
     let ret = unsafe { 
         sgx_aes_ctr_encrypt(
             &shared_key,

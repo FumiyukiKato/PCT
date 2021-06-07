@@ -10,16 +10,7 @@ use std::{
 };
 use regex::Regex;
 
-// pub const ENCODEDVALUE_SIZE: usize = 8;
-
-#[cfg(feature = "gp10")]
-pub const ENCODEDVALUE_SIZE: usize = 14;
-
-#[cfg(feature = "th64")]
-pub const ENCODEDVALUE_SIZE: usize = 8;
-
-#[cfg(feature = "th56")]
-pub const ENCODEDVALUE_SIZE: usize = 7;
+include!(concat!(env!("OUT_DIR"), "/init_constants.rs"));
 
 pub const SGXSSL_CTR_BITS: u32 = 128;
 pub const COUNTER_BLOCK: [u8; 16] = [0; 16];
@@ -132,7 +123,7 @@ pub fn read_trajectory_hash_from_csv_for_clients(dirname: &str, client_num: u32)
                 if client_num <= client_id {
                     continue;
                 }
-                println!("start ... filepath {}, client_id {}", filepath, client_id);
+                // println!("start ... filepath {}, client_id {}", filepath, client_id);
                 let client_data = read_trajectory_hash_from_csv(path.to_str().unwrap());
 
                 query_data.push(client_data);
@@ -168,7 +159,6 @@ fn hex_to_num(c: char) -> u8 {
 pub fn write_to_file(
     file_name: String,
     data_structure_type: String,
-    method: String,
     central_data_file: String,
     central_data_size: usize,
     query_data_file: String,
@@ -184,7 +174,6 @@ pub fn write_to_file(
 Basic data
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 data structure type       : {data_structure_type}
-encoding method           : {method}
 threashould               : {threashould}
 central data file         : size = {central_data_size}, {central_data_file}
 query data file           : size = {query_size} x {client_size}, {query_data_file}
@@ -195,7 +184,6 @@ Clocker data
 -----------------------------------------------------------------------------
 "#,
         data_structure_type = data_structure_type,
-        method = method,
         central_data_file = central_data_file,
         central_data_size = central_data_size,
         query_data_file = query_data_file,

@@ -31,8 +31,7 @@ opt-level = 3
 
 [features]
 default = []
-th64 = []
-th56 = []
-gp10 = []
+nfp = []
+st = []
 fsa = []
 hashtable = []

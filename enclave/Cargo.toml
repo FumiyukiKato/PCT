@@ -12,9 +12,8 @@ crate-type = ["staticlib"]
 
 [features]
 default = []
-th64 = []
-th56 = []
-gp10 = []
+nfp = []
+st = []
 fsa = []
 hashtable = []
 

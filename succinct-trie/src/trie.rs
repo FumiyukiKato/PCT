@@ -191,7 +191,7 @@ impl Trie {
         suffixes_len_bytes.copy_from_slice(&bytes[cursor..cursor+USIZE_BYTE_SIZE]);
         cursor += USIZE_BYTE_SIZE;
         let suffixes_len = usize::from_be_bytes(suffixes_len_bytes);
-        let mut suffixes: Vec<u8> = bytes[cursor..cursor+suffixes_len].to_vec();
+        let suffixes: Vec<u8> = bytes[cursor..cursor+suffixes_len].to_vec();
         cursor += suffixes_len;
 
         let mut suffix_ptrs_len_bytes: [u8; USIZE_BYTE_SIZE] = Default::default();
@@ -199,7 +199,6 @@ impl Trie {
         cursor += USIZE_BYTE_SIZE;
         let suffix_ptrs_len = usize::from_be_bytes(suffix_ptrs_len_bytes);
         let suffix_ptrs = CompactArray::deserialize(&bytes[cursor..cursor+suffix_ptrs_len]);
-        cursor += suffix_ptrs_len;
 
         Trie { louds_dense, louds_sparse, suffixes, suffix_ptrs }
     }

@@ -1,5 +1,7 @@
 /* Constants */
 
+include!(concat!(env!("OUT_DIR"), "/init_constants.rs"));
+
 pub const UNIXEPOCH_U8_SIZE: usize = 10;
 pub const GEOHASH_U8_SIZE: usize = 10;
 pub const QUERY_U8_SIZE: usize = UNIXEPOCH_U8_SIZE + GEOHASH_U8_SIZE;
@@ -15,25 +17,7 @@ pub const CONTACT_TIME_THREASHOLD: u64 = 600;
 // UNIX EPOCH INTERVAL OF THE GPS DATA
 pub const TIME_INTERVAL: u64 = 600;
 
-// pub const ENCODEDVALUE_SIZE: usize = 8;
-
-#[cfg(feature = "gp10")]
-pub const ENCODEDVALUE_SIZE: usize = 14;
-
-#[cfg(feature = "th56")]
-pub const ENCODEDVALUE_SIZE: usize = 7;
-
-#[cfg(feature = "th64")]
-pub const ENCODEDVALUE_SIZE: usize = 8;
-
-// pub const QUERY_SIZE: usize = 20160;
-pub const QUERY_SIZE: usize = 1439;
-
-// for optimization
-// pub const CLIENT_SIZE: usize = 4500;
-
 pub const CENTRAL_KEY: u64 = 777;
-
 
 // for secure channel encryption
 pub const COUNTER_BLOCK: [u8; 16] = [0; 16];

@@ -47,15 +47,16 @@ pub const RESPONSE_DATA_SIZE_U8: usize = QUERY_ID_SIZE_U8 + QUERY_RESULT_U8;
 
 /*
     args[0] = threashold of each chunk block size
-    args[1] = query data file path
-    args[2] = central data file path
+    args[1] = query data file dir (clientfile format => client-(theta_geo)-(theta_time)-(client_id)-(.+).csv
+    args[2] = number of clients
+    args[3] = central data file path"
 */
 fn _get_options() -> Vec<String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 4 {
         println!(" ERROR bin/app needs 3 arguments!");
         println!("    args[0] = threashold of each chunk block size");
-        println!("    args[1] = query data file path");
+        println!("    args[1] = query data file dir (clientfile format => client-(theta_geo)-(theta_time)-(client_id)-(.+).csv");
         println!("    args[2] = number of clients");
         println!("    args[3] = central data file path");
         std::process::exit(-1);
@@ -219,11 +220,6 @@ fn private_set_intersection() {
     clocker.show_all();
     let now: String = get_timestamp();
 
-    #[cfg(feature = "th56")]
-    let method = "th56";
-    #[cfg(feature = "th64")]
-    let method = "th64";
-
 
     #[cfg(feature = "hashtable")]
     let data_st = "hashtable";
@@ -231,11 +227,10 @@ fn private_set_intersection() {
     let data_st = "fsa";
 
     write_to_file(
-        format!("result/{}-{}-{}-{}-{}-{}.txt",
-            data_st.to_string(), method.to_string(), threashould, client_size, central_data_size, now
+        format!("result/{}-{}-{}-{}-{}.txt",
+            data_st.to_string(), threashould, client_size, central_data_size, now
         ),
         data_st.to_string(),
-        method.to_string(),
         c_filename.to_string(),
         central_data_size,
         q_dirname.to_string(),
@@ -267,7 +262,7 @@ fn non_private_set_intersection() {
     #[cfg(feature = "hashtable")]
     let mut R: NonPrivateHashSet = NonPrivateHashSet::from_encoded_data(central_data);
     #[cfg(feature = "fsa")]
-    let mut R: NonPrivateFSA = NonPrivateFSA::from_encoded_data(central_data);
+    let mut R: NonPrivateFST = NonPrivateFST::from_encoded_data(central_data);
     clocker.stop("Distribute central data");
 
     R.calc_memory();
@@ -300,23 +295,16 @@ fn non_private_set_intersection() {
     query_data.iter().zip(query_id_list).for_each( |(query, query_id)| {
         let query_id = query_id;
         let contact = query.iter().any(|hash| {
-            R.set.contains(&hash.as_slice())
+            R.set.contains(hash.as_slice())
         });
         if contact {
             positive_queries.insert(query_id);
         }
     });
-    // println!("positive result queryIds: {:?}", positive_queries);
+    println!("positive result queryIds: {:?}", positive_queries);
     
     clocker.show_all();
     let now: String = get_timestamp();
-
-    #[cfg(feature = "th56")]
-    let method = "th56";
-    #[cfg(feature = "th64")]
-    let method = "th64";
-    #[cfg(feature = "gp10")]
-    let method = "gp10";
 
     #[cfg(feature = "hashtable")]
     let data_st = "hashtable";
@@ -324,11 +312,10 @@ fn non_private_set_intersection() {
     let data_st = "fsa";
 
     write_to_file(
-        format!("result/{}-{}-{}-{}-{}-{}.txt",
-            data_st.to_string(), method.to_string(), threashould, client_size, central_data_size, now
+        format!("result/{}-{}-{}-{}-{}.txt",
+            data_st.to_string(), threashould, client_size, central_data_size, now
         ),
         data_st.to_string(),
-        method.to_string(),
         c_filename.to_string(),
         central_data_size,
         q_dirname.to_string(),

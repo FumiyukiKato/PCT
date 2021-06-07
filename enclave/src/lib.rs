@@ -48,10 +48,10 @@ mod period;
 mod query_result;
 mod encoded_query_buffer;
 mod encoded_result_buffer;
-mod mapped_encoded_query_buffer;
 mod encoded_dictionary_buffer;
 mod encoded_hash_table;
 mod fast_succinct_trie;
+
 
 use constant::*;
 use encoded_query_buffer::EncodedQueryBuffer;
@@ -73,16 +73,6 @@ pub fn get_ref_encoded_query_buffer() -> Option<&'static RefCell<EncodedQueryBuf
         Some(unsafe { &* ptr })
     }
 }
-
-// pub static MAPPED_ENCODED_QUERY_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
-// pub fn get_ref_mapped_encoded_query_buffer() -> Option<&'static RefCell<MappedEncodedQueryBuffer>> {
-//     let ptr = MAPPED_ENCODED_QUERY_BUFFER.load(Ordering::SeqCst) as * mut RefCell<MappedEncodedQueryBuffer>;
-//     if ptr.is_null() {
-//         None
-//     } else {
-//         Some(unsafe { &* ptr })
-//     }
-// }
 
 pub static ENCODED_RESULT_BUFFER: AtomicPtr<()> = AtomicPtr::new(0 as * mut ());
 pub fn get_ref_encoded_result_buffer() -> Option<&'static RefCell<EncodedResultBuffer>> {

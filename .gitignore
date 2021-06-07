@@ -36,9 +36,10 @@ __pycache__/*
 .python-version
 
 */**/*.csv
+!data/sample/client-24-22-0-sample.csv
+!data/sample/client-24-22-1-sample.csv
+!data/sample/server.csv
 
-data/＊
-!data/sample
 result/
 
 */**/*.pyc

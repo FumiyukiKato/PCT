@@ -1,7 +1,3 @@
-// TODO; sgx mode
-// #![cfg_attr(not(target_env = "sgx"), no_std)]
-// #[macro_use]
-// extern crate sgx_tstd as std;
 #![feature(core_intrinsics)]
 #[warn(non_camel_case_types)]
 
@@ -25,7 +21,7 @@ mod tests {
 
     #[test]
     fn contains_check() {
-        let a = vec![48, 49, 50, 50, 1, 0];
+        let a = vec![0, 0, 0, 0, 1, 0];
         let b = vec![48, 49, 50, 50, 1, 3];
         let c = vec![49, 49, 229, 0, 1, 0];
         let d = vec![50, 50, 54, 55, 56, 57];
@@ -39,7 +35,7 @@ mod tests {
 
         let not_exist_item_a = vec![50, 50, 54, 55, 56, 0];
         let not_exist_item_b = vec![0, 0, 0, 0, 0, 0];
-        let not_exist_item_c = vec![50, 0, 54, 55, 56, 57];
+        let not_exist_item_c = vec![0, 0, 0, 0, 1, 100];
         let not_exist_item_d = vec![50, 50, 0, 55, 56, 57];
         let not_exist_keys: Vec<&[u8]> = vec![
             not_exist_item_a.as_slice(),
@@ -56,7 +52,7 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let a = vec![48, 49, 50, 50, 1, 0];
+        let a = vec![0, 0, 0, 0, 1, 0];
         let b = vec![48, 49, 50, 50, 1, 3];
         let c = vec![49, 49, 229, 0, 1, 0];
         let d = vec![50, 50, 54, 55, 56, 57];
@@ -76,7 +72,16 @@ mod tests {
             println!("key_id: {}", key_id);
             assert_ne!(key_id, K_NOT_FOUND);
         }
-        let key_id = new_trie.exact_search(vec![48].as_slice());
+
+        let key_id = new_trie.exact_search(vec![0, 0, 0, 0, 1, 0].as_slice());
+        assert_ne!(key_id, K_NOT_FOUND);
+        let key_id = new_trie.exact_search(vec![0, 0, 0, 0, 0, 0].as_slice());
+        assert_eq!(key_id, K_NOT_FOUND);
+        let key_id = new_trie.exact_search(vec![1, 0, 0, 0, 0, 0].as_slice());
+        assert_eq!(key_id, K_NOT_FOUND);
+        let key_id = new_trie.exact_search(vec![0, 0, 0, 0, 0, 1].as_slice());
+        assert_eq!(key_id, K_NOT_FOUND);
+        let key_id = new_trie.exact_search(vec![10, 10, 10, 10, 1, 100].as_slice());
         assert_eq!(key_id, K_NOT_FOUND);
     }
 }

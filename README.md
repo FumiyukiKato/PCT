@@ -57,12 +57,19 @@ $ bin/up
 #### build
 ```
 $ bin/in
-[docker-inside]$ make clean && FEATURE="fsa tah64" make
+[docker-inside]$ make clean && QUERY_SIZE=1439 ENCODEDVALUE_SIZE=8 FEATURE="fsa st" make
 ```
 
 #### run
 ```
-[docker-inside]$ bin/app 100 data/sample data/sample/server.csv
+[docker-inside]$ make clean && QUERY_SIZE=1439 ENCODEDVALUE_SIZE=8 FEATURE="fsa st" make && RUST_BACKTRACE=1 bin/app 10000 data/sample 2 data/sample/server.csv
+```
+
+```
+    args[0] = threashold of each chunk block size
+    args[1] = query data file dir (clientfile format => client-(theta_geo)-(theta_time)-(client_id)-(.+).csv
+    args[2] = number of clients
+    args[3] = central data file path"
 ```
 
 #### random data generator (python3)

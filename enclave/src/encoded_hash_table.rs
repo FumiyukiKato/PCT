@@ -7,21 +7,21 @@ use constant::*;
 use encoded_result_buffer::EncodedResultBuffer;
 use encoded_query_buffer::EncodedQueryBuffer;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct EncodedHashTable {
     pub map: HashSet<EncodedValue>,
 }
 impl EncodedHashTable {
     pub fn new() -> Self {
         EncodedHashTable {
-            map: HashSet::with_capacity(THREASHOLD)
+            map: HashSet::<EncodedValue>::with_capacity(THREASHOLD)
         }
     }
 
     pub fn intersect(&self, query_buffer: &EncodedQueryBuffer, result: &mut EncodedResultBuffer) {
         for encoded_value_vec in query_buffer.queries.iter() {
             if result.data.contains(&encoded_value_vec.id) {
-               continue; 
+                continue; 
             }
             for key in encoded_value_vec.parameters.iter() {
                 if self.map.contains(key) {
@@ -33,10 +33,10 @@ impl EncodedHashTable {
     }
 
     pub fn build_dictionary_buffer(
-        &mut self,
         bytes: Vec<u8>,
-    ) {
-        self.map = bincode::deserialize(&bytes[..]).unwrap();
+    ) -> Self {
+        let dict: HashSet<EncodedValue> = bincode::deserialize(&bytes[..]).unwrap();
+        Self { map: dict }
     }
 
     pub fn calc_memory(&self) {

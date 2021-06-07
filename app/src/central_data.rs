@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use succinct_trie::trie::Trie;
 use bincode;
 use std::mem;
-use util::ENCODEDVALUE_SIZE;
 
 use crate::enc_util::encrypt_central_data;
 
@@ -40,18 +39,21 @@ impl CentralTrie {
 
         let mut ordered_vec: Vec<EncodedValue> = vec![];
         let mut this = CentralTrie::new();
-
+        let mut count = 1;
         for (i, value) in encoded_data.iter().enumerate() {
             ordered_vec.push(value.clone());
             if (i+1) % threashould == 0 {
+                println!("{}th trie creation", count);
                 let trie: Trie = Trie::new(&ordered_vec);
                 println!(" r_i (server side chunk data) size = {} bytes", trie.byte_size());
                 let bytes = trie.serialize();
                 this.data.push(encrypt_central_data(&bytes, CENTRAL_KEY));
                 ordered_vec = vec![];
+                count += 1;
             }
         }
         if ordered_vec.len() > 0 {
+            println!("Last trie creation");
             let trie: Trie = Trie::new(&ordered_vec);
             println!(" r_i (server side chunk data) size = {} bytes", trie.byte_size());
             let bytes = trie.serialize();
@@ -93,16 +95,14 @@ impl CentralHashSet {
             if (i+1) % threashould == 0 {
                 let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
                 println!("[HashSet] r_i size = {} bytes", bytes.len());
-                this.data.push(bytes);
+                this.data.push(encrypt_central_data(&bytes, CENTRAL_KEY));
                 hashset = HashSet::with_capacity(threashould);
             }
         }
         if hashset.len() > 0 {
-            println!("[HashSet] len {}", hashset.len());
             let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
             println!("[HashSet] r_i size = {} bytes", bytes.len());
-            println!("HashTable size = {} bytes", (hashset.capacity() * 11 / 10) * (ENCODEDVALUE_SIZE + mem::size_of::<u64>()));
-            this.data.push(bytes);
+            this.data.push(encrypt_central_data(&bytes, CENTRAL_KEY));
         }
         this
     }
@@ -134,22 +134,20 @@ impl NonPrivateHashSet {
     }
 }
 
-pub struct NonPrivateFSA {
+pub struct NonPrivateFST {
     pub set: Trie,
 }
 
-impl NonPrivateFSA {
+impl NonPrivateFST {
     pub fn new() -> Self {
-        NonPrivateFSA {
+        NonPrivateFST {
             set: Trie::new(&vec![vec![]])
         }
     }
 
     pub fn from_encoded_data(mut encoded_data: Vec<Vec<u8>>) -> Self {
         encoded_data.sort();
-        let mut this = NonPrivateFSA::new();
-        this.set = Trie::new(&encoded_data);
-        this
+        NonPrivateFST { set: Trie::new(&encoded_data) }
     }
 
     pub fn calc_memory(&self) {

@@ -15,11 +15,23 @@
 // specific language governing permissions and limitations
 // under the License..
 
-use std::env;
+use std::{env, fs::File, io::Write, path::Path};
 
 extern crate cc;
 
 fn main () {
+    let out_dir = env::var("OUT_DIR").expect("No out dir");
+    let dest_path = Path::new(&out_dir).join("init_constants.rs");
+    let mut f = File::create(&dest_path).expect("Could not create file");
+
+    let encoded_value_size = option_env!("ENCODEDVALUE_SIZE");
+    let encoded_value_size: usize = encoded_value_size
+        .expect("Could not parse MAX_DIMENSIONS")
+        .parse()
+        .expect("Could not parse MAX_DIMENSIONS");
+    write!(&mut f, "pub const ENCODEDVALUE_SIZE: usize = {};", encoded_value_size)
+        .expect("Could not write file");
+
     cc::Build::new()
         .cpp(true)
         .warnings(true)
