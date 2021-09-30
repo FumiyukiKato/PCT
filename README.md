@@ -14,7 +14,9 @@ Fumiyuki Kato, Yang Cao, Masatoshi Yoshikawa.<br>
 7th International Workshop on Privacy and Security of Big Data (PSBD 2020) @IEEE BigData 2020 <br>
 https://arxiv.org/abs/2010.13381
 
-- [Extended Journal Version] https://arxiv.org/abs/2012.03782
+- [**ACM Transactions on Spatial Algorithms and Systems**] PCT-TEE: Trajectory-based Private Contact Tracing System with Trusted Execution Environment <br>
+Fumiyuki Kato, Yang Cao, Yoshikawa Masatoshi <br>
+https://arxiv.org/abs/2012.03782
 
 <img width="500" alt="carousel" src="https://user-images.githubusercontent.com/27177602/91183605-a3236200-e726-11ea-894b-ae7f419ca0b8.png">
 
