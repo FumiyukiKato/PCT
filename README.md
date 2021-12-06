@@ -44,10 +44,10 @@ $ git clone https://github.com/ylab-public/PCT
 $ cd PCT
 ```
 
-3. Set environment variables like below. 
+3. Set environment variables like below on `.env` to pass the docker container.
 ```
-RUST_SDK_ROOT=/path/to/incubator-teaclave-sgx-sdk
-PCT_DIR=/path/to/PCT
+RUST_SDK_ROOT=/your/own/path/to/incubator-teaclave-sgx-sdk
+PCT_DIR=/your/own/path/to/PCT
 ```
 
 4. Wake up docker container including AESM service
