@@ -2,4 +2,4 @@
 
 PROJECT_NAME=PCT
 
-cd docker && docker-compose -p $PROJECT_NAME up
+cd docker && docker-compose -p $PROJECT_NAME up -d
