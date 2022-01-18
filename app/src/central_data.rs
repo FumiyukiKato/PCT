@@ -87,11 +87,13 @@ impl CentralHashSet {
     pub fn from_encoded_data(mut encoded_data: Vec<Vec<u8>>, threashould: usize) -> Self {
         encoded_data.sort();
 
-        let mut hashset: HashSet<EncodedValue> = HashSet::with_capacity(0);
+        let mut hashset: HashSet<[u8; 8]> = HashSet::with_capacity(0);
         
         let mut this = CentralHashSet::new();
         for (i, value) in encoded_data.iter().enumerate() {
-            hashset.insert(value.clone());
+            let mut arr = [0u8; 8];
+            arr.copy_from_slice(value);
+            hashset.insert(arr);
             if (i+1) % threashould == 0 {
                 let bytes: Vec<u8> = bincode::serialize(&hashset).unwrap();
                 println!("[HashSet] r_i size = {} bytes", bytes.len());
